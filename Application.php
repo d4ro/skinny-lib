@@ -212,7 +212,7 @@ class Application {
                 $action = $this->_request->current()->getAction();
                 if (null === $action) {
                     $notFoundAction = $this->_config->actions->notFound(null);
-                    if (null === $notFoundAction) {
+                    if (null !== $notFoundAction) {
                         $this->_request->next(new Request\Step($notFoundAction, ['error' => 'notFound', 'requestStep' => $this->_request->current()]));
                         $this->_request->proceed();
                         continue;
