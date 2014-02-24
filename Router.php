@@ -31,30 +31,10 @@ class Router implements Router\RouterInterface {
     protected $_baseUrl;
 
     /**
-     * Obiekt zapytania, który aktualnie odnosi się do routera
-     * @var Request
-     */
-    protected $_request;
-
-    /**
      * Konfiguracja routera
      * @var Store
      */
     protected $_config;
-
-    /**
-     * Instancja ostatnio tworzonego routera
-     * @var Router
-     */
-    protected static $_instance;
-
-    /**
-     * Pobiera instację ostatnio tworzonego routera.
-     * @return Router
-     */
-    public static function getInstance() {
-        return static::$_instance;
-    }
 
     /**
      * Konstruktor obiektu routera. Pobiera ścieżkę zawartości aplikacji i cache'u oraz ustawnia router podaną konfiguracją.
@@ -66,16 +46,6 @@ class Router implements Router\RouterInterface {
         $this->_contentPath = $contentPath;
         $this->_cachePath = $cachePath;
         $this->_config = ($config instanceof Store) ? $config : new Store($config);
-
-        static::$_instance = $this;
-    }
-
-    /**
-     * Ustawia obiekt żądania przypisany do aktualnej pracy routera.
-     * @param type $request
-     */
-    public function setRequest($request) {
-        $this->_request = $request;
     }
 
     /**
@@ -122,7 +92,7 @@ class Router implements Router\RouterInterface {
                     $actionFile = Path::combine($this->_contentPath, $actionParts) . '.php';
                     require $actionFile;
                 }
-                $container->setAction(new $actionClassName($this->_request));
+                $container->setAction(new $actionClassName());
             } catch (Exception $e) {
                 
             }

@@ -9,17 +9,18 @@ namespace Skinny;
  */
 abstract class Action {
 
-    protected $_request;
+    /**
+     * 
+     * @var Application
+     */
+    private $_application;
     private $_usage;
 
     /**
      * Konstruktor akcji - nie przeciążamy! Od tego jest _init().
-     * @param \Skinny\Request $request zapytanie HTTP
      */
-    final public function __construct(Request $request) {
-        $this->_request = $request;
+    final public function __construct() {
         $this->_usage = new Action\Usage();
-        $this->_init();
     }
 
     /**
@@ -38,8 +39,9 @@ abstract class Action {
     /**
      * [Składnik akcji - wymagany]
      * Ustala czy i na jakich zasadach użytkownik ma mieć dostęp do danej akcji.
-     * Aby akcja została uruchomiona, należy sprecyzować przynajmniej jeden sposób (way)
-     * wykorzystania akcji przez użytkownika (przy pomocy $this->getUsage()->allowUsage()).
+     * Zwraca informację, czy jest zezwolenie na wykonanie akcji (return true) lub nie.
+     * Należy w tym miejscu sprecyzować sposoby (ways) wykorzystania akcji przez użytkownika (przy pomocy $this->getUsage()->allowUsage()).
+     * @return boolean czy jest zezwolenie na wykonanie danej akcji
      */
     abstract public function _permit();
 
@@ -77,61 +79,44 @@ abstract class Action {
         return $this->_usage;
     }
 
-//
-//    final public function setUsage($allow, $way) {
-//        $this->_usage->setUsage($allow, $way);
-//        return $this;
-//    }
-//
-//    public function setUsages(array $ways) {
-//        $this->_usage->setUsages($ways);
-//        return $this;
-//    }
-//
-//    final public function allowUsage($way) {
-//        if (!is_array($way))
-//            $way = func_get_args();
-//
-//        $this->_usage->allowUsage($way);
-//        return $this;
-//    }
-//
-//    public function allowUsages(array $ways) {
-//        $this->_usage->allowUsages($ways);
-//        return $this;
-//    }
-//
-//    final public function disallowUsage($way) {
-//        if (!is_array($way))
-//            $way = func_get_args();
-//
-//        $this->_usage->disallowUsage($way);
-//        return $this;
-//    }
-//
-//    public function disallowUsages(array $ways) {
-//        $this->_usage->disallowUsages($ways);
-//        return $this;
-//    }
-//
-//    public function isAllowed($way) {
-//        return $this->_usage->isAllowed($way);
-//    }
+    final public function setApplication(Application $application) {
+        $this->_application = $application;
+    }
 
     /* uzytkowe */
 
+    /**
+     * Pobiera ilość argumentów żądania
+     * @return integer
+     */
     public function getArgCount() {
         return $this->getRequest()->current()->getArgCount();
     }
 
+    /**
+     * Pobiera argument żądania o podanym indeksie z wartością domyślną, gdy nie istnieje.
+     * @param integer $index indeks argumentu
+     * @param mixed $default wartość domyślna zwracana, gdy argument o podanym indeksie nie istnieje
+     * @return mixed wartość argumentu
+     */
     public function getArg($index, $default = null) {
         return $this->getRequest()->current()->getArg($index, $default);
     }
 
+    /**
+     * Pobiera tablicę wszystkich argumentów żądania.
+     * @return array
+     */
     public function getArgs() {
         return $this->getRequest()->current()->getArgs();
     }
 
+    /**
+     * Pobiera parametr żądania z wartością domyślną, gdy nie został zainicjowany.
+     * @param string $name nazwa parametru
+     * @param mixed $default wartość domyślna zwrócona, gdy parametr nie został zainicjowany
+     * @return mixed wartość parametru
+     */
     public function getParam($name, $default = null) {
         return $this->getRequest()->current()->getParam($name, $default);
     }
@@ -157,7 +142,43 @@ abstract class Action {
      * @return Request
      */
     public function getRequest() {
-        return $this->_request;
+        if (null === $this->_application)
+            return null;
+
+        return $this->_application->getRequest();
+    }
+
+    /**
+     * Pobiera instancję odpowiedzi aplikacji.
+     * @return Request
+     */
+    public function getResponse() {
+        if (null === $this->_application)
+            return null;
+
+        return $this->_application->getResponse();
+    }
+
+    /**
+     * Pobiera obiekt komponentu z aplikacji.
+     * @param string $name
+     * @return mixed
+     */
+    public function getComponent($name) {
+        if (null === $this->_application)
+            return null;
+
+        return $this->_application->getComponent($name);
+    }
+
+    /**
+     * Nieistniejąca właściwość - pobranie komponentu aplikacji
+     * np. $this->view->... odwołuje się do komponentu "view".
+     * @param string $name
+     * @return mixed
+     */
+    public function __get($name) {
+        return $this->getComponent($name);
     }
 
     /**
@@ -183,7 +204,7 @@ abstract class Action {
      * @param array $params opcjonalne parametry
      */
     final protected function forward($request_url, array $params = array()) {
-        $this->getRequest()->next(new Request\Step($request_url, $params));
+        $this->getRequest()->forceNext(new Request\Step($request_url, $params));
     }
 
 }

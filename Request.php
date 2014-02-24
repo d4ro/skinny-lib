@@ -35,18 +35,14 @@ class Request {
     protected $_router;
 
     /**
-     * Obiekt odpowiedzi
-     * @var Response\ResponseInterface
-     */
-    protected $_response;
-
-    /**
      * Konstruktor obiektu żądania.
+     * @param Router\RouterInterface $router instancja routera do rozwiązywania żądania
      */
-    public function __construct() {
+    public function __construct($router = null) {
         $this->_steps = array();
         $this->_stepCount = 0;
         $this->_current = -1;
+        $this->_router = $router;
     }
 
     /**
@@ -88,7 +84,8 @@ class Request {
     }
 
     /**
-     * 
+     * Dodaje kolejny krok do żądania do obsłużenia.
+     * Zwraca kolejny krrok lub aktualnie dodany.
      * @param Request\Step $step
      * @return Request\Step
      */
@@ -113,7 +110,27 @@ class Request {
     }
 
     /**
+     * Dodaje kolejny krok jako następny po aktualnie obsługiwanym.
+     * Wszyskie kroki, ustalone jako następne przed dodaniem, zostają odrzucone i są zwracane w postaci arraya.
+     * @param Request\Step $step
+     * @return array
+     */
+    public function forceNext($step) {
+        $discarded = [];
+        if ($this->_stepCount > $this->_current + 1) {
+            for ($i = $this->_current + 1; $i < $this->_stepCount; $i++) {
+                $discarded[] = $this->_steps[$i];
+                unset($this->_steps[$i]);
+            }
+            $this->_stepCount = $this->_current + 1;
+        }
+        $this->next($step);
+        return $discarded;
+    }
+
+    /**
      * Kończy działanie aktualnego kroku i przechodzi do następnego.
+     * Oznacza aktualny krok jako zakończony i ustawia następny jako aktualny.
      */
     public function proceed() {
         $current = $this->current();
@@ -176,26 +193,7 @@ class Request {
      * @return Router\RouterInterface
      */
     public function getRouter() {
-        if (null === $this->_router)
-            $this->_router = Router::getInstance();
-        $this->_router->setRequest($this);
         return $this->_router;
-    }
-
-    /**
-     * Ustawia obiekt odpowiedzi używany do komunikacji w ramach obsługi tego żądania.
-     * @param Response\ResponseInterface $response
-     */
-    public function setResponse($response) {
-        $this->_response = $response;
-    }
-
-    /**
-     * Pobiera obiekt odpowiedzi używany do komunikacji w ramach obsługi tego żądania.
-     * @return Response\ResponseInterface
-     */
-    public function getResponse() {
-        return $this->_response;
     }
 
 }

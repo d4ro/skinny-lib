@@ -100,7 +100,7 @@ class Application {
         );
 
         //request
-        $this->_request = new Request();
+        $this->_request = new Request($this->_router);
     }
 
     /**
@@ -201,7 +201,6 @@ class Application {
         $this->_request->next(new Request\Step($request_url, $params));
         if (null === $this->_response)
             $this->_response = new Response\Http();
-        $this->_request->setResponse($this->_response);
 
         while (!$this->_request->isProcessed()) {
             try {
@@ -225,15 +224,19 @@ class Application {
                 if (!($action instanceof Action))
                     throw new Action\Exception('Action found is not an instance of the Skinny\Action base class.');
 
-                $action->_permit();
+                $action->setApplication($this);
+                $action->_init();
+
+                $permission = $action->_permit();
 
                 if ($this->isRequestForwarded())
                     continue;
 
-                if (!$action->getUsage()->hasAny()) {
+                if (true !== $permission) {
                     $errorAction = $this->_config->actions->error(null);
                     if (null !== $errorAction) {
-                        $this->_request->next(new Request\Step($errorAction, ['error' => 'accessDenied', 'requestStep' => $this->_request->current()]));
+                        $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'accessDenied', 'requestStep' => $this->_request->current()]));
+                        $this->_request->next()->setParams(['discardedSteps' => $discarded]);
                         $this->_request->proceed();
                         continue;
                     }
@@ -258,7 +261,8 @@ class Application {
             } catch (\Exception $e) {
                 $errorAction = $this->_config->actions->error(null);
                 if (null === $errorAction) {
-                    $this->_request->next(new Request\Step($errorAction, ['error' => 'exception', 'requestStep' => $this->_request->current(), 'exception' => $e]));
+                    $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'exception', 'requestStep' => $this->_request->current(), 'exception' => $e]));
+                    $this->_request->next()->setParams(['discardedSteps' => $discarded]);
                     $this->_request->proceed();
                     continue;
                 }
