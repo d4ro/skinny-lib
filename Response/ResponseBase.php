@@ -11,7 +11,7 @@ abstract class ResponseBase implements ResponseInterface {
 
     protected $_body;
     protected $_code;
-    protected $_headers;
+    protected $_headers = array();
 
     abstract public function respond();
 

@@ -133,8 +133,8 @@ abstract class Action {
      * Pobiera ścieżkę żądania do aktualnej akcji.
      * @return string
      */
-    public function getActionPath() {
-        return $this->getRequest()->current()->getActionPath();
+    public function getActionUrl() {
+        return $this->getRequest()->current()->getActionUrl();
     }
 
     /**
@@ -205,6 +205,15 @@ abstract class Action {
      */
     final protected function forward($request_url, array $params = array()) {
         $this->getRequest()->forceNext(new Request\Step($request_url, $params));
+    }
+    
+    /**
+     * Pobiera konfigurację aplikacji
+     * @param string $key
+     * @return mixed
+     */
+    public function getConfig($key = null) {
+        return $this->_application->getConfig($key);
     }
 
 }

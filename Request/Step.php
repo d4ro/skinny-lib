@@ -70,7 +70,7 @@ class Step extends Router\Container\ContainerBase {
 
     public function first() {
         if (null == $this->_first) {
-            $previous = $this;
+            $first = $previous = $this;
             while ($previous = $previous->previous())
                 $first = $previous;
             $this->_first = $first;

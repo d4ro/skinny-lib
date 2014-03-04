@@ -17,7 +17,7 @@ class Path {
      * @param string|array $path2
      * @return string
      */
-    public static function combine($path1, $path2) {
+    public static function combine($path1, $path2=null) {
         if (is_array($path1))
             $path1 = call_user_func_array(array(__CLASS__, __METHOD__), $path1);
 
