@@ -25,7 +25,7 @@ abstract class ContainerBase implements ContainerInterface {
      * Ścieżka żądania do akcji
      * @var string
      */
-    protected $_actionPath;
+    protected $_actionUrl;
 
     /**
      * Części składowe ścieżki do akcji
@@ -74,7 +74,7 @@ abstract class ContainerBase implements ContainerInterface {
      */
     public function __construct() {
         $this->_action = null;
-        $this->_actionPath = '';
+        $this->_actionUrl = '';
         $this->_actionParts = array();
         $this->_actionDepth = 0;
         $this->_actionMatch = false;
@@ -96,8 +96,8 @@ abstract class ContainerBase implements ContainerInterface {
      * Pobiera ścieżkę akcji
      * @return string
      */
-    public function getActionPath() {
-        return $this->_actionPath;
+    public function getActionUrl() {
+        return $this->_actionUrl;
     }
 
     public function getActionDepth() {
@@ -138,7 +138,7 @@ abstract class ContainerBase implements ContainerInterface {
 
     public function setActionParts(array $actionParts) {
         $this->_actionParts = $actionParts;
-        $this->_actionPath = implode('/', $actionParts);
+        $this->_actionUrl = implode('/', $actionParts);
         $this->_actionDepth = count($actionParts);
     }
 

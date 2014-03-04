@@ -62,7 +62,7 @@ namespace Skinny;
  * 
  * @author Daro
  */
-class Store implements \JsonSerializable, \IteratorAggregate, \Traversable {
+class Store implements \JsonSerializable, \IteratorAggregate {
 
     /**
      * Zawartość store
@@ -119,7 +119,7 @@ class Store implements \JsonSerializable, \IteratorAggregate, \Traversable {
     public function jsonSerialize() {
         return $this->items;
     }
-    
+
     public function getItems() {
         return $this->items;
     }

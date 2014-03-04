@@ -7,7 +7,7 @@ namespace Skinny;
  *
  * @author Daro
  */
-class ArrayWrapper implements \JsonSerializable, \ArrayAccess, \IteratorAggregate, \Traversable, \Countable {
+class ArrayWrapper implements \JsonSerializable, \ArrayAccess, \IteratorAggregate, \Countable {
 
     protected $_data;
 
