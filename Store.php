@@ -119,6 +119,10 @@ class Store implements \JsonSerializable, \IteratorAggregate, \Traversable {
     public function jsonSerialize() {
         return $this->items;
     }
+    
+    public function getItems() {
+        return $this->items;
+    }
 
     public function toArray() {
         $array = array();
@@ -156,8 +160,14 @@ class Store implements \JsonSerializable, \IteratorAggregate, \Traversable {
     }
 
     public function __call($name, $arguments) {
-        if (isset($this->$name))
-            return $this->items[$name];
+        if (isset($this->$name)) {
+            if ($this->$name instanceof \Closure) {
+                $closure = $this->$name;
+                return call_user_func_array($closure, $arguments);
+            }
+            else
+                return $this->items[$name];
+        }
 
         $default = isset($arguments[0]) ? $arguments[0] : null;
         $create = isset($arguments[1]) ? $arguments[1] : false;

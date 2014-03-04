@@ -101,6 +101,8 @@ class Application {
 
         //request
         $this->_request = new Request($this->_router);
+        
+        \model\base::setApplication($this); // ustawia wskaźnik do aplikacji dla modeli poprzez \model\base
     }
 
     /**
@@ -271,7 +273,7 @@ class Application {
             }
         }
 
-        $this->_response->respond();
+//        $this->_response->respond();
     }
 
     /**

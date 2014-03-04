@@ -12,7 +12,7 @@ interface ContainerInterface {
 
     public function getAction();
 
-    public function getActionPath();
+    public function getActionUrl();
 
     public function getActionParts();
 
