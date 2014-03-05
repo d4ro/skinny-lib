@@ -17,4 +17,8 @@ abstract class DatabaseAware {
      */
     protected $_db;
 
+    protected function getDb() {
+        return $this->_db;
+    }
+
 }
