@@ -81,7 +81,7 @@ class Step extends Router\Container\ContainerBase {
     public function resolve(Router\RouterInterface $router) {
         $router->getRoute($this->_requestUrl, $this);
         $this->_resolved = true;
-        if (null !== $this->first() && $this->_actionPath !== $this->first()->_actionPath)
+        if (null !== $this->first() && $this->_actionUrl !== $this->first()->_actionUrl)
             $this->_actionMatch = false;
     }
 
