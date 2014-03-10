@@ -120,6 +120,9 @@ class Store implements \JsonSerializable, \IteratorAggregate {
         return $this->items;
     }
 
+    /**
+     * Zwraca wszystkie elementy w ich nie zmienionej formie (tablice wciąż są tablicami itd.)
+     */
     public function getItems() {
         return $this->items;
     }

@@ -99,6 +99,8 @@ class Session extends ArrayWrapper {
 
     protected function getData($id) {
         try {
+            $this->gc(null);
+            
             $select = $this->_db->select();
             $select->from($this->_config->table->name('session', true), array(
                 //$this->_config->table->id('id', true),
@@ -108,7 +110,11 @@ class Session extends ArrayWrapper {
             ));
             $select->where($this->_db->quoteIdentifier($this->_config->table->id('id', true)) . ' = ?', $id);
             $select->where($this->_db->quoteIdentifier($this->_config->table->expires('expires', true)) . ' > current_timestamp');
-            return $this->_db->fetchRow($select);
+//            $row = $this->_db->fetchRow($select);
+            if(false !== ($row = $this->_db->fetchRow($select))) {
+                $row['data'] = json_decode($row['data']);
+            }
+            return $row;
         } catch (\Exception $e) {
             die('Session fatal error occured: ' . $e->getMessage());
         }
