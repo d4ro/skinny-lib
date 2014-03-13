@@ -39,6 +39,7 @@ class Session extends ArrayWrapper {
         $this->_db = $db;
         $this->_memcached = $memcached;
 
+        // zaślepka, ponieważ $_SESSION jeszcze nie istnieje
         $x = array();
         parent::__construct($x);
     }
@@ -94,7 +95,14 @@ class Session extends ArrayWrapper {
         if (false === $result)
             return '';
 
-        return $result[$this->_config->table->data];
+        if (!$result['valid']) {
+            $this->destroy($id);
+            return '';
+        }
+
+        $data = str_replace(chr(1), chr(0), $result[$this->_config->table->data]);
+
+        return $data;
     }
 
     protected function getData($id) {
@@ -107,9 +115,10 @@ class Session extends ArrayWrapper {
                 //$this->_config->table->modified('modified', true),
                 //$this->_config->table->lifetime('lifetime', true),
                 $this->_config->table->data('data', true),
+                new \Zend_Db_Expr('CASE WHEN ' . $this->_db->quoteIdentifier($this->_config->table->expires('expires', true)) . ' > current_timestamp THEN 1 ELSE 0 END as "valid"')
             ));
             $select->where($this->_db->quoteIdentifier($this->_config->table->id('id', true)) . ' = ?', $id);
-            $select->where($this->_db->quoteIdentifier($this->_config->table->expires('expires', true)) . ' > current_timestamp');
+            //$select->where($this->_db->quoteIdentifier($this->_config->table->expires('expires', true)) . ' > current_timestamp');
 //            $row = $this->_db->fetchRow($select);
             if(false !== ($row = $this->_db->fetchRow($select))) {
                 $row['data'] = json_decode($row['data']);
@@ -122,6 +131,7 @@ class Session extends ArrayWrapper {
 
     function write($id, $data) {
         try {
+            $data = str_replace(chr(0), chr(1), $data);
             $expires = new \Zend_Db_Expr('current_timestamp + interval \'' . $this->_lifetime . ' seconds\'');
 
             $result = $this->getData($id);
