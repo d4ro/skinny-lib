@@ -107,7 +107,7 @@ class Session extends ArrayWrapper {
 
     protected function getData($id) {
         try {
-            $this->gc(null);
+//            $this->gc(null);
             
             $select = $this->_db->select();
             $select->from($this->_config->table->name('session', true), array(
