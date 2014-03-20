@@ -102,6 +102,34 @@ class Location {
     }
 
     /**
+     * Konwertuje podany URL do formy bezwzględnej ustawiając protokół HTTP.
+     * Używa URL aktualnego żądania, gdy URL nie zostanie podany.
+     * @param string $url URL do konwersji
+     * @return string
+     */
+    public static function getHttp($url = null) {
+        // TODO: obsługa protokołu wbudowanego na początku URL
+        // TODO: wykorzystanie w _redirect() i ogólna integracja z pozostałymi metodami
+        $url = $url ? $url : $_SERVER['REQUEST_URI'];
+        $url = "http://" . $_SERVER['SERVER_NAME'] . $url;
+        return $url;
+    }
+
+    /**
+     * Konwertuje podany URL do formy bezwzględnej ustawiając protokół HTTPS.
+     * Używa URL aktualnego żądania, gdy URL nie zostanie podany.
+     * @param string $url URL do konwersji
+     * @return string
+     */
+    public static function getHttps($url = null) {
+        // TODO: obsługa protokołu wbudowanego na początku URL
+        // TODO: wykorzystanie w _redirect() i ogólna integracja z pozostałymi metodami
+        $url = $url ? $url : $_SERVER['REQUEST_URI'];
+        $url = "https://" . $_SERVER['SERVER_NAME'] . $url;
+        return $url;
+    }
+
+    /**
      * Pobiera aktualnie używany protokół gotowy do doklejenia z przodu URL.
      * W przypadku, gdy nie jest używany ani HTTP ani HTTPS, HTTP zostanie przyjęty za domyślny.
      * @return string
