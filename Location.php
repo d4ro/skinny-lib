@@ -145,7 +145,7 @@ class Location {
      */
     public static function _addParams($url, array $params) {
         array_walk($params, function ($key, $value) use (&$url) {
-                    $path .= "/$key/$value";
+                    $url .= "/$key/$value";
                 });
         return $url;
     }
