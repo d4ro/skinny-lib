@@ -100,9 +100,7 @@ class Session extends ArrayWrapper {
             return '';
         }
 
-        $data = str_replace(chr(1), chr(0), $result[$this->_config->table->data]);
-
-        return $data;
+        return $result[$this->_config->table->data];
     }
 
     protected function getData($id) {
@@ -110,7 +108,7 @@ class Session extends ArrayWrapper {
             $select = $this->_db->select();
             $select->from($this->_config->table->name('session', true), array(
                 $this->_config->table->data('data', true),
-                new \Zend_Db_Expr('CASE WHEN ' . $this->_db->quoteIdentifier($this->_config->table->expires('expires', true)) . ' > current_timestamp THEN 1 ELSE 0 END as "valid"')
+                new \Zend_Db_Expr('IF (' . $this->_db->quoteIdentifier($this->_config->table->expires('expires', true)) . ' > now(), 1, 0) as "valid"')
             ));
             $select->where($this->_db->quoteIdentifier($this->_config->table->id('id', true)) . ' = ?', $id);
             $row = $this->_db->fetchRow($select);
@@ -124,8 +122,7 @@ class Session extends ArrayWrapper {
 
     function write($id, $data) {
         try {
-            $data = str_replace(chr(0), chr(1), $data);
-            $expires = new \Zend_Db_Expr('current_timestamp + interval \'' . $this->_lifetime . ' seconds\'');
+            $expires = new \Zend_Db_Expr('DATE_ADD(NOW(), INTERVAL ' . $this->_lifetime . ' SECOND)');
 
             $result = $this->getData($id);
             if (false === $result) {
@@ -163,7 +160,7 @@ class Session extends ArrayWrapper {
 
     function gc($maxlifetime) {
         try {
-            return $this->_db->delete($this->_config->table->name, $this->_db->quoteIdentifier($this->_config->table->expires) . ' <= current_timestamp');
+            return $this->_db->delete($this->_config->table->name, $this->_db->quoteIdentifier($this->_config->table->expires) . ' <= now()');
         } catch (\Exception $e) {
             die('Session fatal error occured: ' . $e->getMessage());
         }
