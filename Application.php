@@ -101,7 +101,7 @@ class Application {
 
         //request
         $this->_request = new Request($this->_router);
-        
+
         \model\base::setApplication($this); // ustawia wskaźnik do aplikacji dla modeli poprzez \model\base
     }
 
@@ -204,8 +204,12 @@ class Application {
         if (null === $this->_response)
             $this->_response = new Response\Http();
 
+        $counter = 0;
         while (!$this->_request->isProcessed()) {
             try {
+                $counter++;
+                if ($counter >= 10)
+                    throw new Action\Exception('Too many forwards: 10 in action ' . $this->_request->current()->getRequestUrl());
 
                 if (!$this->_request->isResolved())
                     $this->_request->resolve();
@@ -221,6 +225,7 @@ class Application {
                     else
                     // TODO: błąd 404
                         throw new Action\Exception('Cannot find action corresponding to URL "' . $this->_request->current()->getRequestUrl() . '".');
+                    // TODO: $this->_response->notFound();
                 }
 
                 if (!($action instanceof Action))
@@ -273,7 +278,7 @@ class Application {
             }
         }
 
-//        $this->_response->respond();
+        $this->_response->respond();
     }
 
     /**
