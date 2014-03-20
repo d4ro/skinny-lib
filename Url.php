@@ -30,7 +30,7 @@ class Url {
             case '\\':
             case ':':
                 $path = $url1 . $url2;
-
+                break;
             default:
                 $path = $url1 . DIRECTORY_SEPARATOR . $url2;
         }

@@ -38,7 +38,7 @@ class Path {
             case '\\':
             case ':':
                 $path = $path1 . $path2;
-
+                break;
             default:
                 $path = $path1 . DIRECTORY_SEPARATOR . $path2;
         }
