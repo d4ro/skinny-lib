@@ -86,6 +86,15 @@ abstract class Action {
     /* uzytkowe */
 
     /**
+     * Pobiera konfigurację aplikacji
+     * @param string $key
+     * @return mixed
+     */
+    public function getConfig($key = null) {
+        return $this->_application->getConfig($key);
+    }
+
+    /**
      * Pobiera ilość argumentów żądania
      * @return integer
      */
@@ -206,14 +215,35 @@ abstract class Action {
     final protected function forward($request_url, array $params = array()) {
         $this->getRequest()->forceNext(new Request\Step($request_url, $params));
     }
-    
+
     /**
-     * Pobiera konfigurację aplikacji
-     * @param string $key
-     * @return mixed
+     * Przekierowuje na podany URL z podanymi parametrami.
+     * Jeżeli URL nie zostanie podany (null) zostanie użyty bieżący.
+     * Przedostatnim parametrem można wymusić przekierowanie na HTTPS (true) lub HTTP (false),
+     * a ostatnim kod HTTP przekierowania.
+     * @param string $url
+     * @param array $params
+     * @param boolean $secure
+     * @param integer $returnCode
      */
-    public function getConfig($key = null) {
-        return $this->_application->getConfig($key);
+    public function redirect($url = null, array $params = array(), $secure = null, $returnCode = 302) {
+        $url = Url::combine($this->getBaseUrl(), $url);
+        if (null === $secure)
+            Location::redirect($url, $params, $returnCode);
+        elseif ($secure)
+            Location::redirectHttps($url, $params, $returnCode);
+        else
+            Location::redirectHttp($url, $params, $returnCode);
+    }
+
+    /**
+     * Użycie w akcji informuje aplikację, że akcja nie istnieje i powinna wyświetlić się strona not found.
+     */
+    public function noAction() {
+        $notFoundAction = $this->_application->getConfig()->actions->notFound(null);
+        if (null !== $notFoundAction)
+            $this->forward($notFoundAction, ['error' => 'notFound', 'requestStep' => $this->_request->current()]);
+        // TODO: 404
     }
 
 }

@@ -31,4 +31,8 @@ abstract class HeaderBase implements HeaderInterface {
         return $this->_value;
     }
 
+    public function toString() {
+        return $this->getName() . ": " . $this->getValue();
+    }
+
 }
