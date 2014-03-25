@@ -69,8 +69,8 @@ class Router implements Router\RouterInterface {
 
         // pobieramy ścieżkę bazową aplikacji
         $baseUrl = $this->getBaseUrl();
-        if ($baseUrl && strpos($requestUrl, "/$baseUrl") === 0) {
-            $requestUrl = substr($requestUrl, strlen($baseUrl) + 1);
+        if ($baseUrl && strpos($requestUrl, "$baseUrl") === 0) {
+            $requestUrl = substr($requestUrl, strlen($baseUrl));
         }
 
         // ustawiamy argumenty wywołania
@@ -116,7 +116,7 @@ class Router implements Router\RouterInterface {
      */
     public function getBaseUrl() {
         if (null === $this->_baseUrl)
-            $this->_baseUrl = trim($this->_config->baseUrl('/', true), '/');
+            $this->_baseUrl = $this->_config->baseUrl('/', true);
         return $this->_baseUrl;
     }
 

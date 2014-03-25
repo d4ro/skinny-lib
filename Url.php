@@ -25,15 +25,7 @@ class Url {
         if (self::isAbsolute($url2))
             return $url2;
 
-        switch (substr($url1, -1)) {
-            case '/':
-            case '\\':
-            case ':':
-                $path = $url1 . $url2;
-                break;
-            default:
-                $path = $url1 . DIRECTORY_SEPARATOR . $url2;
-        }
+        $path = rtrim($url1, '/') . '/' . ltrim($url2, '/');
 
         $args = func_get_args();
         if (count($args) > 2) {
