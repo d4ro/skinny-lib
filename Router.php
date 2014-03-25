@@ -129,7 +129,7 @@ class Router implements Router\RouterInterface {
         $x = Path::combine($this->_cachePath, 'actions.php');
         $actions = @include $x;
 
-        if (empty($actions))
+//        if (empty($actions))
             $actions = $this->resolveActions();
 
         $i = 0;
