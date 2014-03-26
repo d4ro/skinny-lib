@@ -81,6 +81,7 @@ class Location {
         $url = self::_checkUrl($url);
         if (!empty($params))
             $url = self::_addParams($url, $params);
+        // TODO: !!! Daro masz wiedzieć o co chodzi, jak nie to ... *@@!&^#@!%^!((((*&^%7
         self::sendHeader('Location: ' . Url::combine($protocol, $_SERVER['HTTP_HOST'], $url), true, $responseCode);
         exit();
     }
