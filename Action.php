@@ -131,6 +131,15 @@ abstract class Action {
     }
 
     /**
+     * Sprawdza czy parametr żądania istnieje
+     * @param string $name
+     * @return boolean
+     */
+    public function hasParam($name) {
+        return $this->getRequest()->current()->hasParam($name);
+    }
+
+    /**
      * Pobiera wszystkie parametry zapytania do akcji.
      * @return array
      */
@@ -214,6 +223,7 @@ abstract class Action {
      */
     final protected function forward($request_url, array $params = array()) {
         $this->getRequest()->forceNext(new Request\Step($request_url, $params));
+        throw new Action\ForwardException;
     }
 
     /**
@@ -227,7 +237,8 @@ abstract class Action {
      * @param integer $returnCode
      */
     public function redirect($url = null, array $params = array(), $secure = null, $returnCode = 302) {
-        $url = Url::combine($this->getBaseUrl(), $url);
+        if (!Url::isAbsolute($url))
+            $url = Url::combine($this->getBaseUrl(), $url);
         if (null === $secure)
             Location::redirect($url, $params, $returnCode);
         elseif ($secure)
