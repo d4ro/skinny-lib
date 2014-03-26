@@ -19,7 +19,7 @@ class Location {
     public static function isRemote() {
         if (!isset(self::$_isRemote)) {
             $sapi = php_sapi_name();
-            self::$_isRemote = $sapi == 'cli' || substr($sapi, 0, 3) === 'cgi';
+            self::$_isRemote = $sapi != 'cli' && substr($sapi, 0, 3) != 'cgi';
         }
         return self::$_isRemote;
     }
@@ -81,7 +81,7 @@ class Location {
         $url = self::_checkUrl($url);
         if (!empty($params))
             $url = self::_addParams($url, $params);
-        self::sendHeader('Location: ' . Url::combine($protocol, $url), true, $responseCode);
+        self::sendHeader('Location: ' . Url::combine($protocol, $_SERVER['HTTP_HOST'], $url), true, $responseCode);
         exit();
     }
 
