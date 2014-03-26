@@ -25,6 +25,61 @@ class Location {
     }
 
     /**
+     * Stwierdza, czy żądanie do aplikacji zostało wysłane przez protokół HTTP.
+     * @return boolean
+     */
+    public static function isHttp() {
+        return self::isRemote() && !self::isHttps();
+    }
+
+    /**
+     * Stwierdza, czy żądanie do aplikacji zostało wysłane przez protokół HTTPS.
+     * @return boolean
+     */
+    public static function isHttps() {
+        return self::isRemote() && isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== "off";
+    }
+
+    /**
+     * Pobiera aktualnie używany protokół gotowy do doklejenia z przodu URL.
+     * W przypadku, gdy nie jest używany ani HTTP ani HTTPS, HTTP zostanie przyjęty za domyślny.
+     * @return string
+     */
+    public static function getProtocol() {
+        if (self::isHttps())
+            return 'https://';
+        return 'http://';
+    }
+
+    /**
+     * Konwertuje podany URL do formy bezwzględnej ustawiając protokół HTTP.
+     * Używa URL aktualnego żądania, gdy URL nie zostanie podany.
+     * @param string $url URL do konwersji
+     * @return string
+     */
+    public static function getHttp($url = null) {
+        // TODO: obsługa protokołu wbudowanego na początku URL
+        // TODO: wykorzystanie w _redirect() i ogólna integracja z pozostałymi metodami
+        $url = $url ? $url : $_SERVER['REQUEST_URI'];
+        $url = "http://" . $_SERVER['SERVER_NAME'] . $url;
+        return $url;
+    }
+
+    /**
+     * Konwertuje podany URL do formy bezwzględnej ustawiając protokół HTTPS.
+     * Używa URL aktualnego żądania, gdy URL nie zostanie podany.
+     * @param string $url URL do konwersji
+     * @return string
+     */
+    public static function getHttps($url = null) {
+        // TODO: obsługa protokołu wbudowanego na początku URL
+        // TODO: wykorzystanie w _redirect() i ogólna integracja z pozostałymi metodami
+        $url = $url ? $url : $_SERVER['REQUEST_URI'];
+        $url = "https://" . $_SERVER['SERVER_NAME'] . $url;
+        return $url;
+    }
+
+    /**
      * Przekierowuje przeglądarkę na podany adres URL z podanymi parametrami.
      * Jeżeli URL nie zostanie podany (null) zostanie użyty bieżący.
      * Ostatnim parametrem jest kod przekierowania HTTP (domyślnie 302 Found).
@@ -71,98 +126,64 @@ class Location {
      * @param integer $responseCode [opcjonalny] kod odpowiedzi HTTP - domyślnie 302 Found
      */
     protected static function _redirect($protocol = null, $url = null, array $params = array(), $responseCode = 302) {
-        if (null === $protocol) {
-            // TODO: pobranie protokołu z URL, a jeśli nie występuje, to poniższa linijka
+        $host = null;
+        $matches = null;
+
+        // wycięcię z URL protokołu, jeżeli istnieje - URL ma być postaci: "/*", np. "/", "/tekst", "/abc/xyz"
+        if (preg_match('@^(https?|ftp)://@', $url, $matches)) {
+            $protocol2 = $matches[1] . '://';
+            $url = substr($url, strlen($protocol2) - 2);
+            if (null === $protocol)
+                $protocol = $protocol2;
+        }
+
+        // wycięcie adresu hosta z URL
+        if (preg_match('|^//([-_a-zA-Z0-9.~:/?#[\]@!$&\'()*+,;=]+)/?|', $url, $matches)) {
+            $host = $matches[1];
+            $url = substr($url, strlen($host) + 2);
+        }
+
+        // domyslny protokół aktualny
+        if (null === $protocol)
             $protocol = self::getProtocol();
-        }
-        if (preg_match('/^(https?|ftp):\/\//', $url, $matches)) {
-            // TODO: wycięcię z URL protokołu, jeżeli istnieje - URL ma być postaci: "/*", np. "/", "/tekst", "/abc/xyz"
-        }
+
+        // domyślny host aktualny
+        if (null === $host)
+            $host = $_SERVER['HTTP_HOST'];
+
+        // domyślny URL aktualny + walidacja
         $url = self::_checkUrl($url);
         if (!empty($params))
             $url = self::_addParams($url, $params);
-        // TODO: !!! Daro masz wiedzieć o co chodzi, jak nie to ... *@@!&^#@!%^!((((*&^%7
-        self::sendHeader('Location: ' . Url::combine($protocol, $_SERVER['HTTP_HOST'], $url), true, $responseCode);
+
+        self::sendHeader('Location: ' . Url::combine($protocol, $host, $url), true, $responseCode);
         exit();
-    }
-
-    /**
-     * Stwierdza, czy żądanie do aplikacji zostało wysłane przez protokół HTTP.
-     * @return boolean
-     */
-    public static function isHttp() {
-        return self::isRemote() && !self::isHttps();
-    }
-
-    /**
-     * Stwierdza, czy żądanie do aplikacji zostało wysłane przez protokół HTTPS.
-     * @return boolean
-     */
-    public static function isHttps() {
-        return self::isRemote() && isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== "off";
-    }
-
-    /**
-     * Konwertuje podany URL do formy bezwzględnej ustawiając protokół HTTP.
-     * Używa URL aktualnego żądania, gdy URL nie zostanie podany.
-     * @param string $url URL do konwersji
-     * @return string
-     */
-    public static function getHttp($url = null) {
-        // TODO: obsługa protokołu wbudowanego na początku URL
-        // TODO: wykorzystanie w _redirect() i ogólna integracja z pozostałymi metodami
-        $url = $url ? $url : $_SERVER['REQUEST_URI'];
-        $url = "http://" . $_SERVER['SERVER_NAME'] . $url;
-        return $url;
-    }
-
-    /**
-     * Konwertuje podany URL do formy bezwzględnej ustawiając protokół HTTPS.
-     * Używa URL aktualnego żądania, gdy URL nie zostanie podany.
-     * @param string $url URL do konwersji
-     * @return string
-     */
-    public static function getHttps($url = null) {
-        // TODO: obsługa protokołu wbudowanego na początku URL
-        // TODO: wykorzystanie w _redirect() i ogólna integracja z pozostałymi metodami
-        $url = $url ? $url : $_SERVER['REQUEST_URI'];
-        $url = "https://" . $_SERVER['SERVER_NAME'] . $url;
-        return $url;
-    }
-
-    /**
-     * Pobiera aktualnie używany protokół gotowy do doklejenia z przodu URL.
-     * W przypadku, gdy nie jest używany ani HTTP ani HTTPS, HTTP zostanie przyjęty za domyślny.
-     * @return string
-     */
-    public static function getProtocol() {
-        if (self::isHttps())
-            return 'https://';
-        return 'http://';
     }
 
     /**
      * stwierdza, czy URL ma poprawną formę.
      * @param string $url
      * @return boolean
+     * @deprecated na rzecz Url::isCorrect()
      */
     public static function isURL($url) {
-        // TODO: sprawdzić poprawność sprawdzenia
-        return (bool) preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i", $url);
+        return Url::isCorrect($url);
     }
 
     /**
      * Sprawdza, czy URL jest prawidłowy i w razie potrzeby generuje wyjątek.
      * Jeżeli URL nie zostanie podany, zostanie pobrany z aktualnego żądania.
      * @param string $url URL do sprawdzenia
+     * @param boolean $throw gdy true, generuje wyjątek, gdy URL jest nieprawidłowy
      * @return string URL po ewentualnych filtrach
      * @throws UriException URL nie przejdzie kontroli
      */
-    protected static function _checkUrl($url) {
+    protected static function _checkUrl($url, $throw = true) {
         $url = $url ? : $_SERVER['REQUEST_URI'];
-        if (empty($url))
+        if (empty($url) && $throw)
             throw new UriException('Redirect URL is not specified.');
-        // TODO: sprawdzenie poprawności URL
+//        if (!Url::isCorrect($url) && $throw)
+//            throw new UriException('Redirect URL is not correct: ' . $url);
         return $url;
     }
 
@@ -173,6 +194,8 @@ class Location {
      * @return string
      */
     public static function _addParams($url, array $params) {
+        // TODO: możliwy bug, gdy URL kończy się parametrami PHP w stylu ?a=b&c=d
+        $url = rtrim($url, '/');
         array_walk($params, function ($key, $value) use (&$url) {
                     $url .= "/$key/$value";
                 });

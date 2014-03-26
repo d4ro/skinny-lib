@@ -25,7 +25,7 @@ class Url {
         if (self::isAbsolute($url2))
             return $url2;
 
-        $path = rtrim($url1, '/') . '/' . ltrim($url2, '/');
+        $path = $url1 . ($url1[strlen($url1) - 1] == '/' ? '' : '/') . ltrim($url2, '/');
 
         $args = func_get_args();
         if (count($args) > 2) {
@@ -39,7 +39,12 @@ class Url {
     }
 
     public static function isAbsolute($url) {
-        return (bool) preg_match("/^(?:(?:https?|ftp):\/\/)/i", $url);
+        return (bool) preg_match("/^(?:((?:https?|ftp):)?\/\/)/i", $url);
+    }
+
+    public static function isCorrect($url) {
+        // TODO: sprawdzić poprawność algorytmu
+        return (bool) preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i", $url);
     }
 
 }

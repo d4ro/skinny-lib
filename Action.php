@@ -204,7 +204,7 @@ abstract class Action {
      * @return string
      */
     public function getBaseUrl() {
-        return '/' . $this->getRequest()->getRouter()->getBaseUrl();
+        return $this->getRequest()->getRouter()->getBaseUrl();
     }
 
     /**

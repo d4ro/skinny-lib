@@ -130,7 +130,7 @@ class Router implements Router\RouterInterface {
         $actions = @include $x;
 
 //        if (empty($actions))
-            $actions = $this->resolveActions();
+        $actions = $this->resolveActions();
 
         $i = 0;
         $found = -1;
