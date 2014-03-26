@@ -234,7 +234,9 @@ class Application {
                 $action->setApplication($this);
                 $action->_init();
 
-                $permission = $action->_permit();
+                try {
+                    $permission = $action->_permit();
+                } catch (\Skinny\Action\ForwardException $e) { }
 
                 if ($this->isRequestForwarded())
                     continue;
@@ -252,17 +254,23 @@ class Application {
                         throw new Action\Exception('Access denied');
                 }
 
-                $action->_prepare();
+                try {
+                    $action->_prepare();
+                } catch (\Skinny\Action\ForwardException $e) { }
 
                 if ($this->isRequestForwarded())
                     continue;
 
-                $action->_action();
+                try {
+                    $action->_action();
+                } catch (\Skinny\Action\ForwardException $e) { }
 
                 if ($this->isRequestForwarded())
                     continue;
 
-                $action->_cleanup();
+                try {
+                    $action->_cleanup();
+                } catch (\Skinny\Action\ForwardException $e) { }
 
                 $this->_request->proceed();
             } catch (\Exception $e) {
