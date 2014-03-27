@@ -179,9 +179,9 @@ class Location {
      * @throws UriException URL nie przejdzie kontroli
      */
     protected static function _checkUrl($url, $throw = true) {
-        $url = $url ? : $_SERVER['REQUEST_URI'];
-        if (empty($url) && $throw)
-            throw new UriException('Redirect URL is not specified.');
+        $url = isset($url) ? $url : $_SERVER['REQUEST_URI'];
+//        if (empty($url) && $throw)
+//            throw new UriException('Redirect URL is not specified.');
 //        if (!Url::isCorrect($url) && $throw)
 //            throw new UriException('Redirect URL is not correct: ' . $url);
         return $url;

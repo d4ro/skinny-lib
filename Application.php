@@ -286,7 +286,7 @@ class Application {
             }
         }
 
-        $this->_response->respond();
+//        $this->_response->respond();
     }
 
     /**
