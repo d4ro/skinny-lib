@@ -206,6 +206,8 @@ class Store implements \JsonSerializable, \IteratorAggregate {
                 $this->items[$key] = $value;
             }
         }
+        
+        return $this;
     }
 
     public function getIterator() {

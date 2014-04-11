@@ -196,7 +196,7 @@ class Location {
     public static function _addParams($url, array $params) {
         // TODO: możliwy bug, gdy URL kończy się parametrami PHP w stylu ?a=b&c=d
         $url = rtrim($url, '/');
-        array_walk($params, function ($key, $value) use (&$url) {
+        array_walk($params, function ($value, $key) use (&$url) {
                     $url .= "/$key/$value";
                 });
         return $url;
