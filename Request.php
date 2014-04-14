@@ -195,5 +195,14 @@ class Request {
     public function getRouter() {
         return $this->_router;
     }
+    
+    /**
+     * Zwraca informację o tym czy żądanie akceptuje application/json (w zmiennej SERVER['HTTP_ACCEPT'])
+     * @return boolean
+     * @todo Przemyśleć i ustandaryzować
+     */
+    public function acceptJson() {
+        return false !== strstr($_SERVER['HTTP_ACCEPT'], 'application/json');
+    }
 
 }

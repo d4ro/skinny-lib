@@ -101,9 +101,14 @@ class Router implements Router\RouterInterface {
         // określamy parametry
         $params = array();
         for ($i = $actionLength; $i < count($args); $i += 2) {
-            if (isset($args[$i + 1]))
-                $params[$args[$i]] = $args[$i + 1];
+            if (!empty($args[$i])) {
+                if (isset($args[$i + 1]))
+                    $params[$args[$i]] = $args[$i + 1];
+                else if (count($args) == $i + 1)
+                    $params[$args[$i]] = '';
+            }
         }
+
         $container->setParams($params);
         $container->setParams($additionalParams);
 

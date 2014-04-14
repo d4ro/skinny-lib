@@ -242,16 +242,18 @@ class Application {
                     continue;
 
                 if (true !== $permission) {
-                    $errorAction = $this->_config->actions->error(null);
+                    $errorAction = $this->_config->actions->accessDenied(null);
                     if (null !== $errorAction) {
                         $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'accessDenied', 'requestStep' => $this->_request->current()]));
                         $this->_request->next()->setParams(['discardedSteps' => $discarded]);
                         $this->_request->proceed();
                         continue;
                     }
-                    else
-                    // TODO: 403
-                        throw new Action\Exception('Access denied');
+                    else {
+                        header('HTTP/1.0 403 Forbidden');
+                        echo 'Forbidden';
+                        exit();
+                    }
                 }
 
                 try {
