@@ -22,7 +22,7 @@ class Prefix extends LoaderBase {
                     }
                 }
                 if(is_readable($path .= '.php')) {
-                    include $path;
+                    include_once $path;
                 }
             }
         }
