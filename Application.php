@@ -218,7 +218,7 @@ class Application {
                 if (null === $action) {
                     $notFoundAction = $this->_config->actions->notFound(null);
                     if (null !== $notFoundAction) {
-                        $this->_request->next(new Request\Step($notFoundAction, ['error' => 'notFound', 'requestStep' => $this->_request->current()]));
+                        $this->_request->next(new Request\Step($notFoundAction, ['error' => 'notFound', 'step' => $this->_request->current()]));
                         $this->_request->proceed();
                         continue;
                     }
@@ -244,7 +244,7 @@ class Application {
                 if (true !== $permission) {
                     $errorAction = $this->_config->actions->accessDenied(null);
                     if (null !== $errorAction) {
-                        $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'accessDenied', 'requestStep' => $this->_request->current()]));
+                        $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'accessDenied', 'step' => $this->_request->current()]));
                         $this->_request->next()->setParams(['discardedSteps' => $discarded]);
                         $this->_request->proceed();
                         continue;
@@ -277,8 +277,8 @@ class Application {
                 $this->_request->proceed();
             } catch (\Exception $e) {
                 $errorAction = $this->_config->actions->error(null);
-                if (null === $errorAction) {
-                    $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'exception', 'requestStep' => $this->_request->current(), 'exception' => $e]));
+                if (null !== $errorAction) {
+                    $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'exception', 'step' => $this->_request->current(), 'exception' => $e]));
                     $this->_request->next()->setParams(['discardedSteps' => $discarded]);
                     $this->_request->proceed();
                     continue;
