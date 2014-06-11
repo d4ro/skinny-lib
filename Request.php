@@ -92,7 +92,7 @@ class Request {
     public function next($step = null) {
         // TODO: możliwy błąd, gdy ktoś forwaduje kilka razy pod rząd - wtedy po kolei wszystkie żądania będą wykonywane
         // TODO: z drugiej strony to może być celowe działanie
-        if (null === $step) {
+        if (null === $step || $this->_current < $this->_stepCount - 1) {
             if ($this->_current < $this->_stepCount - 1)
                 return $this->_steps[$this->_current + 1];
             return null;
@@ -102,9 +102,11 @@ class Request {
         ++$this->_stepCount;
 
         $current = $this->current();
-        if (null !== $current)
+        if (null !== $current) {
             $current->next($step)->previous($current);
-        else
+            if ($current->isProcessed())
+                ++$this->_current;
+        } else
             ++$this->_current;
         return $step;
     }
@@ -172,8 +174,7 @@ class Request {
             if (null !== $current->next()) {
                 ++$this->_current;
                 $current = $this->current();
-            }
-            else
+            } else
                 return;
         }
 
@@ -195,7 +196,7 @@ class Request {
     public function getRouter() {
         return $this->_router;
     }
-    
+
     /**
      * Zwraca informację o tym czy żądanie akceptuje application/json (w zmiennej SERVER['HTTP_ACCEPT'])
      * @return boolean

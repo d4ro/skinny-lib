@@ -132,7 +132,7 @@ class Router implements Router\RouterInterface {
      */
     public function findAction(array $args) {
         $x = Path::combine($this->_cachePath, 'actions.php');
-        $actions = @include $x;
+        $actions = file_exists($x) ? include $x : null;
 
 //        if (empty($actions))
         $actions = $this->resolveActions();

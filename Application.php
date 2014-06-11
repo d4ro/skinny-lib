@@ -59,12 +59,16 @@ class Application {
      * @var Response\ResponseInterface
      */
     protected $_response;
+    protected $_appCwd;
+    protected $_lastError = null;
 
     /**
      * Konstruktor obiektu aplikacji Skinny.
      * @param string $config_path ścieżka do katalogu z konfiguracją względem miejsca, w którym tworzona jest instancja
      */
     public function __construct($config_path = 'config') {
+        $this->_appCwd = getcwd();
+
         // config
         require_once __DIR__ . '/Store.php';
         $env = isset($_SERVER['APPLICATION_ENV']) ? $_SERVER['APPLICATION_ENV'] : 'production';
@@ -103,6 +107,8 @@ class Application {
         $this->_request = new Request($this->_router);
 
         \model\base::setApplication($this); // ustawia wskaźnik do aplikacji dla modeli poprzez \model\base
+
+        $this->registerErrorHandler();
     }
 
     /**
@@ -200,7 +206,9 @@ class Application {
         if (null === $request_url)
             $request_url = $_SERVER['REQUEST_URI'];
 
-        $this->_request->next(new Request\Step($request_url, $params));
+        if (null === $this->_request->current())
+            $this->_request->next(new Request\Step($request_url, $params));
+
         if (null === $this->_response)
             $this->_response = new Response\Http();
 
@@ -221,8 +229,7 @@ class Application {
                         $this->_request->next(new Request\Step($notFoundAction, ['error' => 'notFound', 'step' => $this->_request->current()]));
                         $this->_request->proceed();
                         continue;
-                    }
-                    else
+                    } else
                     // TODO: błąd 404
                         throw new Action\Exception('Cannot find action corresponding to URL "' . $this->_request->current()->getRequestUrl() . '".');
                     // TODO: $this->_response->notFound();
@@ -236,7 +243,9 @@ class Application {
 
                 try {
                     $permission = $action->_permit();
-                } catch (\Skinny\Action\ForwardException $e) { }
+                } catch (\Skinny\Action\ForwardException $e) {
+                    
+                }
 
                 if ($this->isRequestForwarded())
                     continue;
@@ -248,8 +257,7 @@ class Application {
                         $this->_request->next()->setParams(['discardedSteps' => $discarded]);
                         $this->_request->proceed();
                         continue;
-                    }
-                    else {
+                    } else {
                         header('HTTP/1.0 403 Forbidden');
                         echo 'Forbidden';
                         exit();
@@ -258,32 +266,40 @@ class Application {
 
                 try {
                     $action->_prepare();
-                } catch (\Skinny\Action\ForwardException $e) { }
+                } catch (\Skinny\Action\ForwardException $e) {
+                    
+                }
 
                 if ($this->isRequestForwarded())
                     continue;
 
                 try {
                     $action->_action();
-                } catch (\Skinny\Action\ForwardException $e) { }
+                } catch (\Skinny\Action\ForwardException $e) {
+                    
+                }
 
                 if ($this->isRequestForwarded())
                     continue;
 
                 try {
                     $action->_cleanup();
-                } catch (\Skinny\Action\ForwardException $e) { }
+                } catch (\Skinny\Action\ForwardException $e) {
+                    
+                }
 
                 $this->_request->proceed();
             } catch (\Exception $e) {
+                if ($e instanceof Action\Exception)
+                    throw $e;
+
                 $errorAction = $this->_config->actions->error(null);
                 if (null !== $errorAction) {
                     $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'exception', 'step' => $this->_request->current(), 'exception' => $e]));
                     $this->_request->next()->setParams(['discardedSteps' => $discarded]);
                     $this->_request->proceed();
                     continue;
-                }
-                else
+                } else
                     throw $e;
             }
         }
@@ -301,6 +317,101 @@ class Application {
         if ($forwarded)
             $this->_request->proceed();
         return $forwarded;
+    }
+
+    protected function registerErrorHandler() {
+        set_error_handler(array(
+            $this, 'errorHandler'
+        ));
+
+        register_shutdown_function(array(
+            $this, 'shutdownHandler'
+        ));
+    }
+
+    public function errorHandler($errno, $errstr, $errfile, $errline) {
+        $errorReporting = error_reporting();
+        if (!$errorReporting)
+            return true;
+
+        switch ($errno) {
+            // notice
+            case E_NOTICE:
+            case E_DEPRECATED:
+            case E_STRICT:
+            case E_USER_DEPRECATED:
+                // ignorowanie
+                break;
+
+            // warning
+            case E_COMPILE_WARNING:
+            case E_CORE_WARNING:
+            case E_USER_WARNING:
+            case E_WARNING:
+                // logowanie, ale idziemy dalej
+                // TODO: logowanie warninga
+                break;
+
+            // error
+            case E_COMPILE_ERROR:
+            case E_CORE_ERROR:
+            case E_ERROR:
+            case E_PARSE:
+            case E_RECOVERABLE_ERROR:
+            case E_USER_ERROR:
+                // obsługa błędu
+                break;
+
+            default:
+                break;
+        }
+
+        // obsługa błędu
+        $errorAction = $this->_config->actions->error(null);
+        if (null !== $errorAction) {
+            $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'fatal', 'step' => $this->_request->current(), 'lastError' => ['type' => $errno, 'message' => $errstr, 'file' => $errfile, 'line' => $errline]]));
+            $this->_request->next()->setParams(['discardedSteps' => $discarded]);
+            $this->_request->proceed();
+        }
+
+        $this->run();
+        exit();
+        return true;
+    }
+
+    public function shutdownHandler() {
+        $lastError = $this->getLastError(); // error_get_last();
+        if (!$lastError)
+            return;
+
+        chdir($this->_appCwd);
+        ob_clean();
+
+        // obsługa błędu
+        $errorAction = $this->_config->actions->error(null);
+        if (null !== $errorAction) {
+            $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'fatal', 'step' => $this->_request->current(), 'lastError' => $lastError]));
+            $this->_request->next()->setParams(['discardedSteps' => $discarded]);
+            $this->_request->proceed();
+        }
+
+        $this->run();
+        exit();
+    }
+
+    protected function getLastError() {
+        $lastError = error_get_last();
+        if (null === $lastError) {
+            $this->_lastError = null;
+            return null;
+        }
+
+        if (null === $this->_lastError || array_diff_assoc($this->_lastError, $lastError)) {
+            $this->_lastError = $lastError;
+            return $lastError;
+        }
+
+        return null;
     }
 
 }
