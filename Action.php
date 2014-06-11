@@ -129,6 +129,14 @@ abstract class Action {
     public function getParam($name, $default = null) {
         return $this->getRequest()->current()->getParam($name, $default);
     }
+    
+    /**
+     * Ustawia parametry dla bieżącego żądania
+     * @param array $params tablica parametrów do ustawienia
+     */
+    public function setParams(array $params) {
+        $this->getRequest()->current()->setParams($params);
+    }
 
     /**
      * Sprawdza czy parametr żądania istnieje
