@@ -132,7 +132,7 @@ class Location {
         // wycięcię z URL protokołu, jeżeli istnieje - URL ma być postaci: "/*", np. "/", "/tekst", "/abc/xyz"
         if (preg_match('@^(https?|ftp)://@', $url, $matches)) {
             $protocol2 = $matches[1] . '://';
-            $url = substr($url, strlen($protocol2) - 2);
+            $url = substr($url, strlen($protocol2) - 1);
             if (null === $protocol)
                 $protocol = $protocol2;
         }
