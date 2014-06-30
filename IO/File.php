@@ -1,6 +1,6 @@
 <?php
 
-namespace Skinny;
+namespace Skinny\IO;
 
 /**
  * Description of File
