@@ -75,7 +75,7 @@ class Store implements \JsonSerializable, \IteratorAggregate {
         $this->fromObj($obj);
     }
 
-    // odczyt nieistniejącej włąściwości
+    // odczyt nieistniejącej właściwości
     public function &__get($name) {
         if (!isset($this->items[$name]))
             $this->items[$name] = new self();
