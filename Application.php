@@ -229,7 +229,8 @@ class Application {
                         $this->_request->next(new Request\Step($notFoundAction, ['error' => 'notFound', 'step' => $this->_request->current()]));
                         $this->_request->proceed();
                         continue;
-                    } else
+                    }
+                    else
                     // TODO: błąd 404
                         throw new Action\Exception('Cannot find action corresponding to URL "' . $this->_request->current()->getRequestUrl() . '".');
                     // TODO: $this->_response->notFound();
@@ -299,7 +300,8 @@ class Application {
                     $this->_request->next()->setParams(['discardedSteps' => $discarded]);
                     $this->_request->proceed();
                     continue;
-                } else
+                }
+                else
                     throw $e;
             }
         }
@@ -341,6 +343,7 @@ class Application {
             case E_STRICT:
             case E_USER_DEPRECATED:
                 // ignorowanie
+                return false;
                 break;
 
             // warning
@@ -350,6 +353,7 @@ class Application {
             case E_WARNING:
                 // logowanie, ale idziemy dalej
                 // TODO: logowanie warninga
+                return false;
                 break;
 
             // error
@@ -383,6 +387,40 @@ class Application {
         $lastError = $this->getLastError(); // error_get_last();
         if (!$lastError)
             return;
+
+        switch ($lastError['type']) {
+            // notice
+            case E_NOTICE:
+            case E_DEPRECATED:
+            case E_STRICT:
+            case E_USER_DEPRECATED:
+                // ignorowanie
+                return;
+                break;
+
+            // warning
+            case E_COMPILE_WARNING:
+            case E_CORE_WARNING:
+            case E_USER_WARNING:
+            case E_WARNING:
+                // logowanie, ale idziemy dalej
+                // TODO: logowanie warninga
+                return;
+                break;
+
+            // error
+            case E_COMPILE_ERROR:
+            case E_CORE_ERROR:
+            case E_ERROR:
+            case E_PARSE:
+            case E_RECOVERABLE_ERROR:
+            case E_USER_ERROR:
+                // obsługa błędu
+                break;
+
+            default:
+                break;
+        }
 
         chdir($this->_appCwd);
         ob_clean();
