@@ -59,7 +59,18 @@ class Application {
      * @var Response\ResponseInterface
      */
     protected $_response;
+
+    /**
+     * Okresla katalog roboczy aplikacji, czyli ten, który był ustawiony przed jej inicjalizacją.
+     * Wymagane, aby przywrócić katalog roboczy po jego samoczynnej zmianie w obsłudze shutdown.
+     * @var string
+     */
     protected $_appCwd;
+
+    /**
+     * Zawiera informacje o ostatnim napotkanym błędzie, warningu lub notisie.
+     * @var array|null
+     */
     protected $_lastError = null;
 
     /**
@@ -100,7 +111,7 @@ class Application {
 
         //router
         $this->_router = new Router(
-                $this->_config->paths->content('content', true), $this->_config->paths->cache('cache', true), $this->_config->router()
+                        $this->_config->paths->content('content', true), $this->_config->paths->cache('cache', true), $this->_config->router()
         );
 
         //request
