@@ -22,7 +22,8 @@ class ArrayWrapper implements \JsonSerializable, \ArrayAccess, \IteratorAggregat
     public function &__get($name) {
         if (isset($this->_data[$name]))
             return $this->_data[$name];
-        return null;
+        $a = null;
+        return $a;
     }
 
     public function __set($name, $value) {
