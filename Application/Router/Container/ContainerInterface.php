@@ -1,6 +1,6 @@
 <?php
 
-namespace Skinny\Router\Container;
+namespace Skinny\Application\Router\Container;
 
 /**
  *

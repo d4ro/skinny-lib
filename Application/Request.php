@@ -1,6 +1,6 @@
 <?php
 
-namespace Skinny;
+namespace Skinny\Application;
 
 /**
  * Klasa reprezentująca żądanie do aplikacji.

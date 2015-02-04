@@ -42,7 +42,7 @@ class ArrayWrapper implements \JsonSerializable, \ArrayAccess, \IteratorAggregat
         return $a;
         }
 
-        return $a = null;
+        return $null = null;
     }
 
     /**

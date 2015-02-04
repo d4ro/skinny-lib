@@ -13,6 +13,10 @@ require_once 'Skinny\Loader\LoaderInterface.php';
  */
 abstract class LoaderBase implements LoaderInterface {
 
+    /**
+     * Konfiguracja
+     * @var Store
+     */
     protected $_config;
     protected $_registered;
     protected $_paths;
@@ -33,5 +37,5 @@ abstract class LoaderBase implements LoaderInterface {
         $this->_registered = true;
     }
 
-    public abstract function load($class_name);
+    public abstract function load($className);
 }

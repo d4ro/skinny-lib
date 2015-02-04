@@ -2,6 +2,8 @@
 
 namespace Skinny;
 
+use Skinny\Application\Request;
+
 /**
  * Description of Action
  *

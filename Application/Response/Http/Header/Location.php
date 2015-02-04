@@ -1,6 +1,6 @@
 <?php
 
-namespace Skinny\Response\Http\Header;
+namespace Skinny\Application\Response\Http\Header;
 
 /**
  * Description of Location
