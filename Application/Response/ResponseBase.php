@@ -20,8 +20,10 @@ abstract class ResponseBase implements ResponseInterface {
     }
 
     public function setHeader($name, $value, $code = null) {
-        if (null !== $code)
+        if (null !== $code) {
             $this->setCode($code);
+        }
+        
         $this->_headers[$name] = $value;
     }
 

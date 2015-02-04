@@ -7,6 +7,6 @@ namespace Skinny\Action;
  *
  * @author Daro
  */
-class Exception extends \Exception {
+class ActionException extends \Skinny\Exception {
     
 }

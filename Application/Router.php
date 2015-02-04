@@ -171,7 +171,7 @@ class Router implements Router\RouterInterface {
         $actions = self::readDir($this->_contentPath);
         $actionsPath = Path::combine($this->_cachePath, 'actions.php');
 
-        $file = new File($actionsPath);
+        $file = new \Skinny\File($actionsPath);
         $file->write('<?php return ' . var_export($actions, true) . ';');
         return $actions;
     }

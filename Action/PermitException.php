@@ -7,6 +7,6 @@ namespace Skinny\Action;
  *
  * @author Wodzu
  */
-class PermitException extends \RuntimeException {
+class PermitException extends \Skinny\Exception {
     //put your code here
 }

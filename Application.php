@@ -220,7 +220,7 @@ class Application {
      * @param string $request_url url pierwszego żądania
      * @param array $params parametry pierwszego żądania
      * @throws \Skinny\Exception
-     * @throws Action\Exception
+     * @throws Action\ActionException
      */
     public function run($request_url = null, array $params = array()) {
         if (null === $request_url)
@@ -236,7 +236,11 @@ class Application {
         while (!$this->_request->isProcessed()) {
             try {
                 $counter++;
-                Exception::raiseIf(new Action\Exception("Too many forwards: 10 in action '{$this->_request->current()->getRequestUrl()}'."), $counter >= 10);
+                if ($counter >= 10) {
+                    var_dump($this->_request);
+                    die();
+                }
+                Exception::throwIf($counter >= 10, new Action\ActionException("Too many forwards: 10 in action '{$this->_request->current()->getRequestUrl()}'."));
 
                 if (!$this->_request->isResolved()) {
                     $this->_request->resolve();
@@ -245,14 +249,15 @@ class Application {
                 $action = $this->_request->current()->getAction();
                 if (null === $action) {
                     $notFoundAction = $this->_config->actions->notFound(null);
-                    Exception::raiseIf(new Action\Exception("Cannot find action corresponding to URL '{$this->_request->current()->getRequestUrl()}'."), null === $notFoundAction);
+                    Exception::throwIf(null === $notFoundAction && ($this->_response->setCode(404) || true), new Action\ActionException("Cannot find action corresponding to URL '{$this->_request->current()->getRequestUrl()}'."));
+                    Exception::throwIf($notFoundAction === $this->_request->current()->getRequestUrl(), new Action\ActionException('Cannot find the action for handling missing actions.'));
 
                     $this->_request->next(new Request\Step($notFoundAction, ['error' => 'notFound']));
                     $this->_request->proceed();
                     continue;
                 }
 
-                Exception::raiseIf(new Action\Exception('Action object is not an instance of the Skinny\Action base class.'), !($action instanceof Action));
+                Exception::throwIf(!($action instanceof Action), new Action\ActionException('Action object is not an instance of the Skinny\Action base class.'));
 
                 $action->setApplication($this);
                 $action->_init();
@@ -306,13 +311,13 @@ class Application {
 
                 $this->_request->proceed();
             } catch (\Exception $e) {
-                if ($e instanceof Action\Exception)
+                if ($e instanceof Action\ActionException)
                     throw $e;
 
                 $errorAction = $this->_config->actions->error(null);
 
-                Exception::raiseIf($e, null === $errorAction);
-                Exception::raiseIf(new Action\Exception("Uncaught exception in error action: {$e->getMessage()}", 0, $e), $errorAction === $this->_request->current()->getRequestUrl());
+                Exception::throwIf(null === $errorAction, $e);
+                Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException("Uncaught exception in error action: {$e->getMessage()}", 0, $e));
 
                 $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'exception', 'exception' => $e]));
                 $this->_request->next()->setParams(['discardedSteps' => $discarded]);
