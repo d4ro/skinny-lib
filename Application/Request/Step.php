@@ -1,8 +1,8 @@
 <?php
 
-namespace Skinny\Request;
+namespace Skinny\Application\Request;
 
-use Skinny\Router;
+use Skinny\Application\Router;
 
 /*
  * To change this template, choose Tools | Templates

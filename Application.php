@@ -3,6 +3,9 @@
 namespace Skinny;
 
 use Skinny\Application\Components;
+use Skinny\Application\Request;
+use Skinny\Application\Response;
+use Skinny\Application\Router;
 
 /**
  * Główna klasa przygotowująca aplikację bazującą na podstawce Skinny.
@@ -82,10 +85,18 @@ class Application {
 
         // config
         require_once __DIR__ . '/Store.php';
-        $env = isset($_SERVER['APPLICATION_ENV']) ? $_SERVER['APPLICATION_ENV'] : 'production';
+
+        if (!isset($_SERVER['APPLICATION_ENV'])) {
+            die('Application environment is not set. Application cannot be run.');
+        }
+
+        // todo: sprawdzenie, czy nazwa env nie jest pusta i czy nie zawiera nieprawidłowych znaków
+
+        $env = $_SERVER['APPLICATION_ENV'];
         $config = new Store(include $config_path . '/global.conf.php');
-        if (file_exists($local_config = $config_path . '/' . $env . '.conf.php'))
+        if (file_exists($local_config = $config_path . '/' . $env . '.conf.php')) {
             $config->merge(include $local_config);
+        }
 
         $this->_env = $env;
         $this->_config = $config;
@@ -111,13 +122,11 @@ class Application {
 
         //router
         $this->_router = new Router(
-                        $this->_config->paths->content('content', true), $this->_config->paths->cache('cache', true), $this->_config->router()
+                $this->_config->paths->content('content', true), $this->_config->paths->cache('cache', true), $this->_config->router()
         );
 
         //request
         $this->_request = new Request($this->_router);
-
-        \model\base::setApplication($this); // ustawia wskaźnik do aplikacji dla modeli poprzez \model\base
 
         $this->registerErrorHandler();
     }
@@ -227,28 +236,23 @@ class Application {
         while (!$this->_request->isProcessed()) {
             try {
                 $counter++;
-                if ($counter >= 10)
-                    throw new Action\Exception('Too many forwards: 10 in action ' . $this->_request->current()->getRequestUrl());
+                Exception::raiseIf(new Action\Exception("Too many forwards: 10 in action '{$this->_request->current()->getRequestUrl()}'."), $counter >= 10);
 
-                if (!$this->_request->isResolved())
+                if (!$this->_request->isResolved()) {
                     $this->_request->resolve();
+                }
 
                 $action = $this->_request->current()->getAction();
                 if (null === $action) {
                     $notFoundAction = $this->_config->actions->notFound(null);
-                    if (null !== $notFoundAction) {
-                        $this->_request->next(new Request\Step($notFoundAction, ['error' => 'notFound', 'step' => $this->_request->current()]));
-                        $this->_request->proceed();
-                        continue;
-                    }
-                    else
-                    // TODO: błąd 404
-                        throw new Action\Exception('Cannot find action corresponding to URL "' . $this->_request->current()->getRequestUrl() . '".');
-                    // TODO: $this->_response->notFound();
+                    Exception::raiseIf(new Action\Exception("Cannot find action corresponding to URL '{$this->_request->current()->getRequestUrl()}'."), null === $notFoundAction);
+
+                    $this->_request->next(new Request\Step($notFoundAction, ['error' => 'notFound']));
+                    $this->_request->proceed();
+                    continue;
                 }
 
-                if (!($action instanceof Action))
-                    throw new Action\Exception('Action found is not an instance of the Skinny\Action base class.');
+                Exception::raiseIf(new Action\Exception('Action object is not an instance of the Skinny\Action base class.'), !($action instanceof Action));
 
                 $action->setApplication($this);
                 $action->_init();
@@ -265,7 +269,7 @@ class Application {
                 if (true !== $permission) {
                     $errorAction = $this->_config->actions->accessDenied(null);
                     if (null !== $errorAction) {
-                        $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'accessDenied', 'step' => $this->_request->current()]));
+                        $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'accessDenied']));
                         $this->_request->next()->setParams(['discardedSteps' => $discarded]);
                         $this->_request->proceed();
                         continue;
@@ -306,14 +310,14 @@ class Application {
                     throw $e;
 
                 $errorAction = $this->_config->actions->error(null);
-                if (null !== $errorAction) {
-                    $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'exception', 'step' => $this->_request->current(), 'exception' => $e]));
-                    $this->_request->next()->setParams(['discardedSteps' => $discarded]);
-                    $this->_request->proceed();
-                    continue;
-                }
-                else
-                    throw $e;
+
+                Exception::raiseIf($e, null === $errorAction);
+                Exception::raiseIf(new Action\Exception("Uncaught exception in error action: {$e->getMessage()}", 0, $e), $errorAction === $this->_request->current()->getRequestUrl());
+
+                $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'exception', 'exception' => $e]));
+                $this->_request->next()->setParams(['discardedSteps' => $discarded]);
+                $this->_request->proceed();
+                continue;
             }
         }
 
@@ -420,9 +424,11 @@ class Application {
                 break;
 
             // error
+            case E_ERROR:
+//                if (strpos($lastError['message'], 'Uncaught exception') === 0)
+//                    return;
             case E_COMPILE_ERROR:
             case E_CORE_ERROR:
-            case E_ERROR:
             case E_PARSE:
             case E_RECOVERABLE_ERROR:
             case E_USER_ERROR:

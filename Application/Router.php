@@ -1,8 +1,11 @@
 <?php
 
-namespace Skinny;
+namespace Skinny\Application;
 
-use Skinny\Router\Container;
+use Skinny\IOException;
+use Skinny\Path;
+use Skinny\Store;
+use Skinny\Application\Router\Container;
 
 /**
  * Klasa obiektu routera.

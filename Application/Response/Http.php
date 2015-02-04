@@ -1,6 +1,6 @@
 <?php
 
-namespace Skinny\Response;
+namespace Skinny\Application\Response;
 
 /**
  * Description of Http

@@ -1,6 +1,6 @@
 <?php
 
-namespace Skinny\Router\Container;
+namespace Skinny\Application\Router\Container;
 
 /**
  * Klasa bazowa kontenera na wyliczone części składowe zapytania do aplikacji.
@@ -10,13 +10,13 @@ namespace Skinny\Router\Container;
 abstract class ContainerBase implements ContainerInterface {
 
     /**
-     * Ścieżka URL żądania
+     * URL path of request
      * @var string
      */
     protected $_requestUrl;
 
     /**
-     * Obiekt akcji
+     * Action object
      * @var \Skinny\Action
      */
     protected $_action;
@@ -100,42 +100,83 @@ abstract class ContainerBase implements ContainerInterface {
         return $this->_actionUrl;
     }
 
+    /**
+     * Returns depth level of the action counting from base.
+     * @return int
+     */
     public function getActionDepth() {
         return $this->_actionDepth;
     }
 
+    /**
+     * Returns whether action in the container is the same as in the original request.
+     * [Obsolete cadidate]
+     * @return bool
+     */
     public function getActionMatch() {
         return $this->_actionMatch;
     }
 
+    /**
+     * Returns action parts subset of whole arguments array.
+     * @return array
+     */
     public function getActionParts() {
         return $this->_actionParts;
     }
 
+    /**
+     * Returns arguments array extracted from the request.
+     * @return array
+     */
     public function getArgs() {
         return $this->_args;
     }
 
+    /**
+     * Returns number of arguments.
+     * @return int
+     */
     public function getArgCount() {
         return $this->_argCount;
     }
 
+    /**
+     * Returns associated array of parameters where names are keys.
+     * @return array
+     */
     public function getParams() {
         return $this->_params;
     }
 
+    /**
+     * Returns number of parameters.
+     * @return int
+     */
     public function getParamCount() {
         return $this->_paramCount;
     }
 
+    /**
+     * Sets request URL in the constainer.
+     * @param string $requestUrl
+     */
     public function setRequestUrl($requestUrl) {
         $this->_requestUrl = $requestUrl;
     }
 
+    /**
+     * Sets action object in the container.
+     * @param \Skinny\Action $action
+     */
     public function setAction($action) {
         $this->_action = $action;
     }
 
+    /**
+     * Sets action parts and constructs action url.
+     * @param array $actionParts
+     */
     public function setActionParts(array $actionParts) {
         $this->_actionParts = $actionParts;
         $this->_actionUrl = implode('/', $actionParts);

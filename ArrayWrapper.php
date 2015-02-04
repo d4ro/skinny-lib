@@ -40,7 +40,7 @@ class ArrayWrapper implements \JsonSerializable, \ArrayAccess, \IteratorAggregat
             return $this->_data[$name];
         }
 
-        return $a = null;
+        return $null = null;
     }
 
     /**
