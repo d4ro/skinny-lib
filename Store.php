@@ -77,8 +77,9 @@ class Store implements \JsonSerializable, \IteratorAggregate {
 
     // odczyt nieistniejącej właściwości
     public function &__get($name) {
-        if (!isset($this->items[$name]))
+        if (!isset($this->items[$name])) {
             $this->items[$name] = new self();
+        }
         return $this->items[$name];
     }
 
@@ -109,8 +110,9 @@ class Store implements \JsonSerializable, \IteratorAggregate {
     public function length() {
         $items = count($this->items);
         foreach ($this->items as $item) {
-            if ($item instanceof self && $item->isEmpty())
+            if ($item instanceof self && $item->isEmpty()) {
                 $items--;
+            }
         }
 
         return $items;
@@ -131,29 +133,33 @@ class Store implements \JsonSerializable, \IteratorAggregate {
         $array = array();
         foreach ($this->items as $key => $value) {
             if ($value instanceof self) {
-                if (!$value->isEmpty())
+                if (!$value->isEmpty()) {
                     $array[$key] = $value->toArray();
-            }
-            else
+                }
+            } else {
                 $array[$key] = $value;
+            }
         }
         return $array;
     }
 
     public function __clone() {
         foreach ($this->items as $key => $value) {
-            if ($value instanceof self)
-                if (!$value->isEmpty())
+            if ($value instanceof self) {
+                if (!$value->isEmpty()) {
                     $this->items[$key] = clone $value;
-                else
+                } else {
                     unset($this->items[$key]);
+                }
+            }
         }
     }
 
     public function cleanup() {
         foreach ($this->items as $key => $value) {
-            if ($value instanceof self && $value->isEmpty())
+            if ($value instanceof self && $value->isEmpty()) {
                 unset($this->items[$key]);
+            }
         }
     }
 
@@ -167,9 +173,9 @@ class Store implements \JsonSerializable, \IteratorAggregate {
             if ($this->$name instanceof \Closure) {
                 $closure = $this->$name;
                 return call_user_func_array($closure, $arguments);
-            }
-            else
+            } else {
                 return $this->items[$name];
+            }
         }
 
         $default = isset($arguments[0]) ? $arguments[0] : null;
@@ -177,31 +183,35 @@ class Store implements \JsonSerializable, \IteratorAggregate {
         $return_default = isset($arguments[2]) ? $arguments[2] : isset($arguments[0]);
 
         if ($create) {
-            if ($return_default)
+            if ($return_default) {
                 $this->$name = $default;
+            }
             return $this->$name;
         }
 
-        if ($return_default)
+        if ($return_default) {
             return $default;
+        }
 
         return new self;
     }
 
     public function merge($obj) {
-        if ($obj instanceof self)
+        if ($obj instanceof self) {
             $obj = $obj->items;
+        }
 
         $obj = (array) $obj;
         foreach ($obj as $key => $value) {
             if ($value instanceof self || is_array($value)) {
                 if (isset($this->items[$key]) && (is_array($this->items[$key]) || $this->items[$key] instanceof self)) {
-                    if (is_array($this->items[$key]))
+                    if (is_array($this->items[$key])) {
                         $this->items[$key] = new self($this->items[$key]);
+                    }
                     $this->items[$key]->merge($value);
-                }
-                else
+                } else {
                     $this->items[$key] = new self($value);
+                }
             } elseif (null !== $value) {
                 $this->items[$key] = $value;
             }

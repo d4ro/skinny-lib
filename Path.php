@@ -18,20 +18,25 @@ class Path {
      * @return string
      */
     public static function combine($path1, $path2 = '') {
-        if (is_array($path1))
+        if (is_array($path1)) {
             $path1 = call_user_func_array(array(__CLASS__, __METHOD__), $path1);
+        }
 
-        if (is_array($path2))
+        if (is_array($path2)) {
             $path2 = call_user_func_array(array(__CLASS__, __METHOD__), $path2);
+        }
 
-        if (empty($path1))
+        if (empty($path1)) {
             return $path2;
+        }
 
-        if (empty($path2))
+        if (empty($path2)) {
             return $path1;
+        }
 
-        if (self::isAbsolute($path2))
+        if (self::isAbsolute($path2)) {
             return $path2;
+        }
 
         switch (substr($path1, -1)) {
             case '/':
@@ -60,8 +65,9 @@ class Path {
      * @return boolean
      */
     public static function isAbsolute($path) {
-        if (empty($path))
+        if (empty($path)) {
             return false;
+        }
 
         return($path[0] == '/' || $path[0] == '\\');
     }

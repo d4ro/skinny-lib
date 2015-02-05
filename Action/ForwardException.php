@@ -7,6 +7,6 @@ namespace Skinny\Action;
  *
  * @author Wodzu
  */
-class ForwardException extends \Skinny\Exception {
+class ForwardException extends \RuntimeException {
     //put your code here
 }

@@ -5,6 +5,7 @@ namespace Skinny\Application;
 use Skinny\IOException;
 use Skinny\Path;
 use Skinny\Store;
+use Skinny\Action\ActionException;
 use Skinny\Application\Router\Container;
 
 /**
@@ -59,8 +60,9 @@ class Router implements Router\RouterInterface {
      */
     public function getRoute($requestUrl, Container\ContainerInterface $container = null) {
         // jeżeli nie ma gdzie składować wyników, tworzymy nowy kontener
-        if (null === $container)
+        if (null === $container) {
             $container = new Container();
+        }
 
         // obsługa parametrów po "?"
         $additionalParams = [];
@@ -78,8 +80,9 @@ class Router implements Router\RouterInterface {
 
         // ustawiamy argumenty wywołania
         $requestUrl = ltrim($requestUrl, '/');
-        if (empty($requestUrl))
+        if (empty($requestUrl)) {
             $requestUrl = 'index';
+        }
         $args = explode('/', $requestUrl);
 
         $container->resetArgs($args);
@@ -93,8 +96,9 @@ class Router implements Router\RouterInterface {
             try {
                 if (!class_exists($actionClassName, false)) {
                     $actionFile = Path::combine($this->_contentPath, $actionParts) . '.php';
-                    require $actionFile;
+                    include $actionFile;
                 }
+                \Skinny\Exception::throwIf(!class_exists($actionClassName, false), new ActionException("Action '$actionClassName' is defined but its class is not found."));
                 $container->setAction(new $actionClassName());
             } catch (Exception $e) {
                 
@@ -104,11 +108,14 @@ class Router implements Router\RouterInterface {
         // określamy parametry
         $params = array();
         for ($i = $actionLength; $i < count($args); $i += 2) {
-            if (!empty($args[$i])) {
-                if (isset($args[$i + 1]))
-                    $params[$args[$i]] = $args[$i + 1];
-                else if (count($args) == $i + 1)
-                    $params[$args[$i]] = '';
+            if (empty($args[$i])) {
+                continue;
+            }
+
+            if (isset($args[$i + 1])) {
+                $params[$args[$i]] = $args[$i + 1];
+            } else if (count($args) == $i + 1) {
+                $params[$args[$i]] = '';
             }
         }
 
@@ -123,8 +130,9 @@ class Router implements Router\RouterInterface {
      * @return string
      */
     public function getBaseUrl() {
-        if (null === $this->_baseUrl)
+        if (null === $this->_baseUrl) {
             $this->_baseUrl = $this->_config->baseUrl('/', true);
+        }
         return $this->_baseUrl;
     }
 
@@ -137,8 +145,9 @@ class Router implements Router\RouterInterface {
         $x = Path::combine($this->_cachePath, 'actions.php');
         $actions = file_exists($x) ? include $x : null;
 
-//        if (empty($actions))
-        $actions = $this->resolveActions();
+        if (empty($actions) || !$this->_config->actionCache->enabled(true, true)) {
+            $actions = $this->resolveActions();
+        }
 
         $i = 0;
         $found = -1;
@@ -146,11 +155,13 @@ class Router implements Router\RouterInterface {
         $match = false;
 
         do {
-            if ($i >= $count)
+            if ($i >= $count) {
                 break;
+            }
 
-            if (in_array($args[$i], $actions))
+            if (in_array($args[$i], $actions)) {
                 $found = $i;
+            }
 
             $match = isset($actions[$args[$i]]);
         } while ($match && $actions = $actions[$args[$i++]]);
@@ -168,7 +179,7 @@ class Router implements Router\RouterInterface {
         if (!is_dir($this->_contentPath))
             throw new IOException('Could not read application content directory.');
 
-        $actions = self::readDir($this->_contentPath);
+        $actions = self::readActionsDir($this->_contentPath);
         $actionsPath = Path::combine($this->_cachePath, 'actions.php');
 
         $file = new \Skinny\File($actionsPath);
@@ -185,21 +196,23 @@ class Router implements Router\RouterInterface {
      * @param string $dirPath ścieżka do katalogu
      * @return array
      */
-    protected static function readDir($dirPath) {
+    protected static function readActionsDir($dirPath) {
         $dir = dir($dirPath);
         $actions = [];
         while ($item = $dir->read()) {
             $path = $dirPath . DIRECTORY_SEPARATOR . $item;
-            if ($item[0] == '.')
-                continue;
-
-            if (is_dir($path)) {
-                $actions[$item] = self::readDir($path);
+            if ($item[0] == '.') {
                 continue;
             }
 
-            if (substr($item, -4) == '.php')
+            if (is_dir($path)) {
+                $actions[$item] = self::readActionsDir($path);
+                continue;
+            }
+
+            if (substr($item, -4) == '.php') {
                 $actions[] = substr($item, 0, -4);
+            }
         }
         return $actions;
     }

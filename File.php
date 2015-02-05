@@ -30,8 +30,9 @@ class File {
     }
 
     public function close() {
-        if ($this->isOpened())
+        if ($this->isOpened()) {
             fclose($this->_descriptor);
+        }
 
         $this->_descriptor = null;
         $this->_mode = null;
@@ -47,13 +48,15 @@ class File {
 
     public function write($content) {
         $close = !$this->isOpened();
-        if ($close && !$this->open('wb'))
+        if ($close && !$this->open('wb')) {
             throw new IOException('Could not open file "' . $this->_path . '" to write.');
+        }
 
         fwrite($this->_descriptor, $content);
 
-        if ($close)
+        if ($close) {
             $this->close();
+        }
     }
 
     public function read() {

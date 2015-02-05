@@ -223,24 +223,27 @@ class Application {
      * @throws Action\ActionException
      */
     public function run($request_url = null, array $params = array()) {
-        if (null === $request_url)
+        if (null === $request_url) {
             $request_url = $_SERVER['REQUEST_URI'];
+        }
 
-        if (null === $this->_request->current())
+        if (null === $this->_request->current()) {
             $this->_request->next(new Request\Step($request_url, $params));
+        }
 
-        if (null === $this->_response)
+        if (null === $this->_response) {
             $this->_response = new Response\Http();
+        }
 
-        $counter = 0;
+        $counter = $maxForwardCount = $this->_config->skinny->maxNumActionsForwarded(10);
         while (!$this->_request->isProcessed()) {
             try {
-                $counter++;
-                if ($counter >= 10) {
+                --$counter;
+                if ($counter === 0) {
                     var_dump($this->_request);
                     die();
                 }
-                Exception::throwIf($counter >= 10, new Action\ActionException("Too many forwards: 10 in action '{$this->_request->current()->getRequestUrl()}'."));
+                Exception::throwIf($counter === 0, new Action\ActionException("Too many actions dispatched in one request: $maxForwardCount in action '{$this->_request->current()->getRequestUrl()}'."));
 
                 if (!$this->_request->isResolved()) {
                     $this->_request->resolve();
@@ -249,33 +252,43 @@ class Application {
                 $action = $this->_request->current()->getAction();
                 if (null === $action) {
                     $notFoundAction = $this->_config->actions->notFound(null);
+                    $accessDeniedAction = $this->_config->actions->accessDenied(null);
+                    $errorAction = $this->_config->actions->error(null);
+
+                    Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException('Error handler action cannot be found.'));
                     Exception::throwIf(null === $notFoundAction && ($this->_response->setCode(404) || true), new Action\ActionException("Cannot find action corresponding to URL '{$this->_request->current()->getRequestUrl()}'."));
                     Exception::throwIf($notFoundAction === $this->_request->current()->getRequestUrl(), new Action\ActionException('Cannot find the action for handling missing actions.'));
 
-                    $this->_request->next(new Request\Step($notFoundAction, ['error' => 'notFound']));
-                    $this->_request->proceed();
-                    continue;
+                    $this->forwardError(['@error' => 'notFound'], $notFoundAction);
                 }
 
-                Exception::throwIf(!($action instanceof Action), new Action\ActionException('Action object is not an instance of the Skinny\Action base class.'));
+                Exception::throwIf(!($action instanceof Action), new Action\ActionException("Action's '{$this->_request->current()->getRequestUrl()}' object is not an instance of the Skinny\\Action base class."));
 
                 $action->setApplication($this);
                 $action->_init();
 
-                try {
-                    $permission = $action->_permit();
-                } catch (\Skinny\Action\ForwardException $e) {
-                    
-                }
-
-                if ($this->isRequestForwarded())
-                    continue;
+//                try {
+                $permission = $action->_permit();
+//                } catch (\Skinny\Action\ForwardException $e) {
+//                    
+//                }
+//                if ($this->isRequestForwarded()) {
+//                    continue;
+//                }
 
                 if (true !== $permission) {
-                    $errorAction = $this->_config->actions->accessDenied(null);
-                    if (null !== $errorAction) {
-                        $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'accessDenied']));
-                        $this->_request->next()->setParams(['discardedSteps' => $discarded]);
+                    $accessDeniedAction = $this->_config->actions->accessDenied(null);
+                    $errorAction = $this->_config->actions->error(null);
+                    $notFoundAction = $this->_config->actions->notFound(null);
+
+                    Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException('Access denied occured in error handler action.'));
+                    if ($notFoundAction === $this->_request->current()->getRequestUrl()) {
+                        $this->forwardError(['@error' => 'exception', '@exception' => new Action\ActionException('Access denied occured in not found handler action.')], $errorAction);
+                    }
+
+                    if (null !== $accessDeniedAction) {
+                        $discarded = $this->_request->forceNext(new Request\Step($accessDeniedAction, ['@error' => 'accessDenied']));
+                        $this->_request->next()->setParams(['@discardedSteps' => $discarded]);
                         $this->_request->proceed();
                         continue;
                     } else {
@@ -285,44 +298,61 @@ class Application {
                     }
                 }
 
-                try {
-                    $action->_prepare();
-                } catch (\Skinny\Action\ForwardException $e) {
-                    
-                }
-
-                if ($this->isRequestForwarded())
-                    continue;
-
-                try {
-                    $action->_action();
-                } catch (\Skinny\Action\ForwardException $e) {
-                    
-                }
-
-                if ($this->isRequestForwarded())
-                    continue;
-
-                try {
-                    $action->_cleanup();
-                } catch (\Skinny\Action\ForwardException $e) {
-                    
-                }
+//                try {
+                $action->_prepare();
+//                } catch (\Skinny\Action\ForwardException $e) {
+//                    
+//                }
+//                if ($this->isRequestForwarded()) {
+//                    continue;
+//                }
+//                try {
+                $action->_action();
+//                } catch (\Skinny\Action\ForwardException $e) {
+//                    
+//                }
+//                if ($this->isRequestForwarded()) {
+//                    continue;
+//                }
+//                try {
+                $action->_cleanup();
+//                } catch (\Skinny\Action\ForwardException $e) {
+//                    
+//                }
 
                 $this->_request->proceed();
+            } catch (\Skinny\Action\ForwardException $e) {
+                
             } catch (\Exception $e) {
-                if ($e instanceof Action\ActionException)
-                    throw $e;
-
+                // get URL of error action
                 $errorAction = $this->_config->actions->error(null);
 
-                Exception::throwIf(null === $errorAction, $e);
-                Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException("Uncaught exception in error action: {$e->getMessage()}", 0, $e));
+                // check for exception in params and attach it to $e if found
+                $related = $this->_request->current()->getParam('@error');
+                if (null !== $related) {
+                    $related = ['@error' => $related];
+                    if (null !== $this->_request->current()->getParam('@exception'))
+                        $related['@exception'] = $this->_request->current()->getParam('@exception');
+                    if (null !== $this->_request->current()->getParam('@message'))
+                        $related['@message'] = $this->_request->current()->getParam('@message');
+                    if (null !== $this->_request->current()->getParam('@lastError'))
+                        $related['@lastError'] = $this->_request->current()->getParam('@lastError');
+                    if (null !== $this->_request->current()->getParam('@discardedSteps'))
+                        $related['@discardedSteps'] = $this->_request->current()->getParam('@discardedSteps');
+                    $e = new Exception("(with related error data) {$e->getMessage()}", 0, $e, $related);
+                }
 
-                $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'exception', 'exception' => $e]));
-                $this->_request->next()->setParams(['discardedSteps' => $discarded]);
-                $this->_request->proceed();
-                continue;
+                // rethrow exceptions that error action cannot handle
+                Exception::throwIf($e instanceof Action\ActionException, $e);
+                Exception::throwIf(null === $errorAction, $e);
+                Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException("Uncaught exception in error handler action: {$e->getMessage()}", 0, $e));
+
+                // forward to error action
+                try {
+                    $this->forwardError(['@error' => 'exception', '@exception' => $e], $errorAction);
+                } catch (Action\ForwardException $ex) {
+                    continue;
+                }
             }
         }
 
@@ -336,9 +366,24 @@ class Application {
      */
     protected function isRequestForwarded() {
         $forwarded = null !== $this->_request->next();
-        if ($forwarded)
+        if ($forwarded) {
             $this->_request->proceed();
+        }
         return $forwarded;
+    }
+
+    protected function forwardError($params, $errorAction = null) {
+        // TODO: przemyśleć nazwę metody
+        if (null === $errorAction || !is_string($errorAction)) {
+            $errorAction = $this->_config->actions->error(null);
+        }
+
+        Exception::throwIf(null === $errorAction, new Action\ActionException('Error handler action is not defined.'));
+
+        $discarded = $this->_request->forceNext(new Request\Step($errorAction, $params));
+        $this->_request->next()->setParams(['@discardedSteps' => $discarded]);
+        $this->_request->proceed();
+        throw new Action\ForwardException();
     }
 
     protected function registerErrorHandler() {
@@ -356,57 +401,25 @@ class Application {
         if (!$errorReporting)
             return true;
 
-        switch ($errno) {
-            // notice
-            case E_NOTICE:
-            case E_DEPRECATED:
-            case E_STRICT:
-            case E_USER_DEPRECATED:
-                // ignorowanie
-                return false;
-                break;
+        $lastError = ['type' => $errno, 'message' => $errstr, 'file' => $errfile, 'line' => $errline];
 
-            // warning
-            case E_COMPILE_WARNING:
-            case E_CORE_WARNING:
-            case E_USER_WARNING:
-            case E_WARNING:
-                // logowanie, ale idziemy dalej
-                // TODO: logowanie warninga
-                return false;
-                break;
-
-            // error
-            case E_COMPILE_ERROR:
-            case E_CORE_ERROR:
-            case E_ERROR:
-            case E_PARSE:
-            case E_RECOVERABLE_ERROR:
-            case E_USER_ERROR:
-                // obsługa błędu
-                break;
-
-            default:
-                break;
-        }
-
-        // obsługa błędu
-        $errorAction = $this->_config->actions->error(null);
-        if (null !== $errorAction) {
-            $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'fatal', 'step' => $this->_request->current(), 'lastError' => ['type' => $errno, 'message' => $errstr, 'file' => $errfile, 'line' => $errline]]));
-            $this->_request->next()->setParams(['discardedSteps' => $discarded]);
-            $this->_request->proceed();
-        }
-
-        $this->run();
-        exit();
-        return true;
+        return $this->handleLastError($lastError);
     }
 
     public function shutdownHandler() {
+        // TODO: do uzupełnienia i przeprowadzenia pełnych testów
         $lastError = $this->getLastError(); // error_get_last();
-        if (!$lastError)
+        if (!$lastError) {
             return;
+        }
+
+        $this->handleLastError($lastError);
+    }
+
+    protected function handleLastError(array $lastError) {
+        if (!isset($lastError['type'])) {
+            return;
+        }
 
         switch ($lastError['type']) {
             // notice
@@ -450,13 +463,16 @@ class Application {
         // obsługa błędu
         $errorAction = $this->_config->actions->error(null);
         if (null !== $errorAction) {
-            $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'fatal', 'step' => $this->_request->current(), 'lastError' => $lastError]));
-            $this->_request->next()->setParams(['discardedSteps' => $discarded]);
-            $this->_request->proceed();
+            try {
+                $this->forwardError(['@error' => 'fatal', '@lastError' => $lastError], $errorAction);
+            } catch (Action\ForwardException $ex) {
+                
+            }
+            $this->run();
+            return true;
         }
 
-        $this->run();
-        exit();
+        return false;
     }
 
     protected function getLastError() {
