@@ -48,14 +48,16 @@ class Session extends ArrayWrapper {
     // TODO: funkcje obsługujące automatyczny odczyt/zapis do bazy
 
     public function isStarted() {
-        if (PHP_VERSION_ID < 50400)
+        if (PHP_VERSION_ID < 50400) {
             return session_id() == '';
+        }
         return session_status() == PHP_SESSION_ACTIVE;
     }
 
     public function start() {
-        if ($this->isStarted())
+        if ($this->isStarted()) {
             return false;
+        }
 
         $this->registerCallbacks();
         $defaulName = session_name();
@@ -92,8 +94,9 @@ class Session extends ArrayWrapper {
 
     function read($id) {
         $result = $this->getData($id);
-        if (false === $result)
+        if (false === $result) {
             return '';
+        }
 
         if (!$result['valid']) {
             $this->destroy($id);
@@ -112,8 +115,9 @@ class Session extends ArrayWrapper {
             ));
             $select->where($this->_db->quoteIdentifier($this->_config->table->id('id', true)) . ' = ?', $id);
             $row = $this->_db->fetchRow($select);
-            if(empty($row))
+            if (empty($row)) {
                 return false;
+            }
             return $row;
         } catch (\Exception $e) {
             die('Session fatal error occured: ' . $e->getMessage());
