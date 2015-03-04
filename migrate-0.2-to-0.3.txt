@@ -1,5 +1,4 @@
 Migracja ze Skinny 0.2 na wersję 0.3
 
-1. Wyodrębnij komponenty z plików konfiguracyjnych, połącz je i przenieś do katalogu components.
-2. Zmień w obsłudze błędów nazwę parametru określającego treść błędu z 'msg' na 'message'.
-3. Zmień w obsłudze błędów nazwy parametrów tworzonych przez Skinny do identyfikacji błędu dodając na początku znak @, np. '@error', '@exception', '@message'
+1. Wyodrębnij komponenty z plików konfiguracyjnych, do odrębnych plików w katalogu components o nazwach takich jak nazwy komponentów.
+2. Zmień w obsłudze błędów nazwy parametrów tworzonych przez Skinny do identyfikacji błędu dodając na początku znak @, np. '@error', '@exception', '@message'

@@ -110,6 +110,7 @@ class Components implements \ArrayAccess {
     }
 
     /**
+     * [unused]
      * Stwierdza, czy komponenty o nazwach podanych w tablicy $name zostały już finalnie zainicjalizowane.
      * Jeżeli parametr zostanie pominięty, funkcja stwierdza, czy wszystkie komponenty zostały w pełni zainicjalizowane.
      * @param array $name
@@ -156,7 +157,21 @@ class Components implements \ArrayAccess {
      * @return boolean
      */
     public function hasInitializer($name) {
-        return isset($this->_initializers[$name]) && $this->_initializers[$name] instanceof \Closure;
+        if (isset($this->_initializers[$name])) {
+            return ($this->_initializers[$name] instanceof \Closure);
+        }
+
+        if (isset($this->_components[$name])) {
+            return false;
+        }
+
+        $file = new \Skinny\File($filename = \Skinny\Path::combine($this->_config->paths->components('components', true), $name . '.php'));
+
+        if (!$file->isReadable()) {
+            return false;
+        }
+        $this->_initializers[$name] = include $filename;
+        return ($this->_initializers[$name] instanceof \Closure);
     }
 
     /**
@@ -165,7 +180,7 @@ class Components implements \ArrayAccess {
      * @throws \InvalidArgumentException
      * @throws \BadFunctionCallException
      */
-    public function initialize($name = null) {
+    protected function initialize($name = null) {
         if (null === $name) {
             $name = array_keys($this->_initializers);
         }
