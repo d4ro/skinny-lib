@@ -24,8 +24,7 @@ class File {
             $this->_descriptor = $f;
             $this->_mode = $mode;
             return true;
-        }
-        else
+        } else
             return false;
     }
 
@@ -59,16 +58,16 @@ class File {
         }
     }
 
-    public function read() {
-        
+    public function read($length = null) {
+        // TODO
     }
 
     public function delete() {
-        
+        unlink($this->_path);
     }
 
     public function exists() {
-        
+        return file_exists($this->_path);
     }
 
     public function create() {
@@ -76,7 +75,11 @@ class File {
     }
 
     public function append() {
-        
+        // TODO
+    }
+
+    public function isReadable() {
+        return is_readable($this->_path);
     }
 
 }

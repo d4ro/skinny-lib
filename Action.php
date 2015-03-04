@@ -29,10 +29,10 @@ abstract class Action {
      * [Składnik akcji - opcjonalny]
      * Inicjalizacja akcji - przedłużenie konstruktora
      * Tutaj przygotowujemy instancje obiektów, które będą potrzebne do obsługi:
-     * - uprawnień (d. protection)         permission
-     * - przygotowań (d. preDispatch)      prepare
-     * - akcji (d. action)                 action
-     * - porządkowań (d. postDispatch)     cleanup
+     * - uprawnień (d. protection)                 permit
+     * - przygotowań (d. preDispatch)              prepare
+     * - akcji (d. action)                         action
+     * - czynności końcowych (d. postDispatch)     afterwards
      */
     public function _init() {
         
@@ -67,7 +67,7 @@ abstract class Action {
      * [Składnik akcji - opcjonalny]
      * Zakończenie akcji, często czyszczenie danych, połączeń, pamięci, buforów, obsługa wyjścia (output).
      */
-    public function _cleanup() {
+    public function _afterwards() {
         
     }
 
@@ -83,6 +83,10 @@ abstract class Action {
 
     final public function setApplication(Application $application) {
         $this->_application = $application;
+    }
+
+    private function requireApplication($objectName = 'Application') {
+        Exception::throwIf(null === $this->_application, new Application\ApplicationException("Cannot invoke $objectName object while Application instance is not set in current Action."));
     }
 
     /* uzytkowe */
@@ -131,7 +135,7 @@ abstract class Action {
     public function getParam($name, $default = null) {
         return $this->getRequest()->current()->getParam($name, $default);
     }
-    
+
     /**
      * Ustawia parametry dla bieżącego żądania
      * @param array $params tablica parametrów do ustawienia
@@ -170,8 +174,7 @@ abstract class Action {
      * @return Request
      */
     public function getRequest() {
-        if (null === $this->_application)
-            return null;
+        $this->requireApplication('Request');
 
         return $this->_application->getRequest();
     }
@@ -181,8 +184,7 @@ abstract class Action {
      * @return Request
      */
     public function getResponse() {
-        if (null === $this->_application)
-            return null;
+        $this->requireApplication('Response');
 
         return $this->_application->getResponse();
     }
@@ -193,8 +195,7 @@ abstract class Action {
      * @return mixed
      */
     public function getComponent($name) {
-        if (null === $this->_application)
-            return null;
+        $this->requireApplication('Components');
 
         return $this->_application->getComponent($name);
     }
@@ -232,7 +233,7 @@ abstract class Action {
      * @param array $params opcjonalne parametry
      */
     final protected function forward($request_url, array $params = array()) {
-        $this->getRequest()->forceNext(new Request\Step($request_url, $params));
+        $this->getRequest()->next(new Request\Step($request_url, $params));
         throw new Action\ForwardException;
     }
 
@@ -247,14 +248,17 @@ abstract class Action {
      * @param integer $returnCode
      */
     public function redirect($url = null, array $params = array(), $secure = null, $returnCode = 302) {
-        if (!Url::isAbsolute($url))
+        if (!Url::isAbsolute($url)) {
             $url = Url::combine($this->getBaseUrl(), $url);
-        if (null === $secure)
+        }
+        
+        if (null === $secure) {
             Location::redirect($url, $params, $returnCode);
-        elseif ($secure)
+        } elseif ($secure) {
             Location::redirectHttps($url, $params, $returnCode);
-        else
+        } else {
             Location::redirectHttp($url, $params, $returnCode);
+        }
     }
 
     /**
@@ -262,8 +266,9 @@ abstract class Action {
      */
     public function noAction() {
         $notFoundAction = $this->_application->getConfig()->actions->notFound(null);
-        if (null !== $notFoundAction)
+        if (null !== $notFoundAction) {
             $this->forward($notFoundAction, ['error' => 'notFound', 'step' => $this->getRequest()->current()]);
+        }
         // TODO: 404
     }
     

@@ -315,7 +315,7 @@ class Application {
 //                    continue;
 //                }
 //                try {
-                $action->_cleanup();
+                $action->_afterwards();
 //                } catch (\Skinny\Action\ForwardException $e) {
 //                    
 //                }
@@ -333,8 +333,6 @@ class Application {
                     $related = ['@error' => $related];
                     if (null !== $this->_request->current()->getParam('@exception'))
                         $related['@exception'] = $this->_request->current()->getParam('@exception');
-                    if (null !== $this->_request->current()->getParam('@message'))
-                        $related['@message'] = $this->_request->current()->getParam('@message');
                     if (null !== $this->_request->current()->getParam('@lastError'))
                         $related['@lastError'] = $this->_request->current()->getParam('@lastError');
                     if (null !== $this->_request->current()->getParam('@discardedSteps'))
@@ -413,12 +411,16 @@ class Application {
             return;
         }
 
-        $this->handleLastError($lastError);
+        //try {
+            $this->handleLastError($lastError);
+//        } catch (\Skinny\Exception $e) {
+//            return false;
+//        }
     }
 
     protected function handleLastError(array $lastError) {
         if (!isset($lastError['type'])) {
-            return;
+            return false;
         }
 
         switch ($lastError['type']) {
@@ -462,7 +464,11 @@ class Application {
 
         // obsługa błędu
         $errorAction = $this->_config->actions->error(null);
-        if (null !== $errorAction) {
+
+        Exception::throwIf(null === $errorAction, new Action\ActionException("Error handler action is not defined to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
+        Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException("Error occured in error handler action to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
+
+//        if (null !== $errorAction && $errorAction !== $this->_request->current()->getRequestUrl()) {
             try {
                 $this->forwardError(['@error' => 'fatal', '@lastError' => $lastError], $errorAction);
             } catch (Action\ForwardException $ex) {
@@ -470,9 +476,9 @@ class Application {
             }
             $this->run();
             return true;
-        }
+//        }
 
-        return false;
+//        return false;
     }
 
     protected function getLastError() {
