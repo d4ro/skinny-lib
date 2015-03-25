@@ -90,11 +90,20 @@ class Application {
             die('Application environment is not set. Application cannot be run.');
         }
 
-        // todo: sprawdzenie, czy nazwa env nie jest pusta i czy nie zawiera nieprawidłowych znaków
-
+        // TODO: sprawdzenie, czy nazwa env nie jest pusta i czy nie zawiera nieprawidłowych znaków
         $env = $_SERVER['APPLICATION_ENV'];
+
+        if (!is_file($config_path . '/global.conf.php')) {
+            die("Application global config has not been found. File '$config_path/global.conf.php' does not exist. Application cannot be run.");
+        }
+
+        $local_config = $config_path . '/' . $env . '.conf.php';
+        if (!is_file($local_config)) {
+            die("Application environment config has not been found. File '$local_config' does not exist. Application cannot be run.");
+        }
+
         $config = new Store(include $config_path . '/global.conf.php');
-        if (file_exists($local_config = $config_path . '/' . $env . '.conf.php')) {
+        if (file_exists($local_config)) {
             $config->merge(include $local_config);
         }
 
@@ -116,7 +125,7 @@ class Application {
         $this->_loader->initLoaders($this->_config->loaders->toArray());
         $this->_loader->register();
 
-        // bootstrap
+        // components
         $this->_components = new Components($this->_config);
         $this->_components->setInitializers($this->_config->components->toArray());
 
@@ -146,8 +155,9 @@ class Application {
      */
     public function getConfig($key = null) {
         $key = (string) $key;
-        if (empty($key))
+        if (empty($key)) {
             return $this->_config;
+        }
 
         return $this->_config->$key(null);
     }
@@ -159,8 +169,9 @@ class Application {
      */
     public function getSettings($key = null) {
         $key = (string) $key;
-        if (empty($key))
+        if (empty($key)) {
             return $this->_settings;
+        }
 
         return $this->_settings->$key(null);
     }
@@ -331,12 +342,15 @@ class Application {
                 $related = $this->_request->current()->getParam('@error');
                 if (null !== $related) {
                     $related = ['@error' => $related];
-                    if (null !== $this->_request->current()->getParam('@exception'))
+                    if (null !== $this->_request->current()->getParam('@exception')) {
                         $related['@exception'] = $this->_request->current()->getParam('@exception');
-                    if (null !== $this->_request->current()->getParam('@lastError'))
+                    }
+                    if (null !== $this->_request->current()->getParam('@lastError')) {
                         $related['@lastError'] = $this->_request->current()->getParam('@lastError');
-                    if (null !== $this->_request->current()->getParam('@discardedSteps'))
+                    }
+                    if (null !== $this->_request->current()->getParam('@discardedSteps')) {
                         $related['@discardedSteps'] = $this->_request->current()->getParam('@discardedSteps');
+                    }
                     $e = new Exception("(with related error data) {$e->getMessage()}", 0, $e, $related);
                 }
 
@@ -396,8 +410,9 @@ class Application {
 
     public function errorHandler($errno, $errstr, $errfile, $errline) {
         $errorReporting = error_reporting();
-        if (!$errorReporting)
+        if (!$errorReporting) {
             return true;
+        }
 
         $lastError = ['type' => $errno, 'message' => $errstr, 'file' => $errfile, 'line' => $errline];
 
@@ -412,7 +427,7 @@ class Application {
         }
 
         //try {
-            $this->handleLastError($lastError);
+        $this->handleLastError($lastError);
 //        } catch (\Skinny\Exception $e) {
 //            return false;
 //        }
@@ -469,15 +484,14 @@ class Application {
         Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException("Error occured in error handler action to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
 
 //        if (null !== $errorAction && $errorAction !== $this->_request->current()->getRequestUrl()) {
-            try {
-                $this->forwardError(['@error' => 'fatal', '@lastError' => $lastError], $errorAction);
-            } catch (Action\ForwardException $ex) {
-                
-            }
-            $this->run();
-            return true;
+        try {
+            $this->forwardError(['@error' => 'fatal', '@lastError' => $lastError], $errorAction);
+        } catch (Action\ForwardException $ex) {
+            
+        }
+        $this->run();
+        return true;
 //        }
-
 //        return false;
     }
 
