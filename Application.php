@@ -250,10 +250,10 @@ class Application {
         while (!$this->_request->isProcessed()) {
             try {
                 --$counter;
-                if ($counter === 0) {
-                    var_dump($this->_request);
-                    die();
-                }
+//                if ($counter === 0) {
+//                    var_dump($this->_request);
+//                    die();
+//                }
                 Exception::throwIf($counter === 0, new Action\ActionException("Too many actions dispatched in one request: $maxForwardCount in action '{$this->_request->current()->getRequestUrl()}'."));
 
                 if (!$this->_request->isResolved()) {
@@ -262,9 +262,9 @@ class Application {
 
                 $action = $this->_request->current()->getAction();
                 if (null === $action) {
-                    $notFoundAction = $this->_config->actions->notFound(null);
-                    $accessDeniedAction = $this->_config->actions->accessDenied(null);
-                    $errorAction = $this->_config->actions->error(null);
+                    $notFoundAction = $this->_config->actions->notFound('/notFound');
+                    $accessDeniedAction = $this->_config->actions->accessDenied('/accessDenied');
+                    $errorAction = $this->_config->actions->error('/error');
 
                     Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException('Error handler action cannot be found.'));
                     Exception::throwIf(null === $notFoundAction && ($this->_response->setCode(404) || true), new Action\ActionException("Cannot find action corresponding to URL '{$this->_request->current()->getRequestUrl()}'."));
@@ -288,9 +288,9 @@ class Application {
 //                }
 
                 if (true !== $permission) {
-                    $accessDeniedAction = $this->_config->actions->accessDenied(null);
-                    $errorAction = $this->_config->actions->error(null);
-                    $notFoundAction = $this->_config->actions->notFound(null);
+                    $accessDeniedAction = $this->_config->actions->accessDenied('/accessDenied');
+                    $errorAction = $this->_config->actions->error('/error');
+                    $notFoundAction = $this->_config->actions->notFound('/notFound');
 
                     Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException('Access denied occured in error handler action.'));
                     if ($notFoundAction === $this->_request->current()->getRequestUrl()) {
@@ -336,7 +336,7 @@ class Application {
                 
             } catch (\Exception $e) {
                 // get URL of error action
-                $errorAction = $this->_config->actions->error(null);
+                $errorAction = $this->_config->actions->error('/error');
 
                 // check for exception in params and attach it to $e if found
                 $related = $this->_request->current()->getParam('@error');
@@ -387,7 +387,7 @@ class Application {
     protected function forwardError($params, $errorAction = null) {
         // TODO: przemyśleć nazwę metody
         if (null === $errorAction || !is_string($errorAction)) {
-            $errorAction = $this->_config->actions->error(null);
+            $errorAction = $this->_config->actions->error('/error');
         }
 
         Exception::throwIf(null === $errorAction, new Action\ActionException('Error handler action is not defined.'));
@@ -478,7 +478,7 @@ class Application {
         ob_clean();
 
         // obsługa błędu
-        $errorAction = $this->_config->actions->error(null);
+        $errorAction = $this->_config->actions->error('/error');
 
         Exception::throwIf(null === $errorAction, new Action\ActionException("Error handler action is not defined to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
         Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException("Error occured in error handler action to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));

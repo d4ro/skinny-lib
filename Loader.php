@@ -34,13 +34,15 @@ class Loader {
      */
     public function putLoader(Loader\LoaderInterface $loader, $name, $priority = 5) {
         if (is_array($loader)) {
-            foreach ($loader as $key => $instance)
+            foreach ($loader as $key => $instance) {
                 $this->putLoader($instance, $name . $key, $priority);
+            }
             return;
         }
 
-        if (isset($this->_names[$name]))
+        if (isset($this->_names[$name])) {
             throw new \InvalidArgumentException('Loader named "' . $name . '" has already been put.');
+        }
 
         $p = $priority * self::CAPACITY;
         for ($i = $p; $i < $p + self::CAPACITY; $i++) {
@@ -62,30 +64,24 @@ class Loader {
      * @throws \InvalidArgumentException loader o podanej nazwie nie został znaleziony
      */
     public function register($name = null) {
-        // DONE: sortowanie po kluczach $this->_loaders
-        // poniższe zostało zmienione na to co po nim następuje
-        /* $keys = array_keys($this->_loaders);
-          sort($keys);
-          $loaders = array();
-          foreach ($keys as $key) {
-          $loaders[$key] = $this->_loaders[$key];
-          }
-          $this->_loaders = $loaders; */
         ksort($this->_loaders);
 
         if (null === $name) {
             foreach ($this->_loaders as $loader) {
-                if (!$loader->isRegistered())
+                if (!$loader->isRegistered()) {
                     $loader->register();
+                }
             }
         } else {
             $names = (array) $name;
             foreach ($names as $loader) {
                 if (isset($this->_names[$loader])) {
-                    if (!$this->_loaders[$this->_names[$loader]]->isRegistered())
+                    if (!$this->_loaders[$this->_names[$loader]]->isRegistered()) {
                         $this->_loaders[$this->_names[$loader]]->register();
-                } else
+                    }
+                } else {
                     throw new \InvalidArgumentException('Loader named "' . $loader . '" has not been put to the container.');
+                }
             }
         }
     }
