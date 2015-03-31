@@ -33,7 +33,7 @@ class Components implements \ArrayAccess {
      * Konstruktor kontenera komponentów
      * @param Store $config
      */
-    public function __construct($config) {
+    public function __construct(Store $config) {
         $this->_components = array();
         $this->_initializers = array();
         $this->_config = $config;

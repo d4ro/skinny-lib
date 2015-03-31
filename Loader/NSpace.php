@@ -14,7 +14,12 @@ class NSpace extends LoaderBase {
     public function load($className) {
         $className = trim($className, '\\');
 
+//echo getcwd();
+
         foreach ($this->_config->toArray() as $namespace => $path) {
+
+//            var_dump($path);
+//            die();
             if (strpos($className, $namespace) !== 0) {
                 continue;
             }
@@ -22,11 +27,12 @@ class NSpace extends LoaderBase {
             $parts = explode('\\', $className);
             foreach ($parts as $index => $part) {
                 if ($index > 0) {
-                    $path .= '/' . $part;
+                    $path .= DIRECTORY_SEPARATOR . $part;
                 }
             }
-
-            if (is_readable($path .= '.php')) {
+            $path .= '.php';
+            
+            if (is_readable($path)) {
                 include_once $path;
             }
 
