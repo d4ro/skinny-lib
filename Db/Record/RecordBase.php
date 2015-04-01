@@ -101,7 +101,7 @@ abstract class RecordBase {
      */
     public function __toString() {
         $primary = "";
-        if (null !== $this->_idValue) {
+        if (!empty($this->_idValue)) {
             foreach ($this->_idValue as $col => $id) {
                 $primary .= $col . " = " . $id . ", ";
             }
