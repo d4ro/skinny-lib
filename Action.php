@@ -34,7 +34,7 @@ abstract class Action {
      * - akcji (d. action)                         action
      * - czynności końcowych (d. postDispatch)     afterwards
      */
-    public function _init() {
+    public function onInit() {
         
     }
 
@@ -45,14 +45,14 @@ abstract class Action {
      * Należy w tym miejscu sprecyzować sposoby (ways) wykorzystania akcji przez użytkownika (przy pomocy $this->getUsage()->allowUsage()).
      * @return boolean czy jest zezwolenie na wykonanie danej akcji
      */
-    abstract public function _permit();
+    abstract public function onCheckPermission();
 
     /**
      * [Składnik akcji - opcjonalny]
      * Przygotowania przed uruchomieniem akcji.
      * Wczytujemy (globalne?) dane, przygotowujemy je; po tym etapie mamy wszystko, co potrzebne do obsługi akcji.
      */
-    public function _prepare() {
+    public function onPrepare() {
         
     }
 
@@ -61,13 +61,13 @@ abstract class Action {
      * Serce akcji. Wykonywane, gdy użytkownik ma jakiekolwiek uprawnienia do akcji.
      * Dodatkowe uprawnienia można stwierdzić przy pomocy $this->getUsage()->isAllowed().
      */
-    abstract public function _action();
+    abstract public function onAction();
 
     /**
      * [Składnik akcji - opcjonalny]
      * Zakończenie akcji, często czyszczenie danych, połączeń, pamięci, buforów, obsługa wyjścia (output).
      */
-    public function _afterwards() {
+    public function onComplete() {
         
     }
 

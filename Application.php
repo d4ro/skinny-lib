@@ -276,10 +276,10 @@ class Application {
                 Exception::throwIf(!($action instanceof Action), new Action\ActionException("Action's '{$this->_request->current()->getRequestUrl()}' object is not an instance of the Skinny\\Action base class."));
 
                 $action->setApplication($this);
-                $action->_init();
+                $action->onInit();
 
 //                try {
-                $permission = $action->_permit();
+                $permission = $action->onCheckPermission();
 //                } catch (\Skinny\Action\ForwardException $e) {
 //                    
 //                }
@@ -310,7 +310,7 @@ class Application {
                 }
 
 //                try {
-                $action->_prepare();
+                $action->onPrepare();
 //                } catch (\Skinny\Action\ForwardException $e) {
 //                    
 //                }
@@ -318,7 +318,7 @@ class Application {
 //                    continue;
 //                }
 //                try {
-                $action->_action();
+                $action->onAction();
 //                } catch (\Skinny\Action\ForwardException $e) {
 //                    
 //                }
@@ -326,7 +326,7 @@ class Application {
 //                    continue;
 //                }
 //                try {
-                $action->_afterwards();
+                $action->onComplete();
 //                } catch (\Skinny\Action\ForwardException $e) {
 //                    
 //                }
