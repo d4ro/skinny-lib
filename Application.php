@@ -129,15 +129,18 @@ class Application {
         $this->_components = new Components($this->_config);
         $this->_components->setInitializers($this->_config->components->toArray());
 
-        //router
+        // router
         $this->_router = new Router(
                 $this->_config->paths->content('content', true), $this->_config->paths->cache('cache', true), $this->_config->router()
         );
 
-        //request
+        // request
         $this->_request = new Request($this->_router);
 
+        // error handler
         $this->registerErrorHandler();
+
+        Application\ApplicationAware::setApplication($this);
     }
 
     /**
@@ -275,7 +278,7 @@ class Application {
 
                 Exception::throwIf(!($action instanceof Action), new Action\ActionException("Action's '{$this->_request->current()->getRequestUrl()}' object is not an instance of the Skinny\\Action base class."));
 
-                $action->setApplication($this);
+//                $action->setApplication($this);
                 $action->onInit();
 
 //                try {
@@ -480,6 +483,7 @@ class Application {
         // obsługa błędu
         $errorAction = $this->_config->actions->error('/error');
 
+        Exception::throwIf(null === $this->_request->current(), new Action\ActionException("Error occured in Application: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
         Exception::throwIf(null === $errorAction, new Action\ActionException("Error handler action is not defined to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
         Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException("Error occured in error handler action to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
 

@@ -8,5 +8,5 @@ namespace Skinny\Application;
  * @author Daro
  */
 class ApplicationException extends \Skinny\Exception {
-    //put your code here
+    
 }
