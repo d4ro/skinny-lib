@@ -9,20 +9,13 @@ use Skinny\Application\Request;
  *
  * @author Daro
  */
-abstract class Action {
-
-    /**
-     * 
-     * @var Application
-     */
-    private $_application;
-    private $_usage;
+abstract class Action extends Application\Components\ComponentsAware {
 
     /**
      * Konstruktor akcji - nie przeciążamy! Od tego jest _init().
      */
     final public function __construct() {
-        $this->_usage = new Action\Usage();
+        
     }
 
     /**
@@ -71,24 +64,6 @@ abstract class Action {
         
     }
 
-    /* krytyczne */
-
-    /**
-     * 
-     * @return Action\Usage
-     */
-    final public function getUsage() {
-        return $this->_usage;
-    }
-
-    final public function setApplication(Application $application) {
-        $this->_application = $application;
-    }
-
-    private function requireApplication($objectName = 'Application') {
-        Exception::throwIf(null === $this->_application, new Application\ApplicationException("Cannot invoke $objectName object while Application instance is not set in current Action."));
-    }
-
     /* uzytkowe */
 
     /**
@@ -97,7 +72,7 @@ abstract class Action {
      * @return mixed
      */
     public function getConfig($key = null) {
-        return $this->_application->getConfig($key);
+        return $this->getApplication()->getConfig($key);
     }
 
     /**
@@ -176,7 +151,7 @@ abstract class Action {
     public function getRequest() {
         $this->requireApplication('Request');
 
-        return $this->_application->getRequest();
+        return $this->getApplication()->getRequest();
     }
 
     /**
@@ -186,28 +161,7 @@ abstract class Action {
     public function getResponse() {
         $this->requireApplication('Response');
 
-        return $this->_application->getResponse();
-    }
-
-    /**
-     * Pobiera obiekt komponentu z aplikacji.
-     * @param string $name
-     * @return mixed
-     */
-    public function getComponent($name) {
-        $this->requireApplication('Components');
-
-        return $this->_application->getComponent($name);
-    }
-
-    /**
-     * Nieistniejąca właściwość - pobranie komponentu aplikacji
-     * np. $this->view->... odwołuje się do komponentu "view".
-     * @param string $name
-     * @return mixed
-     */
-    public function __get($name) {
-        return $this->getComponent($name);
+        return $this->getApplication()->getResponse();
     }
 
     /**
@@ -251,7 +205,7 @@ abstract class Action {
         if (!Url::isAbsolute($url)) {
             $url = Url::combine($this->getBaseUrl(), $url);
         }
-        
+
         if (null === $secure) {
             Location::redirect($url, $params, $returnCode);
         } elseif ($secure) {
@@ -265,7 +219,7 @@ abstract class Action {
      * Użycie w akcji informuje aplikację, że akcja nie istnieje i powinna wyświetlić się strona not found.
      */
     public function noAction() {
-        $notFoundAction = $this->_application->getConfig()->actions->notFound(null);
+        $notFoundAction = $this->getApplication()->getConfig()->actions->notFound(null);
         if (null !== $notFoundAction) {
             $this->forward($notFoundAction, ['error' => 'notFound', 'step' => $this->getRequest()->current()]);
         }
