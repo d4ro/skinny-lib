@@ -165,7 +165,7 @@ class Components implements \ArrayAccess {
             return false;
         }
 
-        $file = new \Skinny\File($filename = \Skinny\Path::combine($this->_config->paths->components('components', true), $name . '.php'));
+        $file = new \Skinny\File($filename = \Skinny\Path::combine($this->_config->paths->components('component/init', true), $name . '.php'));
 
         if (!$file->isReadable()) {
             return false;
