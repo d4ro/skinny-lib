@@ -4,7 +4,7 @@ namespace Skinny\Loader;
 
 use Skinny\Store;
 
-require_once 'Skinny\Loader\LoaderInterface.php';
+require_once 'Skinny/Loader/LoaderInterface.php';
 
 /**
  * Description of LoaderBase
