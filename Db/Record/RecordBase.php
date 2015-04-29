@@ -549,8 +549,9 @@ abstract class RecordBase {
 
         // czy są dane
         $result = array();
-        if (!$data)
+        if (!$data) {
             return $result;
+        }
 
         foreach ($data as $row) {
             // nowy obiekt z id
