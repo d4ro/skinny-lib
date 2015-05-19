@@ -192,8 +192,10 @@ abstract class ValidatorBase {
      * 
      * @param array $options
      */
-    protected function _mergeOptions(array $options) {
-        $this->_options = array_merge($this->_options, $options);
+    protected function _mergeOptions($options) {
+        if(is_array($options)) {
+            $this->_options = array_merge($this->_options, $options);
+        }
     }
 
     /**
