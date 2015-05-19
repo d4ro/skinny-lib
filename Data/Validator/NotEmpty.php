@@ -10,7 +10,7 @@ class notEmpty extends ValidatorBase {
         parent::__construct($options);
 
         $this->_setMessagesTemplates([
-            self::IS_EMPTY => 'Wartość pola "%name%" jest pusta'
+            self::IS_EMPTY => 'Wartość jest pusta'
         ]);
     }
 
