@@ -14,6 +14,8 @@ abstract class ValidatorBase {
      * w momencie wystąpienia pierwszego błędu czy też ma kontynuować i zwrócić całą listę błędów
      */
     const OPT_BREAK_ON_ERROR = 'breakOnError';
+    
+    const OPT_MSG_PARAMS = 'messagesParams';
 
     const MSG_INVALID = 'invalid';
     
@@ -74,6 +76,10 @@ abstract class ValidatorBase {
      */
     public function __construct($options = null) {
         $this->_mergeOptions($options);
+        
+        if($options !== null && !isset($options[self::OPT_MSG_PARAMS])) {
+            $this->setMessagesParams($options[self::OPT_MSG_PARAMS]);
+        }
     }
 
     /**

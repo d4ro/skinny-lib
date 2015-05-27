@@ -66,6 +66,15 @@ class Validate implements \IteratorAggregate {
     private $__root = null;
 
     /**
+     * Przechowuje kolejne klucze (name) od korzenia do danego poziomu.
+     * Używane przy pobieraniu wartości bieżącego pola (po to aby dobierać się
+     * do __allData za pomocą pętli).
+     * 
+     * @var array
+     */
+    private $__keysFromRoot = [];
+
+    /**
      * Tablica przechowująca wszystkie walidatory przypisane do bieżącego pola.
      * @var array
      */
@@ -108,7 +117,7 @@ class Validate implements \IteratorAggregate {
      * @var string
      */
     protected $status = self::STATUS_NOT_VALIDATED;
-    
+
     /**
      * Przechowuje wszystkie dane ustawione przed walidacją oraz zmerdżowane dane
      * zaraz po uruchomieniu walidacji z nowymi danymi
@@ -132,6 +141,7 @@ class Validate implements \IteratorAggregate {
      * Konstruktor
      */
     public function __construct() {
+        
     }
 
     /**
@@ -166,7 +176,7 @@ class Validate implements \IteratorAggregate {
      */
     public function getParent($levelsUp = 1) {
         if ($levelsUp < 1) {
-            throw new Validate\Exception('Incorrect $levelsUp param');
+            throw new ValidateValidate\Exception('Incorrect $levelsUp param');
         }
 
         $parent = $this->parent;
@@ -187,8 +197,8 @@ class Validate implements \IteratorAggregate {
      * @return Validate
      */
     public function getRoot() {
-        if($this->__root === null) {
-            if($this->hasParent()) {
+        if ($this->__root === null) {
+            if ($this->hasParent()) {
                 $this->__root = $this->getParent()->getRoot();
             } else {
                 $this->__root = $this;
@@ -209,6 +219,10 @@ class Validate implements \IteratorAggregate {
             $this->items[$name]->mergeOptions($this->options);
             $this->items[$name]->name = $name;
             $this->items[$name]->parent = $this;
+
+            // Budowanie kluczy od roota tak aby był do nich szybki dostęp
+            $this->items[$name]->__keysFromRoot = array_merge([], $this->__keysFromRoot);
+            $this->items[$name]->__keysFromRoot[] = $name;
         }
         return $this->items[$name];
     }
@@ -222,7 +236,7 @@ class Validate implements \IteratorAggregate {
      */
     public function __set($name, $value) {
         if (!($value instanceof static)) {
-            throw new Validate\Exception("Invalid value");
+            throw new ValidateValidate\Exception("Invalid value");
         }
         $this->items[$name] = $value;
         $this->items[$name]->name = $name;
@@ -258,7 +272,7 @@ class Validate implements \IteratorAggregate {
     protected function _validate($value) {
         // Jeżeli walidacja na tym poziomie jest w trakcie wykonywania - jest to błąd...
         if ($this->status === self::STATUS_VALIDATION_IN_PROGRESS) {
-//            throw new Validate\Exception("Validation is in progress");
+//            throw new ValidateValidate\Exception("Validation is in progress");
         } else if ($this->status === self::STATUS_VALIDATED) {
             /**
              * Jeżeli ten walidator został juz zwalidowany, należy zwrócić wynik walidacji.
@@ -283,7 +297,8 @@ class Validate implements \IteratorAggregate {
             $this->__prepareLevelValidation($toCheck); // przygotowanie walidacji każdego poziomu - m.in. "each"
             $this->result = $this->_validateItem($this, $toCheck);
         } else if (empty($this->items)) {
-            throw new Validate\Exception("No items to validate");
+//            throw new ValidateValidate\Exception("No items to validate");
+            // brak walidatorów oznacza poprawną walidację
         }
 
         /**
@@ -433,7 +448,8 @@ class Validate implements \IteratorAggregate {
      */
     public function mergeOptions($options) {
         if (!empty($options) && is_array($options)) {
-            $this->options = array_merge($this->options, $options);
+//            $this->options = array_merge($this->options, $options);
+            $this->options = \Skinny\ArrayWrapper::deepMerge($this->options, $options);
         }
     }
 
@@ -506,6 +522,34 @@ class Validate implements \IteratorAggregate {
     }
 
     /**
+     * Ustawia dodatkowy parametr dla wszystkich walidatorów danego pola
+     * @param string $label
+     * @return \Skinny\Data\Validate
+     */
+    public function label($label) {
+        $this->setOptions([
+            Validator\ValidatorBase::OPT_MSG_PARAMS => [
+                'label' => $label
+            ]
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Ustawia parametry wiadomości dla wszystkich walidatorów danego pola
+     * @param array $params
+     * @return \Skinny\Data\Validate
+     */
+    public function setMessagesParams(array $params) {
+        $this->setOptions([
+            Validator\ValidatorBase::OPT_MSG_PARAMS => $params
+        ]);
+
+        return $this;
+    }
+
+    /**
      * Dodaje wybrany walidator do wielu pól dla danego poziomu walidacji.
      * Działanie analogiczne jak przy metodzie validate::add(), z tym że pierwszym argumentem jest tablica pól.
      * Jeżeli w tablicy pól podany
@@ -519,7 +563,7 @@ class Validate implements \IteratorAggregate {
      */
     public function addMultiple($names, $validator, $errorMsg = null, $options = null) {
         if (empty($names) || !is_array($names)) {
-            throw new Validate\Exception('Argument "$names" has to be an array');
+            throw new ValidateValidate\Exception('Argument "$names" has to be an array');
         }
 
         foreach ($names as $key => $value) {
@@ -588,7 +632,7 @@ class Validate implements \IteratorAggregate {
      */
     public function required($message = null) {
 //        if ($this->name !== null) {
-//            throw new Validate\Exception("No item selected");
+//            throw new ValidateValidate\Exception("No item selected");
 //        }
 
         $this->__prepend(new Validator\Required(), $message);
@@ -609,7 +653,7 @@ class Validate implements \IteratorAggregate {
      */
     public function requires($names, $message = null) {
         if (empty($names) || !is_array($names)) {
-            throw new Validate\Exception('Argument "$names" has to be an array');
+            throw new ValidateValidate\Exception('Argument "$names" has to be an array');
         }
         foreach ($names as $key => $value) {
             if (is_string($key)) {
@@ -632,7 +676,7 @@ class Validate implements \IteratorAggregate {
      */
 //    public function value($name = null) {
 ////        if (empty($this->data)) {
-////            throw new Validate\Exception("Data has not been set");
+////            throw new ValidateValidate\Exception("Data has not been set");
 ////        }
 //
 //        if (isset($name)) {
@@ -641,46 +685,95 @@ class Validate implements \IteratorAggregate {
 //            return $this->data;
 //        }
 //    }
-    
-    
     // TODO WYBIERANIE WARTOŚCI!!
     // ODWRÓCONY WHILE NAJPIERW POBIERAMY KLUCZE - ROBIMY REVERSE I ZNAJDUJEMY W allData TEN KLUCZ JESLI ISTNIEJE
     public function value($value = null) {
         if ($value === null) {
             if ($this->name) {
                 $val = @$val[$this->name]; // zwraca wartość konkretnego pola
+
+                $data = $this->getRoot()->__allData;
+                // Odnalezienie ścieżki danych, które zawsze są aktualne w __allData
+                // i zwrócenie odpowiedniego klucza - lub null jeżeli brak wartości
+                foreach ($this->__keysFromRoot as $key) {
+                    if (!isset($data[$key])) {
+                        $data = null;
+                        break;
+                    } else {
+                        $data = $data[$key];
+                    }
+                }
+
+                return $data;
             } else {
-                $val = $this->data; // zwraca całość danych ustawionych lokalnie
+                $val = $this->getRoot()->__allData; // zwraca całość danych ustawionych lokalnie
             }
             return $val;
         } else {
             // Ustawienie wartości dla pola formularza
             // Przy ustawieniu automatycznie merdżujemy __allData
             if ($this->name) {
-                $th = $this;
-                $data = [
-                    $this->name => $value
-                ];
-                while ($th->hasParent()) {
-                    $th = $th->getParent();
-                    if ($th->name) {
-                        $data = [
-                            $th->name => $data
-                        ];
-                    }
-                }
-
-                // Złączenie bieżących danych __allData i nadpisanie ich nową ustawianą wartością
-                $this->getRoot()->__allData = \Skinny\ArrayWrapper::deepMerge($this->getRoot()->__allData, $data);
-                
-                $this->data[$this->name] = $value;
-                
+                $this->__setAllDataLevelValue($value);
+                // tylko poziom ostateczny można ustawiać?
+                // 
+//                $th = $this;
+//                $data = [
+//                    $this->name => $value
+//                ];
+//                while ($th->hasParent()) {
+//                    $th = $th->getParent();
+//                    if ($th->name) {
+//                        $data = [
+//                            $th->name => $data
+//                        ];
+//                    }
+//                }
+//
+//                // Złączenie bieżących danych __allData i nadpisanie ich nową ustawianą wartością
+//                $this->getRoot()->__allData = \Skinny\ArrayWrapper::deepMerge($this->getRoot()->__allData, $data);
+//                if($this->data instanceof KeyNotExist) {
+//                    die('asdasdas');
+//                }
+//                $this->data[$this->name] = $value;
                 // resetuje statusy walidacji
                 $this->getRoot()->resetValidation();
             }
         }
 
         return $this;
+    }
+
+    /**
+     * Metoda ustawia dane dla danego poziomu z uwzględnieniem ścieżki danych
+     * __allData liczonej od korzenia - czyli nadpisujemy jedynie korzeń.
+     * 
+     * @param mixed $value
+     * @throws Validate\Exception
+     */
+    private function __setAllDataLevelValue($value) {
+        if (is_array($value) && !empty($this->items)) {
+            throw new Validate\Exception('Cannot set an "array value" for this level');
+        }
+
+        $data = $this->getRoot()->__allData;
+        $rootData = &$data;
+        $prev = "root";
+        foreach ($this->__keysFromRoot as $key) {
+            if (!isset($data[$key])) {
+                $data[$key] = [];
+            }
+            if (is_string($data)) {
+                throw new Validate\Exception("Data for level \"{$prev}\" is invalid");
+            }
+            $data = &$data[$key];
+            $prev = $key;
+        }
+
+        if (!empty($this->items)) {
+            throw new Validate\Exception("Cannot set non array value for this level");
+        }
+        $data = $value;
+        $this->getRoot()->__allData = $rootData;
     }
 
     /**
@@ -693,7 +786,7 @@ class Validate implements \IteratorAggregate {
      */
     public function isValid($data = null) {
         if ($this->status === self::STATUS_VALIDATION_IN_PROGRESS) {
-//            throw new Validate\Exception("Validation is in progress");
+//            throw new ValidateValidate\Exception("Validation is in progress");
         }
         if ($this->status === self::STATUS_NOT_VALIDATED && empty($this->getRoot()->__allData)) {
             throw new Validate\Exception("No data to validate");
@@ -705,13 +798,15 @@ class Validate implements \IteratorAggregate {
         if ($this->status === self::STATUS_VALIDATED) {
             return $this->result;
         }
-        
-        if(!empty($data) && is_array($data) && !$this->hasParent()) {
-            $this->__allData = \Skinny\ArrayWrapper::deepMerge($this->__allData, $data);
+
+        if (!empty($data)) {
+            if (is_array($data) && !$this->hasParent()) {
+                // jeżeli nie ma rodzica to znaczy że merdżujemy od razu całość danych
+                $this->__allData = \Skinny\ArrayWrapper::deepMerge($this->__allData, $data);
+            } else {
+                $this->__setAllDataLevelValue($data);
+            }
         }
-        
-        var_dump($this->__allData);
-        die();
 
         $i = 0;
         $result = null;
@@ -730,14 +825,14 @@ class Validate implements \IteratorAggregate {
                 $this->resetValidation();
             }
             $itemsBefore = $this->count();
-            $result = $this->_validate($this->__allData);
+            $result = $this->_validate($this->value());
             $itemsAfter = $this->count();
 
             $i++;
         } while ($itemsBefore !== $itemsAfter && $i < self::DEEP_VALIDATION_LIMIT);
 
         if ($i >= self::DEEP_VALIDATION_LIMIT) {
-            throw new Validate\Exception("Deep validation limit reached");
+            throw new ValidateValidate\Exception("Deep validation limit reached");
         }
 
         return $result;
@@ -848,7 +943,7 @@ class Validate implements \IteratorAggregate {
 
         return $errors;
     }
-    
+
     public function getDataRecursively() {
         
     }
