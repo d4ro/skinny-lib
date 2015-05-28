@@ -26,7 +26,7 @@ abstract class RecordBase {
      * Jeżeli konstruktor klasy w polu identyfikatora przekazuje tablicę oznacza to, że PK nie ma wartości domyślnej
      * @var boolean 
      */
-    protected $_idColumnHasDefault = false;
+//    protected $_idColumnHasDefault = false;
 
     /**
      * Identyfikator wiersza w tabeli głównej (tablica asocjacyjna klucz => wartość)
@@ -57,6 +57,12 @@ abstract class RecordBase {
      * @var array
      */
     protected $_jsonColumns = array();
+
+    /**
+     * Połączenie do bazy danych
+     * @var \Zend_Db_Adapter_Pdo_Mysql
+     * @todo Uniezależnienie od Zend_Db
+     */
     protected static $db;
 
     public static function getDb() {
@@ -85,7 +91,7 @@ abstract class RecordBase {
 
         if (!is_array($idColumn)) {
             $idColumn = [$idColumn];
-            $this->_idColumnHasDefault = true;
+//            $this->_idColumnHasDefault = true;
         }
         $this->_idColumn = $idColumn;
         $this->_tableName = $mainTable;
@@ -128,13 +134,18 @@ abstract class RecordBase {
         }
     }
 
+    public function getIdAsString() {
+        var_dump($this->getId());
+        die();
+    }
+
     /**
      * Ustawia własny identyfikator (np. gdy id nie jest autoincrement)
      * @param mixed $id
      */
     public function setId($id) {
         if (null !== $this->_idValue) {
-            throw new record\exception("Identifier already set");
+            throw new RecordException("Identifier already set");
         }
         $this->_customId = $this->_validateIdentifier($id);
     }
@@ -230,7 +241,10 @@ abstract class RecordBase {
             $this->_customId = null;
         } else {
             self::$db->insert($this->_tableName, $data);
-            $this->_idValue = $this->_validateIdentifier(self::$db->lastInsertId($this->_tableName, $this->_idColumn[0]));
+            $insertId = self::$db->lastInsertId($this->_tableName, null);
+            var_dump($insertId);
+            die();
+            $this->_idValue = $this->_validateIdentifier($insertId);
         }
         return true;
     }
@@ -265,9 +279,9 @@ abstract class RecordBase {
      */
     public function save($updateFromDb = false) {
         if (null === $this->_idValue) {
-            if (!$this->_idColumnHasDefault) {
-                throw new record\exception("Identifier has not been set");
-            }
+//            if (!$this->_idColumnHasDefault) {
+//                throw new RecordException("Identifier has not been set");
+//            }
             $result = $this->insert();
         } else {
             $result = $this->update();
@@ -355,6 +369,11 @@ abstract class RecordBase {
      * @return record
      */
     public static function get($id) {
+        if (!is_array($id) && func_num_args() > 1) {
+            $obj = new static();
+            $id = array_combine($obj->_idColumn, func_get_args());
+        }
+
         $class_name = get_called_class();
         $obj = new $class_name();
         if ($obj->_load($id)) {
@@ -414,9 +433,9 @@ abstract class RecordBase {
         }
 
         //usuwamy z danych
-        foreach ($this->_idColumn as $col) {
-            unset($data[$col]);
-        }
+//        foreach ($this->_idColumn as $col) {
+//            unset($data[$col]);
+//        }
 
         foreach ($this->_disallowedColumns as $column) {
             unset($data[$column]);
@@ -606,7 +625,7 @@ abstract class RecordBase {
         $obj->_idValue = [];
         foreach ($obj->_idColumn as $column) {
             if (!key_exists($column, $assocArray)) {
-                throw new record\exception("Invalid column set for primary key");
+                throw new RecordException("Invalid column set for primary key");
             }
             $obj->_idValue[$column] = $assocArray[$column];
             unset($assocArray[$column]);
@@ -625,7 +644,7 @@ abstract class RecordBase {
      */
     public static function fetchCol($col, array $records) {
         if (!$col) {
-            throw new record\exception('No column specified');
+            throw new RecordException('No column specified');
         }
 
         $array = [];
@@ -654,18 +673,18 @@ abstract class RecordBase {
      * Walidacja identyfikatora
      * Jeżeli identyfikator nie jest tablicą i przejdzie poprawnie walidację, zostaje zwrócony w formie tablicy.
      * @param mixed $id
-     * @throws record\exception
+     * @throws RecordException
      */
     private function _validateIdentifier($id) {
         if (!is_array($id)) {
             if (count($this->_idColumn) !== 1) {
-                throw new record\exception("Invalid identifier for multi-column primary key");
+                throw new RecordException("Invalid identifier for multi-column primary key");
             }
             $id = [$this->_idColumn[0] => $id];
         } else {
             foreach ($this->_idColumn as $column) {
                 if (!isset($id[$column])) {
-                    throw new record\exception("Incomplete identifier for multi-column primary key");
+                    throw new RecordException("Incomplete identifier for multi-column primary key");
                 }
             }
         }
@@ -681,7 +700,7 @@ abstract class RecordBase {
         $self = new static();
         try {
             $self->_validateIdentifier($id);
-        } catch (record\exception $e) {
+        } catch (RecordException $e) {
             return false;
         }
         return true;
