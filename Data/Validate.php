@@ -50,7 +50,7 @@ class Validate implements \IteratorAggregate {
      * Przechowuje elementy walidatora. Każdy element może posiadać swoje podelementy.
      * @var array 
      */
-    protected $items;
+    protected $items = [];
 
     /**
      * Wskaźnik na rodzica
