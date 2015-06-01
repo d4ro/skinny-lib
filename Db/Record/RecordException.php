@@ -13,6 +13,6 @@ namespace Skinny\Db\Record;
  *
  * @author Daro
  */
-class InvalidRecordException extends RecordException {
+class RecordException extends \Skinny\Db\DbException {
     //put your code here
 }
