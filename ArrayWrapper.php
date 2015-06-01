@@ -214,5 +214,44 @@ class ArrayWrapper implements \JsonSerializable, \ArrayAccess, \IteratorAggregat
     public function getIterator() {
         return new \ArrayIterator($this->_data);
     }
+    
+    /**
+     * Merge two arrays recursively
+     *
+     * Overwrite values with associative keys
+     * Append values with integer keys
+     *
+     * @param array $arr1 First array
+     * @param array $arr2 Second array
+     *
+     * @return array
+     */
+    public static function deepMerge(array $arr1, array $arr2) {
+        if (empty($arr1)) {
+            return $arr2;
+        } else if (empty($arr2)) {
+            return $arr1;
+        }
+
+        foreach ($arr2 as $key => $value) {
+            if (is_int($key)) {
+                $arr1[] = $value;
+            } elseif (is_array($arr2[$key])) {
+                if (!isset($arr1[$key])) {
+                    $arr1[$key] = array();
+                }
+
+                if (is_int($key)) {
+                    $arr1[] = static::deepMerge($arr1[$key], $value);
+                } else {
+                    $arr1[$key] = static::deepMerge($arr1[$key], $value);
+                }
+            } else {
+                $arr1[$key] = $value;
+            }
+        }
+
+        return $arr1;
+    }
 
 }
