@@ -101,7 +101,7 @@ class Form extends Validate {
                 $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, 'control', $type . '.tpl'));
             } else {
                 // W przypadku braku nazwy mamy do czynienia z obiektem formularza - więc szablonem
-                $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, $type . '.tpl'));
+                $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, 'template', $type . '.tpl'));
             }
 
             if (!file_exists($controlPath)) {
