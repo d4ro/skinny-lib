@@ -2,7 +2,7 @@
 
 namespace Skinny\Data\Validator;
 
-class notEmpty extends ValidatorBase {
+class NotEmpty extends ValidatorBase {
 
     const IS_EMPTY = 'isEmpty';
 
