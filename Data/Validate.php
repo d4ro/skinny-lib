@@ -176,7 +176,7 @@ class Validate implements \IteratorAggregate {
      */
     public function getParent($levelsUp = 1) {
         if ($levelsUp < 1) {
-            throw new ValidateValidate\Exception('Incorrect $levelsUp param');
+            throw new Validate\Exception('Incorrect $levelsUp param');
         }
 
         $parent = $this->parent;
@@ -215,7 +215,7 @@ class Validate implements \IteratorAggregate {
      */
     public function &__get($name) {
         if (!isset($this->items[$name])) {
-            $this->items[$name] = new static();
+            $this->items[$name] = $this->_createObject();
             $this->items[$name]->mergeOptions($this->options);
             $this->items[$name]->_name = $name;
             $this->items[$name]->parent = $this;
@@ -226,6 +226,15 @@ class Validate implements \IteratorAggregate {
         }
         return $this->items[$name];
     }
+    
+    /**
+     * Tworzy nowy obiekt - w tym przypadku static.
+     * 
+     * @return \static
+     */
+    protected function _createObject() {
+        return new static();
+    }
 
     /**
      * Zapis do nieistniejącej właściwości
@@ -235,8 +244,8 @@ class Validate implements \IteratorAggregate {
      * @throws Validate\Exception
      */
     public function __set($name, $value) {
-        if (!($value instanceof static)) {
-            throw new ValidateValidate\Exception("Invalid value");
+        if (!($value instanceof self)) {
+            throw new Validate\Exception("Invalid value");
         }
         $this->items[$name] = $value;
         $this->items[$name]->_name = $name;
@@ -272,7 +281,7 @@ class Validate implements \IteratorAggregate {
     protected function _validate($value) {
         // Jeżeli walidacja na tym poziomie jest w trakcie wykonywania - jest to błąd...
         if ($this->status === self::STATUS_VALIDATION_IN_PROGRESS) {
-//            throw new ValidateValidate\Exception("Validation is in progress");
+//            throw new Validate\Exception("Validation is in progress");
         } else if ($this->status === self::STATUS_VALIDATED) {
             /**
              * Jeżeli ten walidator został juz zwalidowany, należy zwrócić wynik walidacji.
@@ -297,7 +306,7 @@ class Validate implements \IteratorAggregate {
             $this->__prepareLevelValidation($toCheck); // przygotowanie walidacji każdego poziomu - m.in. "each"
             $this->result = $this->_validateItem($this, $toCheck);
         } else if (empty($this->items)) {
-//            throw new ValidateValidate\Exception("No items to validate");
+//            throw new Validate\Exception("No items to validate");
             // brak walidatorów oznacza poprawną walidację
         }
 
@@ -522,10 +531,8 @@ class Validate implements \IteratorAggregate {
     }
 
     /**
-     * Jeżeli ustawiono parametr $label ustawia dodatkowy parametr 
-     * dla wszystkich walidatorów danego pola.
-     * W przeciwnym wypadku zwraca ustawioną wartość lub 
-     * pusty string jeśli nie ustawiona.
+     * Ustawia lub pobiera ustawiony parametr dla komunikatów "label"
+     * (opcja OPT_MSG_PARAMS dla klucza "label")
      * 
      * @param string $label
      * @return \Skinny\Data\Validate|string
@@ -572,7 +579,7 @@ class Validate implements \IteratorAggregate {
      */
     public function addMultiple($names, $validator, $errorMsg = null, $options = null) {
         if (empty($names) || !is_array($names)) {
-            throw new ValidateValidate\Exception('Argument "$names" has to be an array');
+            throw new Validate\Exception('Argument "$names" has to be an array');
         }
 
         foreach ($names as $key => $value) {
@@ -641,7 +648,7 @@ class Validate implements \IteratorAggregate {
      */
     public function required($message = null) {
 //        if ($this->name !== null) {
-//            throw new ValidateValidate\Exception("No item selected");
+//            throw new Validate\Exception("No item selected");
 //        }
 
         $this->__prepend(new Validator\Required(), $message);
@@ -662,7 +669,7 @@ class Validate implements \IteratorAggregate {
      */
     public function requires($names, $message = null) {
         if (empty($names) || !is_array($names)) {
-            throw new ValidateValidate\Exception('Argument "$names" has to be an array');
+            throw new Validate\Exception('Argument "$names" has to be an array');
         }
         foreach ($names as $key => $value) {
             if (is_string($key)) {
@@ -673,12 +680,13 @@ class Validate implements \IteratorAggregate {
         }
         return $this;
     }
-
-
     
-    
-    
-    
+    /**
+     * Ustawienie lub pobranie wartości dla wybranego poziomu.
+     * 
+     * @param mixed $value
+     * @return mixed
+     */
     public function value($value = null) {
         if ($value === null) {
             if ($this->_name) {
@@ -706,27 +714,7 @@ class Validate implements \IteratorAggregate {
             // Przy ustawieniu automatycznie merdżujemy __allData
             if ($this->_name) {
                 $this->__setAllDataLevelValue($value);
-                // tylko poziom ostateczny można ustawiać?
-                // 
-//                $th = $this;
-//                $data = [
-//                    $this->name => $value
-//                ];
-//                while ($th->hasParent()) {
-//                    $th = $th->getParent();
-//                    if ($th->name) {
-//                        $data = [
-//                            $th->name => $data
-//                        ];
-//                    }
-//                }
-//
-//                // Złączenie bieżących danych __allData i nadpisanie ich nową ustawianą wartością
-//                $this->getRoot()->__allData = \Skinny\ArrayWrapper::deepMerge($this->getRoot()->__allData, $data);
-//                if($this->data instanceof KeyNotExist) {
-//                    die('asdasdas');
-//                }
-//                $this->data[$this->name] = $value;
+                
                 // resetuje statusy walidacji
                 $this->getRoot()->resetValidation();
             }
@@ -778,9 +766,11 @@ class Validate implements \IteratorAggregate {
      */
     public function isValid($data = null) {
         if ($this->status === self::STATUS_VALIDATION_IN_PROGRESS) {
-//            throw new ValidateValidate\Exception("Validation is in progress");
+//            throw new Validate\Exception("Validation is in progress");
         }
-        if ($this->status === self::STATUS_NOT_VALIDATED && empty($this->getRoot()->__allData)) {
+        
+        // Jeżeli wszystkie dane są puste - niewypełnione a walidacja nie została przeprowadzona - błąd
+        if ($this->status === self::STATUS_NOT_VALIDATED && empty($this->getRoot()->__allData) && $data === null) {
             throw new Validate\Exception("No data to validate");
         }
 
@@ -791,20 +781,11 @@ class Validate implements \IteratorAggregate {
             return $this->result;
         }
 
-        if (!empty($data)) {
+        if ($data !== null) {
             if (is_array($data) && !$this->hasParent()) {
                 foreach($data as $k => $v) {
                     $this->{$k}->__setAllDataLevelValue($v);
                 }
-                
-//                var_dump($this->nazwisko->__keysFromRoot);
-//                die();
-                
-                // jeżeli nie ma rodzica to znaczy że merdżujemy od razu całość danych
-//                $this->__allData = \Skinny\ArrayWrapper::deepMerge($this->__allData, $data);
-//                
-//                var_dump($this->__allData);
-//                die();
             } else {
                 $this->__setAllDataLevelValue($data);
             }
@@ -819,7 +800,6 @@ class Validate implements \IteratorAggregate {
         // (głównie w przypadku "each")
         do {
             if ($i > 0) {
-                // WODZU:
                 // teoretycznie można to jeszcze zoptymalizować żeby resetować walidację
                 // jedynie na konkretnym poziomie, na którym dokonano przyrostu
                 // jest to jednak skomplikowane dla mnie na obecną chwilę, 
@@ -834,7 +814,7 @@ class Validate implements \IteratorAggregate {
         } while ($itemsBefore !== $itemsAfter && $i < self::DEEP_VALIDATION_LIMIT);
 
         if ($i >= self::DEEP_VALIDATION_LIMIT) {
-            throw new ValidateValidate\Exception("Deep validation limit reached");
+            throw new Validate\Exception("Deep validation limit reached");
         }
 
         return $result;
@@ -945,6 +925,23 @@ class Validate implements \IteratorAggregate {
 
         return $errors;
     }
+    
+    /**
+     * Zwraca pierwszy komunikat błędu dla bieżącego poziomu
+     * lub null jeśli nie ma błędów.
+     * 
+     * @return string|null
+     */
+    public function getFirstError() {
+        $errors = $this->getErrors();
+        if(!empty($errors)) {
+            foreach($errors as $message) {
+                return $message;
+            }
+        }
+        
+        return null;
+    }
 
     /**
      * Sprawdza czy dany poziom był walidowany
@@ -952,6 +949,17 @@ class Validate implements \IteratorAggregate {
      */
     public function validated() {
         return $this->status === self::STATUS_VALIDATED;
+    }
+    
+    
+    public function mergeWith($value) {
+        if(!($value instanceof self)) {
+            throw new Validate\Exception('$value has to be an object of class Validate');
+        }
+        
+        foreach($value as $name => $item) {
+            $this->{$name} = $item;
+        }
     }
 
 }

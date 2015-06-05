@@ -2,9 +2,6 @@
 
 namespace Skinny\Data\Validator;
 
-/**
- * Walidator długości łańcucha znaków
- */
 class StringLength extends IsString {
 
     /**
@@ -60,12 +57,18 @@ class StringLength extends IsString {
      */
     protected $_max = null;
 
+    /**
+     * Walidator długości łańcucha znaków.
+     * 
+     * @param array $options
+     * @throws exception
+     */
     public function __construct(array $options) {
         parent::__construct($options);
 
         $this->_setMessagesTemplates([
-            self::MSG_TOO_SHORT => "String jest za krótki. Minimalna ilość znaków: %min%, obecnie: %currentLength%",
-            self::MSG_TOO_LONG => "String jest za długi. Maksymalna ilość znaków: %max%, obecnie: %currentLength%"
+            self::MSG_TOO_SHORT => "Tekst jest za krótki. Minimalna ilość znaków: %min%",
+            self::MSG_TOO_LONG => "String jest za długi. Maksymalna ilość znaków: %max%"
         ]);
 
         if (key_exists(self::OPT_MIN, $this->_options)) {
@@ -91,6 +94,10 @@ class StringLength extends IsString {
     public function isValid($value) {
         if (!parent::isValid($value)) {
             return false;
+        }
+        
+        if($value === '') {
+            return true;
         }
 
         $this->_currentLength = strlen($value); // Ustawienie bieżącej długości stringa

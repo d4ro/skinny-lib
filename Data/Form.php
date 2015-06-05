@@ -2,6 +2,15 @@
 
 namespace Skinny\Data;
 
+/**
+ * Wywołanie nieistniejącej metody:
+ * - jeżeli jest to metoda o nazwie "class" - nastapi ustawienie/pobranie
+ *   atrybutu "class" przy pomocy metody __cls
+ * - jeżeli jest to dowolna nieistniejąca metoda, znajdująca się w tablicy
+ *   dostępnych magicznych metod ustawiających atrybuty 
+ *   (__availableMagicAttributes) - nastąpi automatyczne ustawienie/pobranie 
+ *   atrybutu o nazwie metody
+ */
 class Form extends Validate {
 
     /**
@@ -55,11 +64,32 @@ class Form extends Validate {
      */
     protected $_classes = [];
 
+    /**
+     * Zmienna przechowująca informacje o tym jakie metody mogą obsługiwać
+     * atrubuty pól formularza - metody nie są zdefiniowane, będą wywoływane
+     * magicznie i ustawiały atrybut o nazwie wywoływanej nieistniejącej metody.
+     * 
+     * Atrybut "class" jest obsługiwany inaczej dlatego się tutaj nie znajduje.
+     * 
+     * @var array
+     */
+    private $__availableMagicAttributes = [
+        'method',
+        'action',
+        'placeholder',
+        'selected',
+        'checked'
+    ];
+
     public function __construct() {
         parent::__construct();
 
         if (!$this->hasParent()) {
-            $this->type('standard'); // domyślna kontrolka formularza
+            $this
+                    ->type('standard') // domyślna kontrolka formularza
+                    ->method('POST') // domyślna metoda
+                    ->action('') // domyślna akcja
+                    ;
         }
         $this->attributesType('standard');
     }
@@ -211,8 +241,6 @@ class Form extends Validate {
         return $this;
     }
 
-//    public function setAttributes
-
     /**
      * Pobiera wartość wybranego atrybutu
      * 
@@ -233,11 +261,26 @@ class Form extends Validate {
     }
 
     /**
-     * Magiczny call po to aby móc używać metody o nazwie "class"
+     * Magiczny call po to aby móc używać m.in. metody o nazwie "class".
+     * 
+     * Dodatkowo umożliwia ustawianie atrybutów poprzez wywołanie metod
+     * o nazwie atrybutu znajdującego się w tablicy dozwolonych atrybutów 
+     * magicznych __availableMagicAttributes.
+     * 
+     * @return mixed Metoda w zależności od sytuacji może zwracać inną wartość
      */
     public function __call($name, $arguments) {
         if ($name === 'class') {
             return call_user_method_array('__cls', $this, $arguments);
+        } elseif (in_array($name, $this->__availableMagicAttributes)) {
+            if($arguments[0] === null) {
+                // pobranie ustawionej wartości
+                return @$this->_attributes[$name];
+            } else {
+                // ustawienie odpowiedniego atrybutu
+                $this->setAttribute($name, $arguments[0]);
+                return $this;
+            }
         } else {
             throw new Form\Exception("No method \"$name\"");
         }
@@ -257,10 +300,10 @@ class Form extends Validate {
             }
             return $cls;
         } else {
-            if(!is_string($class)) {
+            if (!is_string($class)) {
                 throw new Form\Exception('Invalid class name');
             }
-            
+
             $this->_classes = explode(' ', $class);
             $this->setAttribute('class', implode(' ', $this->_classes));
         }
@@ -280,7 +323,7 @@ class Form extends Validate {
 
         $this->_classes = array_merge($this->_classes, explode(' ', $class));
         $this->setAttribute('class', implode(' ', $this->_classes));
-        
+
         return $this;
     }
 
@@ -303,7 +346,7 @@ class Form extends Validate {
         }
 
         $this->setAttribute('class', implode(' ', $this->_classes));
-        
+
         return $this;
     }
 
@@ -322,4 +365,7 @@ class Form extends Validate {
     public function hasErrors() {
         return $this->validated() && !$this->isValid();
     }
+    
+    
+
 }
