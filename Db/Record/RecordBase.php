@@ -141,7 +141,7 @@ abstract class RecordBase {
     }
 
     public function getIdAsString() {
-        var_dump($this->getId());
+        var_dump($this);
         die();
     }
 
@@ -189,10 +189,9 @@ abstract class RecordBase {
     private function _getData() {
 //        $getPublicFields = create_function('$obj', 'return get_object_vars($obj);');
         $data = \Skinny\ObjectHelper::getPublicProperties($this); //$getPublicFields($this);
-
-        foreach ($this->_idColumns as $column) {
-            unset($data[$column]);
-        }
+//        foreach ($this->_idColumns as $column) {
+//            unset($data[$column]);
+//        }
 
         if (!in_array("*", $this->_allowedColumns)) {
             $data2 = [];
@@ -249,7 +248,7 @@ abstract class RecordBase {
             self::$db->insert($this->_tableName, $data);
             $insertId = $this->getLastInsertId();
             var_dump($insertId);
-            die();
+            die('sadfsdf');
             $this->_idValue = $this->_validateIdentifier($insertId);
         }
         return true;
@@ -712,13 +711,25 @@ abstract class RecordBase {
         return true;
     }
 
-    public function getLastInsertId() {
+    public function getLastInsertId($idCol = null) {
+        if (null !== $idCol) {
+            return $this->getLastInsertIdHelper($idCol);
+        }
+
         $result = [];
         foreach ($this->_autoIncrementColumns as $col) {
-            $lastId = self::$db->lastInsertId($this->_tableName, $col);
+            $lastId = $this->getLastInsertIdHelper($col);
             $result[$col] = $lastId;
         }
         return $result;
+    }
+
+    protected function getLastInsertIdHelper($idCol/* , $tableName = null */) {
+        /* if (null === $tableName) {
+          $tableName = $this->_tableName;
+          } */
+
+        return self::$db->lastInsertId(/* $tableName */$this->_tableName, $idCol);
     }
 
 }
