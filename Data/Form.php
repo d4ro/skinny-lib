@@ -2,6 +2,15 @@
 
 namespace Skinny\Data;
 
+/**
+ * Wywołanie nieistniejącej metody:
+ * - jeżeli jest to metoda o nazwie "class" - nastapi ustawienie/pobranie
+ *   atrybutu "class" przy pomocy metody __cls
+ * - jeżeli jest to dowolna nieistniejąca metoda, znajdująca się w tablicy
+ *   dostępnych magicznych metod ustawiających atrybuty 
+ *   (__availableMagicAttributes) - nastąpi automatyczne ustawienie/pobranie 
+ *   atrybutu o nazwie metody
+ */
 class Form extends Validate {
 
     /**
@@ -20,6 +29,12 @@ class Form extends Validate {
     protected $_type = null;
 
     /**
+     * Przechowuje typ kontrolki atrybutów dla aktualnego pola - domyślnie "standard"
+     * @var string
+     */
+    protected $_attributesType = null;
+
+    /**
      * Przechowuje wartość pola
      * @var string
      */
@@ -36,6 +51,48 @@ class Form extends Validate {
      * @var string
      */
     protected $_controlPath = null;
+
+    /**
+     * Ścieżka kontrolki atrybutów
+     * @var string
+     */
+    protected $_attributesControlPath = null;
+
+    /**
+     * Przechowuje ustawione klasy
+     * @var array
+     */
+    protected $_classes = [];
+
+    /**
+     * Zmienna przechowująca informacje o tym jakie metody mogą obsługiwać
+     * atrubuty pól formularza - metody nie są zdefiniowane, będą wywoływane
+     * magicznie i ustawiały atrybut o nazwie wywoływanej nieistniejącej metody.
+     * 
+     * Atrybut "class" jest obsługiwany inaczej dlatego się tutaj nie znajduje.
+     * 
+     * @var array
+     */
+    private $__availableMagicAttributes = [
+        'method',
+        'action',
+        'placeholder',
+        'selected',
+        'checked'
+    ];
+
+    public function __construct() {
+        parent::__construct();
+
+        if (!$this->hasParent()) {
+            $this
+                    ->type('standard') // domyślna kontrolka formularza
+                    ->method('POST') // domyślna metoda
+                    ->action('') // domyślna akcja
+                    ;
+        }
+        $this->attributesType('standard');
+    }
 
     /**
      * Ustawienie konfiguracji modułu
@@ -74,7 +131,7 @@ class Form extends Validate {
                 $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, 'control', $type . '.tpl'));
             } else {
                 // W przypadku braku nazwy mamy do czynienia z obiektem formularza - więc szablonem
-                $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, $type . '.tpl'));
+                $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, 'template', $type . '.tpl'));
             }
 
             if (!file_exists($controlPath)) {
@@ -86,6 +143,51 @@ class Form extends Validate {
 
             return $this;
         }
+    }
+
+    /**
+     * Ustawia typ kontrolki atrybutów dla danego pola formularza lub zwraca ustawioną już 
+     * wartość jeżeli nie podano argumentu ($type = null)
+     * 
+     * @param string $type - typ kontrolki atrybutów znajdującej się w odpowiednim katalogu (attribute)
+     *                       np. "standard" (domyślnie)
+     * 
+     * @return string|\Skinny\Data\Form
+     * @throws Form\Exception
+     */
+    public function attributesType($type = null) {
+        if ($type === null) {
+            if ($this->_attributesType === null) {
+                throw new Form\Exception("Attributes type has not been set");
+            }
+
+            if (empty($this->_attributesType)) {
+                // Zwraca pusty string jeżeli wartość nie została ustawiona
+                return '';
+            } else {
+                // Zwraca ustawioną wartość
+                return $this->_attributesType;
+            }
+        } else {
+            $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, 'attribute', $type . '.tpl'));
+
+            if (!file_exists($controlPath)) {
+                throw new Form\Exception("Attributes control $controlPath does not exist");
+            }
+
+            $this->_attributesType = $type;
+            $this->_attributesControlPath = $controlPath;
+
+            return $this;
+        }
+    }
+
+    /**
+     * Zwraca obiekt konfiguracyjny
+     * @return \Skinny\Store
+     */
+    public function getConfig() {
+        return self::$_config;
     }
 
     /**
@@ -103,6 +205,20 @@ class Form extends Validate {
     }
 
     /**
+     * Zwraca ścieżkę aktualnej kontrolki atrybutów
+     * 
+     * @return string
+     * @throws Form\Exception
+     */
+    public function getAttributesControlPath() {
+        if ($this->_controlPath === null) {
+            throw new Form\Exception("No control is set. Yo have to setup 'type' first");
+        }
+
+        return $this->_attributesControlPath;
+    }
+
+    /**
      * Ustawia wartość dla wybranego atrybutu (nadpisuje poprzednią)
      * 
      * @param string $key klucz atrybutu
@@ -113,7 +229,7 @@ class Form extends Validate {
         $this->_attributes[$key] = $value;
         return $this;
     }
-    
+
     /**
      * Ustawia wiele atrybutów nadpisując ustawione wartości
      * 
@@ -124,8 +240,6 @@ class Form extends Validate {
         $this->_attributes = array_merge($this->_attributes, $attributes);
         return $this;
     }
-    
-//    public function setAttributes
 
     /**
      * Pobiera wartość wybranego atrybutu
@@ -138,11 +252,35 @@ class Form extends Validate {
     }
 
     /**
-     * Magiczny call po to aby móc używać metody o nazwie "class"
+     * Zwraca tablicę ustawionych atrybutów
+     * 
+     * @return array
+     */
+    public function getAttributes() {
+        return $this->_attributes;
+    }
+
+    /**
+     * Magiczny call po to aby móc używać m.in. metody o nazwie "class".
+     * 
+     * Dodatkowo umożliwia ustawianie atrybutów poprzez wywołanie metod
+     * o nazwie atrybutu znajdującego się w tablicy dozwolonych atrybutów 
+     * magicznych __availableMagicAttributes.
+     * 
+     * @return mixed Metoda w zależności od sytuacji może zwracać inną wartość
      */
     public function __call($name, $arguments) {
         if ($name === 'class') {
             return call_user_method_array('__cls', $this, $arguments);
+        } elseif (in_array($name, $this->__availableMagicAttributes)) {
+            if($arguments[0] === null) {
+                // pobranie ustawionej wartości
+                return @$this->_attributes[$name];
+            } else {
+                // ustawienie odpowiedniego atrybutu
+                $this->setAttribute($name, $arguments[0]);
+                return $this;
+            }
         } else {
             throw new Form\Exception("No method \"$name\"");
         }
@@ -150,6 +288,7 @@ class Form extends Validate {
 
     /**
      * Pobiera atrybut klasy dla danego elementu lub ustawia jego wartość
+     * zastępując istniejące klasy
      * 
      * @param string $class
      * @return string|\Skinny\Data\Form
@@ -161,8 +300,52 @@ class Form extends Validate {
             }
             return $cls;
         } else {
-            $this->setAttribute('class', $class);
+            if (!is_string($class)) {
+                throw new Form\Exception('Invalid class name');
+            }
+
+            $this->_classes = explode(' ', $class);
+            $this->setAttribute('class', implode(' ', $this->_classes));
         }
+
+        return $this;
+    }
+
+    /**
+     * Dodaje klasę/klasy do istniejących
+     * 
+     * @param string $class
+     */
+    public function addClass($class) {
+        if (empty($class) || !is_string($class)) {
+            throw new Form\Exception('Invalid class name');
+        }
+
+        $this->_classes = array_merge($this->_classes, explode(' ', $class));
+        $this->setAttribute('class', implode(' ', $this->_classes));
+
+        return $this;
+    }
+
+    /**
+     * Usuwa wybraną klasę/klasy
+     * 
+     * @param string $class
+     */
+    public function removeClass($class) {
+        if (empty($class) || !is_string($class)) {
+            throw new Form\Exception('Invalid class name');
+        }
+
+        $classes = explode(' ', $class);
+
+        foreach ($classes as $class) {
+            if (($key = array_search($class, $this->_classes)) !== false) {
+                unset($this->_classes[$key]);
+            }
+        }
+
+        $this->setAttribute('class', implode(' ', $this->_classes));
 
         return $this;
     }
@@ -174,13 +357,15 @@ class Form extends Validate {
         return $this->add($validator, $errorMsg, $options);
     }
 
-//    public function getControlPath() {
-//        if($this->name) {
-//            // pole formularza
-//            
-//        } else {
-//            // formularz
-//            $controlPath = \Skinny\Path::combine(self::$_config->templatesPath, 'control', $type . '.tpl');
-//        }
-//    }
+    /**
+     * Sprawdza czy formularzy był już walidowany i zawiera błędy
+     * 
+     * @return boolean
+     */
+    public function hasErrors() {
+        return $this->validated() && !$this->isValid();
+    }
+    
+    
+
 }
