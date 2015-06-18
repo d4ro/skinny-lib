@@ -2,8 +2,6 @@
 
 namespace Skinny;
 
-require_once __DIR__ . '/SomeClass.php';
-
 /**
  * Klasa mająca na celu ułatwić pracę z tablicami.
  * Zamiast $var = array(); : $var = new Store();
@@ -64,51 +62,82 @@ require_once __DIR__ . '/SomeClass.php';
  * 
  * @author Daro
  */
-class Store extends SomeClass implements \JsonSerializable {
+class StoreOld implements \JsonSerializable, \IteratorAggregate {
 
     /**
-     * Obiekt Store może zostać zbudowany z innego obiektu lub tablicy.
-     * 
-     * @param object|array $obj
+     * Zawartość store
+     * @var array 
      */
+    protected $items;
+
+    // konstruktor
     public function __construct($obj = null) {
-        if ($obj !== null) {
-            if (!is_object($obj) && !is_array($obj)) {
-                require_once __DIR__ . '/IOException.php';
-                throw new IOException('Invalid input data');
-            } else {
-                $this->merge($obj);
-            }
+        $this->fromObj($obj);
+    }
+
+    // odczyt nieistniejącej właściwości
+    public function &__get($name) {
+        if (!isset($this->items[$name])) {
+            $this->items[$name] = new self();
         }
+        return $this->items[$name];
     }
 
-    /**
-     * Ustawia właściwość klasy, która ma być serializowana w przypadku wywołania
-     * json_encode/decode.
-     * 
-     * @return array
-     */
-    public function jsonSerialize() {
-        return $this->_items;
+    // zapis do nieistniejącej właściwości
+    public function __set($name, $value) {
+        $this->items[$name] = $value;
     }
 
-    /**
-     * Metoda serializująca obiekt do JSON'a.
-     * 
-     * @return string
-     */
+    // isset lub empty na nieistniejącej właściwości
+    public function __isset($name) {
+        return isset($this->items[$name]) &&
+                (!($this->items[$name] instanceof self) || ($this->items[$name] instanceof self) && !$this->items[$name]->isEmpty());
+    }
+
+    // unsetowanie nieistniejącej właściwości
+    public function __unset($name) {
+        unset($this->items[$name]);
+    }
+
     public function __toString() {
         return json_encode($this);
     }
 
+    public function isEmpty() {
+        foreach ($this->items as $item) {
+            if (!($item instanceof self)) {
+                return false;
+            }
+        }
+
+        return $this->length() == 0;
+    }
+
+    public function length() {
+        $numberOfItems = count($this->items);
+        foreach ($this->items as $item) {
+            if ($item instanceof self && $item->isEmpty()) {
+                $numberOfItems--;
+            }
+        }
+
+        return $numberOfItems;
+    }
+
+    public function jsonSerialize() {
+        return $this->items;
+    }
+
     /**
-     * Konwersja obiektu do tablicy.
-     * 
-     * @return array
+     * Zwraca wszystkie elementy w ich nie zmienionej formie (tablice wciąż są tablicami itd.)
      */
+    public function getItems() {
+        return $this->items;
+    }
+
     public function toArray() {
         $array = array();
-        foreach ($this->_items as $key => $value) {
+        foreach ($this->items as $key => $value) {
             if ($value instanceof self) {
                 if (!$value->isEmpty()) {
                     $array[$key] = $value->toArray();
@@ -120,60 +149,38 @@ class Store extends SomeClass implements \JsonSerializable {
         return $array;
     }
 
-    /**
-     * Definicja operacji które mają zostać wykonane przy klonowaniu obiektu.
-     * Metoda wywoływana jest automatycznie po tym jak obiekt jest już sklonowany.
-     */
     public function __clone() {
-        foreach ($this->_items as $key => $value) {
+        foreach ($this->items as $key => $value) {
             if ($value instanceof self) {
                 if (!$value->isEmpty()) {
-                    $this->_items[$key] = clone $value;
+                    $this->items[$key] = clone $value;
                 } else {
-                    unset($this->_items[$key]);
+                    unset($this->items[$key]);
                 }
             }
         }
     }
 
-    /**
-     * Przeciąża domyślną metodę tak aby zawsze konstruowane były obiekty self.
-     * 
-     * @return self
-     */
-    protected function _createObject() {
-        return new self();
-    }
-
-    /**
-     * Funkcja czyści wszystkie puste wartości będące instancją tej klasy.
-     */
     public function cleanup() {
-        foreach ($this->_items as $key => $value) {
+        foreach ($this->items as $key => $value) {
             if ($value instanceof self && $value->isEmpty()) {
-                unset($this->_items[$key]);
+                unset($this->items[$key]);
             }
         }
     }
 
-    /**
-     * Magic call na nie istniejącej właściwości umożliwia zwrócenie wartości
-     * domyslnej ustawionej jako pierwszy argument funkcji.
-     * 
-     * 
-     * @param string $name
-     * @param array $arguments [{mixed} $defaultIfNotExist, {boolean} $writeToStore=false, {boolean} $returnDefaultIfNotExist]
-     * @return self|$defaultIfNotExist
-     * 
-     * @example Przykłady w dokumentacji klasy
-     */
+    public function fromObj($obj) {
+        $this->items = array();
+        $this->merge($obj);
+    }
+
     public function __call($name, $arguments) {
         if (isset($this->$name)) {
             if ($this->$name instanceof \Closure) {
                 $closure = $this->$name;
                 return call_user_func_array($closure, $arguments);
             } else {
-                return $this->_items[$name];
+                return $this->items[$name];
             }
         }
 
@@ -192,38 +199,35 @@ class Store extends SomeClass implements \JsonSerializable {
             return $default;
         }
 
-        return $this->_createObject();
+        return new self;
     }
 
-    /**
-     * Merge właściwości bieżącego obiektu z tym podanym jako argument metody.
-     * Metoda rzutuje podany argument do tablicy po czym dokonuje merge'a.
-     * 
-     * @param mixed $obj
-     * @return self
-     */
     public function merge($obj) {
         if ($obj instanceof self) {
-            $obj = $obj->_items;
+            $obj = $obj->items;
         }
 
         $obj = (array) $obj;
         foreach ($obj as $key => $value) {
             if ($value instanceof self || is_array($value)) {
-                if (isset($this->_items[$key]) && (is_array($this->_items[$key]) || $this->_items[$key] instanceof self)) {
-                    if (is_array($this->_items[$key])) {
-                        $this->_items[$key] = new self($this->_items[$key]);
+                if (isset($this->items[$key]) && (is_array($this->items[$key]) || $this->items[$key] instanceof self)) {
+                    if (is_array($this->items[$key])) {
+                        $this->items[$key] = new self($this->items[$key]);
                     }
-                    $this->_items[$key]->merge($value);
+                    $this->items[$key]->merge($value);
                 } else {
-                    $this->_items[$key] = new self($value);
+                    $this->items[$key] = new self($value);
                 }
             } elseif (null !== $value) {
-                $this->_items[$key] = $value;
+                $this->items[$key] = $value;
             }
         }
-
+        
         return $this;
+    }
+
+    public function getIterator() {
+        return new \ArrayIterator($this->items);
     }
 
 }
