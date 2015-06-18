@@ -226,11 +226,11 @@ class Validate implements \IteratorAggregate {
         }
         return $this->items[$name];
     }
-    
+
     /**
      * Tworzy nowy obiekt - w tym przypadku static.
      * 
-     * @return \static
+     * @return static
      */
     protected function _createObject() {
         return new static();
@@ -428,6 +428,16 @@ class Validate implements \IteratorAggregate {
      */
     protected function _validateItem($item, $value) {
         $item->result = true;
+
+        // Jeżeli nie jest ustawiony walidator Required a wartość jest pusta
+        // nie musimy przeprowadzać walidacji
+        if (
+                !$this->hasValidator(new Validator\Required()) &&
+                false === (new Validator\NotEmpty())->isValid($value)
+        ) {
+            return true;
+        }
+
         foreach ($item->validators as $validator) {
             // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
             $params = array_merge(
@@ -538,7 +548,7 @@ class Validate implements \IteratorAggregate {
      * @return \Skinny\Data\Validate|string
      */
     public function label($label = null) {
-        if($label === null) {
+        if ($label === null) {
             // pobranie wartości
             return ($l = @$this->options[Validator\ValidatorBase::OPT_MSG_PARAMS]['label']) !== null ? $l : "";
         } else {
@@ -594,12 +604,12 @@ class Validate implements \IteratorAggregate {
     /**
      * Ustawia walidatory dla wszystkich podelementów walidowanego pola.
      * 
-     * @param Validator\ValidatorBase||\Closure  $validator
-     * @param string|array                  $errorMsg
-     * @param array                         $options
+     * @param Validator\ValidatorBase|\Closure  $validator  Obiekt walidatora
+     * @param string|array                      $errorMsg   Komunikat w przypadku błędu
+     * @param array                             $options    Tablica ustawień walidatorów
      * @return \model\validate
      * 
-     * @todo Sprawdzić czy opcje działają OK
+     * @todo Sprawdzić czy nadpisywanie opcji działa poprawnie
      */
     public function each($validator, $errorMsg = null, $options = null) {
         $this->eachValidators[] = [
@@ -640,20 +650,25 @@ class Validate implements \IteratorAggregate {
     }
 
     /**
-     * Ustawia wybrane pole jako wymagane. Jest aliasem do walidatora Validator\Required.
+     * Ustawia wymagalność istnienia wybranego klucza w walidowanej 
+     * tablicy/obiekcie danych.
      * 
-     * @param   string $message Komunikat do nadpisania
+     * @param   string $message Komunikat w przypadku błędu
      * @return  \model\validate
-     * @throws  Validate\Exception
+     */
+    public function mustExist($message = null) {
+        return $this->__prepend(new Validator\MustExist(), $message);
+    }
+
+    /**
+     * Ustawia wybrane pole jako wymagane.
+     * Automatycznie dodaje 2 walidatory MustExist oraz NotEmpty.
+     * 
+     * @param   string $message Komunikat w przypadku błędu
+     * @return  \model\validate
      */
     public function required($message = null) {
-//        if ($this->name !== null) {
-//            throw new Validate\Exception("No item selected");
-//        }
-
-        $this->__prepend(new Validator\Required(), $message);
-
-        return $this;
+        return $this->__prepend(new Validator\Required(), $message);
     }
 
     /**
@@ -661,9 +676,10 @@ class Validate implements \IteratorAggregate {
      * Dla wszystkich wybranych pól wywoływana jest metoda validate::required().
      * 
      * @param   array   $names      Lista wymaganych pól. <br/>
-     *                              Może być to zwykła tablica lub tablica asocjacyjna gdzie klucz jest nazwą 
+     *                              Może być to zwykła tablica lub tablica 
+     *                              asocjacyjna gdzie klucz jest nazwą 
      *                              pola a wartość customowym komunikatem o błędzie.
-     * @param   string  $message    Wiadomość customowa dla wszystkich wybranych pól (nadpisywana przez tą ustawioną przez key => value)
+     * @param   string  $message    Komunikat w przypadku błędu
      * @return  \model\validate
      * @throws  Validate\Exception
      */
@@ -680,7 +696,41 @@ class Validate implements \IteratorAggregate {
         }
         return $this;
     }
-    
+
+    /**
+     * Sprawdza czy istnieje dla tego poziomu walidator/y podanego typu.
+     * Sprawdza instanceof element. W przypadku tablicy obiektów wszystkie
+     * walidatory muszą istnieć żeby spełnić warunek.
+     * 
+     * @param Validator|Array[Validator] $validator Obiekt klasy Validator lub tablica obiektów
+     * @return boolean
+     */
+    public function hasValidator($validator) {
+        $validators = $validator;
+        if(!is_array($validator)) {
+            $validators = [$validator];
+        }
+        $toFind = count($validators);
+        $found = 0;
+
+        if (!empty($this->validators)) {
+            foreach ($validators as $validatorToFind) {
+                foreach ($this->validators as $v) {
+                    $className = get_class($validatorToFind);
+                    if ($v instanceof $className) {
+                        if (++$found >= $toFind) {
+                            return true;
+                        }
+
+                        break;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Ustawienie lub pobranie wartości dla wybranego poziomu.
      * 
@@ -714,7 +764,7 @@ class Validate implements \IteratorAggregate {
             // Przy ustawieniu automatycznie merdżujemy __allData
             if ($this->_name) {
                 $this->__setAllDataLevelValue($value);
-                
+
                 // resetuje statusy walidacji
                 $this->getRoot()->resetValidation();
             }
@@ -768,7 +818,7 @@ class Validate implements \IteratorAggregate {
         if ($this->status === self::STATUS_VALIDATION_IN_PROGRESS) {
 //            throw new Validate\Exception("Validation is in progress");
         }
-        
+
         // Jeżeli wszystkie dane są puste - niewypełnione a walidacja nie została przeprowadzona - błąd
         if ($this->status === self::STATUS_NOT_VALIDATED && empty($this->getRoot()->__allData) && $data === null) {
             throw new Validate\Exception("No data to validate");
@@ -783,7 +833,7 @@ class Validate implements \IteratorAggregate {
 
         if ($data !== null) {
             if (is_array($data) && !$this->hasParent()) {
-                foreach($data as $k => $v) {
+                foreach ($data as $k => $v) {
                     $this->{$k}->__setAllDataLevelValue($v);
                 }
             } else {
@@ -925,7 +975,7 @@ class Validate implements \IteratorAggregate {
 
         return $errors;
     }
-    
+
     /**
      * Zwraca pierwszy komunikat błędu dla bieżącego poziomu
      * lub null jeśli nie ma błędów.
@@ -934,32 +984,48 @@ class Validate implements \IteratorAggregate {
      */
     public function getFirstError() {
         $errors = $this->getErrors();
-        if(!empty($errors)) {
-            foreach($errors as $message) {
+        if (!empty($errors)) {
+            foreach ($errors as $message) {
                 return $message;
             }
         }
-        
+
         return null;
     }
 
     /**
-     * Sprawdza czy dany poziom był walidowany
+     * Sprawdza czy dany poziom był walidowany.
+     * 
      * @return boolean
      */
     public function validated() {
         return $this->status === self::STATUS_VALIDATED;
     }
-    
-    
+
+    /**
+     * Łączy bieżący obiekt formularza z innym nadpisując przy tym powtarzające 
+     * się klucze.
+     * 
+     * @param self $value
+     * @throws Validate\Exception
+     */
     public function mergeWith($value) {
-        if(!($value instanceof self)) {
+        if (!($value instanceof self)) {
             throw new Validate\Exception('$value has to be an object of class Validate');
         }
-        
-        foreach($value as $name => $item) {
+
+        foreach ($value as $name => $item) {
             $this->{$name} = $item;
         }
+    }
+    
+    /**
+     * Zwraca aktualnie ustawione dane dla całego formularza.
+     * 
+     * @return array
+     */
+    public function getData() {
+        return $this->getRoot()->__allData;
     }
 
 }

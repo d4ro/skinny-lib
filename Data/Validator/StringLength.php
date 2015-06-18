@@ -95,10 +95,6 @@ class StringLength extends IsString {
         if (!parent::isValid($value)) {
             return false;
         }
-        
-        if($value === '') {
-            return true;
-        }
 
         $this->_currentLength = strlen($value); // Ustawienie bieżącej długości stringa
         $this->setMessagesParams(['currentLength' => $this->_currentLength]); // Ustawienie bieżącej długości stringa
