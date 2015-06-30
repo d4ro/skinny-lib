@@ -4,7 +4,6 @@ namespace Skinny\Data\Validator;
 
 /**
  * @todo obsługa możliwości podania obecnego typu do komunikatu np.
- * "Oczekiwano: String, aktualnie %type%"
  */
 class IsString extends ValidatorBase {
     
