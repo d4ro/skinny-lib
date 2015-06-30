@@ -256,7 +256,8 @@ abstract class SomeClass implements \IteratorAggregate {
      */
     public function merge($obj) {
         if (!$this->isSelf($obj)) {
-            throw new IOException('$value has to be an object of class ' . self::class);
+//            throw new IOException('$value has to be an object of class ' . self::class);
+            throw new IOException('$value has to be an object of class SomeClass'); // TODO: zmiana nazwy
         }
 
         foreach ($obj as $name => $item) {
