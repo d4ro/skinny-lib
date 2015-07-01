@@ -3,11 +3,16 @@
 namespace Skinny;
 
 /**
- * Description of SomeClass
- *
- * @author Wodzu
+ * Jest to model umożliwiający wygodniejszą pracę z tablicami/obiektami.
+ * Pozwala m.in. na dynamiczne tworzenie łańcuchów na nieistniejących właściwościach, np:
+ * $a->v1->v2->v3 = "value"; - właściwości v1 oraz v2 zostaną utworzone automatycznie.
+ * czy też poruszanie się po różnych poziomach właściwości w celu zachowania 
+ * łańcuchowości, np:
+ * $a->v1->v2->v3->jakasFunkcja()->parent('v2')->innaFunkcja()->root()->funkcja();
+ * 
+ * @author Daro|Wodzu
  */
-abstract class SomeClass implements \IteratorAggregate {
+abstract class ObjectModelBase implements \IteratorAggregate {
 
     /**
      * Przechowuje wszystkie stworzone elementy.
@@ -29,6 +34,13 @@ abstract class SomeClass implements \IteratorAggregate {
      * @var static
      */
     protected $_parent = null;
+    
+    /**
+     * Wskazuje na element root.
+     * 
+     * @var static
+     */
+    protected $_root = null;
 
     /**
      * Umożliwia iterowanie bezpośrednio po elementach tablicy items.
@@ -68,7 +80,7 @@ abstract class SomeClass implements \IteratorAggregate {
     public function __set($name, $value) {
         $this->_items[$name] = $value;
         $this->_items[$name]->_name = $name;
-        $this->_items[$name]->parent = $this;
+        $this->_items[$name]->_parent = $this;
     }
 
     /**
@@ -139,6 +151,24 @@ abstract class SomeClass implements \IteratorAggregate {
         }
 
         return $this->length() == 0;
+    }
+    
+    /**
+     * Zwraca liczbę elementów dla danego poziomu razem z wszystkimi podelementami
+     * (liczy również puste elementy, tj. takie, które nie mają przypisanej 
+     * żadnej wartości, ale istnieją jako pewien klucz).
+     * 
+     * @return int
+     */
+    public function count() {
+        $numberOfItems = count($this->_items);
+        if ($numberOfItems > 0) {
+            foreach ($this->_items as $item) {
+                $numberOfItems += $item->count();
+            }
+        }
+
+        return $numberOfItems;
     }
 
     /**
@@ -236,15 +266,15 @@ abstract class SomeClass implements \IteratorAggregate {
      * @return static
      */
     public function root() {
-        if ($this->__root === null) {
+        if ($this->_root === null) {
             if (!$this->isRoot()) {
-                $this->__root = $this->parent()->root();
+                $this->_root = $this->parent()->root();
             } else {
-                $this->__root = $this;
+                $this->_root = $this;
             }
         }
         
-        return $this->__root;
+        return $this->_root;
     }
     
     /**
@@ -265,21 +295,5 @@ abstract class SomeClass implements \IteratorAggregate {
         
         return $this;
     }
-    
-//    public function extend($obj) {
-//        if(!$this->isSelf($obj)) {
-//            throw new IOException('$value has to be an object of class ' . self::class);
-//        }
-//        
-//        $obj = clone $obj; // ?????
-//        
-//        foreach($obj as $name => $value) {
-//            if(isset($this->$name) && !$value->isEmpty()) {
-//                
-//            }
-//        }
-//        
-//        return $this;
-//    }
 
 }
