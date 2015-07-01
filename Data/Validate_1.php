@@ -9,7 +9,7 @@ namespace Skinny\Data;
  * @todo aliasy nazw pól np. w danych do walidacji jest klucz "title", 
  * który w komunikacie ma zostać zamieniony na "tytuł"
  */
-class Validate extends \Skinny\ObjectModelBase {
+class Validate1 implements \IteratorAggregate {
 
     /**
      * Oczekuje na walidację
@@ -47,6 +47,25 @@ class Validate extends \Skinny\ObjectModelBase {
     const DEEP_VALIDATION_LIMIT = 100;
 
     /**
+     * Przechowuje elementy walidatora. Każdy element może posiadać swoje podelementy.
+     * @var array 
+     */
+    protected $items = [];
+
+    /**
+     * Wskaźnik na rodzica
+     * @var validate
+     */
+    protected $parent = null;
+
+    /**
+     * Przechowuje wskaźnik na korzeń walidacji
+     * 
+     * @var validate 
+     */
+    private $__root = null;
+
+    /**
      * Przechowuje kolejne klucze (name) od korzenia do danego poziomu.
      * Używane przy pobieraniu wartości bieżącego pola (po to aby dobierać się
      * do __allData za pomocą pętli).
@@ -59,7 +78,7 @@ class Validate extends \Skinny\ObjectModelBase {
      * Tablica przechowująca wszystkie walidatory przypisane do bieżącego pola.
      * @var array
      */
-    protected $_validators = [];
+    protected $validators = [];
 
     /**
      * Tutaj są przechowywane walidatory dla wszystkich podwartości walidowanego zakresu danych.
@@ -69,19 +88,25 @@ class Validate extends \Skinny\ObjectModelBase {
      * 
      * @var array
      */
-    protected $_eachValidators = [];
+    protected $eachValidators = [];
 
     /**
      * Przechowuje komunikaty o zaistniałych błędach dla bieżącego pola. Komunikaty są generowane w momencie wywołania metody validate::getErrors().
      * @var array
      */
-//    protected $errors = []; // unused??
+    protected $errors = [];
+
+    /**
+     * Przechowuje nazwę/klucz bieżącego pola.
+     * @var string
+     */
+    protected $_name = null;
 
     /**
      * Przechowuje ustawienia dla bieżącego pola.
      * @var array
      */
-    protected $_options = [
+    protected $options = [
         self::OPTION_BREAK_ON_ITEM_FAILURE => false,
         self::OPTION_BREAK_ON_VALIDATOR_FAILURE => true,
         self::OPTION_MESSAGES_PARAMS => []
@@ -91,7 +116,7 @@ class Validate extends \Skinny\ObjectModelBase {
      * Bieżący status walidacji
      * @var string
      */
-    protected $_status = self::STATUS_NOT_VALIDATED;
+    protected $status = self::STATUS_NOT_VALIDATED;
 
     /**
      * Przechowuje wszystkie dane ustawione przed walidacją oraz zmerdżowane dane
@@ -104,13 +129,13 @@ class Validate extends \Skinny\ObjectModelBase {
      * Przechowuje dane walidacji tylko dla bieżącego poziomu
      * @var array
      */
-//    public $data = null; czy potrzebne??
+    public $data = null;
 
     /**
      * Przechowuje wynik walidacji
      * @var boolean
      */
-    protected $_result = null;
+    protected $result = null;
 
     /**
      * Konstruktor
@@ -120,34 +145,95 @@ class Validate extends \Skinny\ObjectModelBase {
     }
 
     /**
+     * Umożliwia iterowanie bezpośrednio po elementach tablicy items
+     * @return \ArrayIterator
+     */
+    public function getIterator() {
+        return new \ArrayIterator($this->items);
+    }
+
+    /**
+     * Zwraca nazwę/klucz bieżącego pola
+     * @return int|string
+     */
+    public function getName() {
+        return $this->_name;
+    }
+
+    /**
+     * Sprawdza czy istnieje rodzic dla tego poziomu
+     * @return boolean
+     */
+    public function hasParent() {
+        return $this->parent !== null;
+    }
+
+    /**
+     * Zwraca obiekt rodzica danego poziomu
+     * 
+     * @param int $levelsUp Ile poziomów w górę chcemy się wybrać ;)
+     * @return validate
+     */
+    public function getParent($levelsUp = 1) {
+        if ($levelsUp < 1) {
+            throw new Validate\Exception('Incorrect $levelsUp param');
+        }
+
+        $parent = $this->parent;
+        for ($i = 1; $i < $levelsUp; $i++) {
+            if ($parent && $parent->hasParent()) {
+                $parent = $parent->getParent();
+            } else {
+                $parent = null;
+                break;
+            }
+        }
+
+        return $parent;
+    }
+
+    /**
+     * Zwraca główny korzeń obiektu Validate
+     * @return Validate
+     */
+    public function getRoot() {
+        if ($this->__root === null) {
+            if ($this->hasParent()) {
+                $this->__root = $this->getParent()->getRoot();
+            } else {
+                $this->__root = $this;
+            }
+        }
+        return $this->__root;
+    }
+
+    /**
      * Odczyt nieistniejącej właściwości - tworzy nowy obiekt tej klasy oraz kopiuje do niego opcje z bieżącego poziomu.
      * 
      * @param string $name Nazwa pola do walidacji
      * @return validate
      */
-    public function __get($name) {
-        $new = !isset($this->_items[$name]);
+    public function &__get($name) {
+        if (!isset($this->items[$name])) {
+            $this->items[$name] = $this->_createObject();
+            $this->items[$name]->mergeOptions($this->options);
+            $this->items[$name]->_name = $name;
+            $this->items[$name]->parent = $this;
 
-        parent::__get($name);
-
-        if ($new) {
-            $this->_items[$name]->mergeOptions($this->_options);
-
-            // Budowanie kluczy od roota tak aby był do nich szybki dostęp (do danych)
-            $this->_items[$name]->__keysFromRoot = array_merge([], $this->__keysFromRoot);
-            $this->_items[$name]->__keysFromRoot[] = $name;
+            // Budowanie kluczy od roota tak aby był do nich szybki dostęp
+            $this->items[$name]->__keysFromRoot = array_merge([], $this->__keysFromRoot);
+            $this->items[$name]->__keysFromRoot[] = $name;
         }
-
-        return $this->_items[$name];
+        return $this->items[$name];
     }
 
     /**
-     * Domyślnie generowany nowy obiekt
+     * Tworzy nowy obiekt - w tym przypadku static.
      * 
-     * @return \self
+     * @return static
      */
     protected function _createObject() {
-        return new self();
+        return new static();
     }
 
     /**
@@ -161,7 +247,28 @@ class Validate extends \Skinny\ObjectModelBase {
         if (!($value instanceof self)) {
             throw new Validate\Exception("Invalid value");
         }
-        parent::__set($name, $value);
+        $this->items[$name] = $value;
+        $this->items[$name]->_name = $name;
+        $this->items[$name]->parent = $this;
+    }
+
+    /**
+     * Isset lub empty na nieistniejącej właściwości.
+     * 
+     * @param   string $name Nazwa pola
+     * @return  boolean
+     */
+    public function __isset($name) {
+        return isset($this->items[$name]) && !($this->items[$name] instanceof self);
+    }
+
+    /**
+     * Unsetowanie nieistniejącej właściwości.
+     * 
+     * @param string $name Nazwa pola
+     */
+    public function __unset($name) {
+        unset($this->items[$name]);
     }
 
     /**
@@ -173,16 +280,16 @@ class Validate extends \Skinny\ObjectModelBase {
      */
     protected function _validate($value) {
         // Jeżeli walidacja na tym poziomie jest w trakcie wykonywania - jest to błąd...
-        if ($this->_status === self::STATUS_VALIDATION_IN_PROGRESS) {
-            // throw new Validate\Exception("Validation is in progress");
-        } else if ($this->_status === self::STATUS_VALIDATED) {
+        if ($this->status === self::STATUS_VALIDATION_IN_PROGRESS) {
+//            throw new Validate\Exception("Validation is in progress");
+        } else if ($this->status === self::STATUS_VALIDATED) {
             /**
              * Jeżeli ten walidator został juz zwalidowany, należy zwrócić wynik walidacji.
              * Taka sutuacja wystąpi w momencie gdy wywołano najpierw metodę isValid podając 
              * tablicę do walidacji a następnie wywołano tą metodę bez podania argumentów. 
              * Przy podaniu argumentu do funkcji isValid wynik oraz status walidacji jest resetowany.
              */
-            return $this->_result;
+            return $this->result;
         }
 
         // Ustawienie statusu walidacji
@@ -192,13 +299,13 @@ class Validate extends \Skinny\ObjectModelBase {
         $toCheck = $this->__setupToCheckValue($value);
 
         // Ustawienie bieżącego poziomu danych do walidacji
-//        $this->_data = $toCheck; ?? Czy potrzebne ??
+        $this->data = $toCheck;
 
-        $this->_result = true;
-        if (!empty($this->_validators) || !empty($this->_eachValidators)) {
+        $this->result = true;
+        if (!empty($this->validators) || !empty($this->eachValidators)) {
             $this->__prepareLevelValidation($toCheck); // przygotowanie walidacji każdego poziomu - m.in. "each"
-            $this->_result = $this->_validateItem($this, $toCheck);
-        } else if (empty($this->_items)) {
+            $this->result = $this->_validateItem($this, $toCheck);
+        } else if (empty($this->items)) {
 //            throw new Validate\Exception("No items to validate");
             // brak walidatorów oznacza poprawną walidację
         }
@@ -208,11 +315,11 @@ class Validate extends \Skinny\ObjectModelBase {
          * oraz wynik walidacji dla bieżącego pola jest pozytywny (lub ustawiono flagę, aby nie przerywać walidacji)
          * należy zwalidować wszystkie podelementy
          */
-        if (!empty($this->_items) && $this->_result === true) {
-            foreach ($this->_items as $item) {
+        if (!empty($this->items) && $this->result === true) {
+            foreach ($this->items as $item) {
                 if (!$item->_validate($toCheck)) {
-                    $this->_result = false;
-                    if ($this->_options[self::OPTION_BREAK_ON_ITEM_FAILURE] === true) {
+                    $this->result = false;
+                    if ($this->options[self::OPTION_BREAK_ON_ITEM_FAILURE] === true) {
                         break;
                     }
                 }
@@ -220,7 +327,7 @@ class Validate extends \Skinny\ObjectModelBase {
         }
 
         $this->setStatus(self::STATUS_VALIDATED);
-        return $this->_result;
+        return $this->result;
     }
 
     /**
@@ -228,16 +335,32 @@ class Validate extends \Skinny\ObjectModelBase {
      * 
      * @return int
      */
-//    public function countValidators() {
-//        $count = count($this->_validators) + count($this->_eachValidators);
-//        if (!empty($this->_items)) {
-//            foreach ($this->_items as $item) {
-//                $count += $item->countValidators();
-//            }
-//        }
-//
-//        return $count;
-//    }
+    public function countValidators() {
+        $count = count($this->validators) + count($this->eachValidators);
+        if (!empty($this->items)) {
+            foreach ($this->items as $item) {
+                $count += $item->countValidators();
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Zwraca sumę elementów dla danego poziomu razem z wszystkimi podelementami
+     * 
+     * @return int
+     */
+    public function count() {
+        $count = count($this->items);
+        if ($count > 0) {
+            foreach ($this->items as $item) {
+                $count += $item->count();
+            }
+        }
+
+        return $count;
+    }
 
     /**
      * Ustawia odpowiednią wartość walidowanego pola.
@@ -282,16 +405,16 @@ class Validate extends \Skinny\ObjectModelBase {
      * @param array $data
      */
     private function __prepareLevelValidation($data) {
-        if (!empty($this->_eachValidators) && !empty($data) && !($data instanceof KeyNotExist) && (is_array($data) || $data instanceof \Traversable)) {
+        if (!empty($this->eachValidators) && !empty($data) && !($data instanceof KeyNotExist) && (is_array($data) || $data instanceof \Traversable)) {
             // jeżeli ustawiono walidatory dla wszystkich podelementów to należy je najpierw przygotować
             foreach ($data as $k => $v) {
-                foreach ($this->_eachValidators as $vData) {
+                foreach ($this->eachValidators as $vData) {
                     $this->$k->__prepend($vData['validator'], $vData['errorMsg'], $vData['options']);
                     $this->$k->mergeOptions($vData['options']); // TODO czy to na pewno tak ma być = opcje nadpisywane na poziomie każdego walidatora z osobna...
                 }
             }
 
-            $this->_eachValidators = [];
+            $this->eachValidators = [];
         }
     }
 
@@ -304,7 +427,7 @@ class Validate extends \Skinny\ObjectModelBase {
      * @throws  Validate\Exception
      */
     protected function _validateItem($item, $value) {
-        $item->_result = true;
+        $item->result = true;
 
         // Jeżeli nie jest ustawiony walidator Required a wartość jest pusta
         // nie musimy przeprowadzać walidacji
@@ -315,24 +438,24 @@ class Validate extends \Skinny\ObjectModelBase {
             return true;
         }
 
-        foreach ($item->_validators as $validator) {
+        foreach ($item->validators as $validator) {
             // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
             $params = array_merge(
                     ['name' => $item->_name, 'value' => $value]
-                    , $item->_options[self::OPTION_MESSAGES_PARAMS]);
+                    , $item->options[self::OPTION_MESSAGES_PARAMS]);
 
             $validator->setMessagesParams($params);
 
             // Walidacja
             if (!$validator->isValid($value)) {
-                $item->_result = false;
-                if ($this->_options[self::OPTION_BREAK_ON_VALIDATOR_FAILURE] === true) {
+                $item->result = false;
+                if ($this->options[self::OPTION_BREAK_ON_VALIDATOR_FAILURE] === true) {
                     break;
                 }
             }
         }
 
-        return $item->_result;
+        return $item->result;
     }
 
     /**
@@ -344,8 +467,8 @@ class Validate extends \Skinny\ObjectModelBase {
      */
     public function mergeOptions($options) {
         if (!empty($options) && is_array($options)) {
-//            $this->_options = array_merge($this->_options, $options);
-            $this->_options = \Skinny\ArrayWrapper::deepMerge($this->_options, $options);
+//            $this->options = array_merge($this->options, $options);
+            $this->options = \Skinny\ArrayWrapper::deepMerge($this->options, $options);
         }
     }
 
@@ -413,7 +536,7 @@ class Validate extends \Skinny\ObjectModelBase {
         $this->mergeOptions($options);
         $validator->setUserMessages($errorMsg);
 
-        $this->_validators[] = $validator;
+        $this->validators[] = $validator;
         return $this;
     }
 
@@ -427,7 +550,7 @@ class Validate extends \Skinny\ObjectModelBase {
     public function label($label = null) {
         if ($label === null) {
             // pobranie wartości
-            return ($l = @$this->_options[Validator\ValidatorBase::OPT_MSG_PARAMS]['label']) !== null ? $l : "";
+            return ($l = @$this->options[Validator\ValidatorBase::OPT_MSG_PARAMS]['label']) !== null ? $l : "";
         } else {
             $this->setOptions([
                 Validator\ValidatorBase::OPT_MSG_PARAMS => [
@@ -489,7 +612,7 @@ class Validate extends \Skinny\ObjectModelBase {
      * @todo Sprawdzić czy nadpisywanie opcji działa poprawnie
      */
     public function each($validator, $errorMsg = null, $options = null) {
-        $this->_eachValidators[] = [
+        $this->eachValidators[] = [
             'validator' => $validator,
             'errorMsg' => $errorMsg,
             'options' => $options
@@ -521,7 +644,7 @@ class Validate extends \Skinny\ObjectModelBase {
         $this->mergeOptions($options);
         $validator->setUserMessages($errorMsg);
 
-        array_unshift($this->_validators, $validator);
+        array_unshift($this->validators, $validator);
 
         return $this;
     }
@@ -584,15 +707,15 @@ class Validate extends \Skinny\ObjectModelBase {
      */
     public function hasValidator($validator) {
         $validators = $validator;
-        if (!is_array($validator)) {
+        if(!is_array($validator)) {
             $validators = [$validator];
         }
         $toFind = count($validators);
         $found = 0;
 
-        if (!empty($this->_validators)) {
+        if (!empty($this->validators)) {
             foreach ($validators as $validatorToFind) {
-                foreach ($this->_validators as $v) {
+                foreach ($this->validators as $v) {
                     $className = get_class($validatorToFind);
                     if ($v instanceof $className) {
                         if (++$found >= $toFind) {
@@ -619,7 +742,7 @@ class Validate extends \Skinny\ObjectModelBase {
             if ($this->_name) {
                 $val = @$val[$this->_name]; // zwraca wartość konkretnego pola
 
-                $data = $this->root()->__allData;
+                $data = $this->getRoot()->__allData;
                 // Odnalezienie ścieżki danych, które zawsze są aktualne w __allData
                 // i zwrócenie odpowiedniego klucza - lub null jeżeli brak wartości
                 foreach ($this->__keysFromRoot as $key) {
@@ -633,17 +756,17 @@ class Validate extends \Skinny\ObjectModelBase {
 
                 return $data;
             } else {
-                $val = $this->root()->__allData; // zwraca całość danych ustawionych lokalnie
+                $val = $this->getRoot()->__allData; // zwraca całość danych ustawionych lokalnie
             }
             return $val;
         } else {
-            // Ustawienie wartości dla pola
+            // Ustawienie wartości dla pola formularza
             // Przy ustawieniu automatycznie merdżujemy __allData
             if ($this->_name) {
                 $this->__setAllDataLevelValue($value);
 
                 // resetuje statusy walidacji
-                $this->root()->resetValidation();
+                $this->getRoot()->resetValidation();
             }
         }
 
@@ -658,11 +781,11 @@ class Validate extends \Skinny\ObjectModelBase {
      * @throws Validate\Exception
      */
     private function __setAllDataLevelValue($value) {
-        if (is_array($value) && !empty($this->_items)) {
+        if (is_array($value) && !empty($this->items)) {
             throw new Validate\Exception('Cannot set an "array value" for this level');
         }
 
-        $data = $this->root()->__allData;
+        $data = $this->getRoot()->__allData;
         $rootData = &$data;
         $prev = "root";
         foreach ($this->__keysFromRoot as $key) {
@@ -676,11 +799,11 @@ class Validate extends \Skinny\ObjectModelBase {
             $prev = $key;
         }
 
-        if (!empty($this->_items)) {
+        if (!empty($this->items)) {
             throw new Validate\Exception("Cannot set non array value for this level");
         }
         $data = $value;
-        $this->root()->__allData = $rootData;
+        $this->getRoot()->__allData = $rootData;
     }
 
     /**
@@ -692,24 +815,24 @@ class Validate extends \Skinny\ObjectModelBase {
      * @todo Sprawdzenie czy działa walidacja dla pojedynczego pola i podanych danych wejściowych
      */
     public function isValid($data = null) {
-        if ($this->_status === self::STATUS_VALIDATION_IN_PROGRESS) {
+        if ($this->status === self::STATUS_VALIDATION_IN_PROGRESS) {
 //            throw new Validate\Exception("Validation is in progress");
         }
 
         // Jeżeli wszystkie dane są puste - niewypełnione a walidacja nie została przeprowadzona - błąd
-        if ($this->_status === self::STATUS_NOT_VALIDATED && empty($this->root()->__allData) && $data === null) {
+        if ($this->status === self::STATUS_NOT_VALIDATED && empty($this->getRoot()->__allData) && $data === null) {
             throw new Validate\Exception("No data to validate");
         }
 
         // Jeżeli dany poziom jest już zwalidowany to wystarczy zwrócić wartość
         // Jeżeli chcemy zresetować jej wynik i zwalidować nowe dane, napierw należy
         // wywołać metodę resetValidation()
-        if ($this->_status === self::STATUS_VALIDATED) {
-            return $this->_result;
+        if ($this->status === self::STATUS_VALIDATED) {
+            return $this->result;
         }
 
         if ($data !== null) {
-            if (is_array($data) && $this->isRoot()) {
+            if (is_array($data) && !$this->hasParent()) {
                 foreach ($data as $k => $v) {
                     $this->{$k}->__setAllDataLevelValue($v);
                 }
@@ -753,7 +876,7 @@ class Validate extends \Skinny\ObjectModelBase {
      * @param string $status
      */
     protected function setStatus($status) {
-        $this->_status = $status;
+        $this->status = $status;
     }
 
     /**
@@ -763,13 +886,13 @@ class Validate extends \Skinny\ObjectModelBase {
     protected function resetValidation() {
         // Przy rozpoczęciu nowej walidacji należy zresetować status
         $this->setStatus(self::STATUS_NOT_VALIDATED);
-        $this->_result = null;
+        $this->result = null;
 
         $this->resetValidatorsErrors();
 
         // Jeżeli istnieją jakieś podelementy to również należy im zresetować status
-        if (!empty($this->_items)) {
-            foreach ($this->_items as $item) {
+        if (!empty($this->items)) {
+            foreach ($this->items as $item) {
                 $item->resetValidation();
                 $item->resetValidatorsErrors();
             }
@@ -780,8 +903,8 @@ class Validate extends \Skinny\ObjectModelBase {
      * Resetuje tablice błędów dla walidatorów
      */
     protected function resetValidatorsErrors() {
-        if (!empty($this->_validators)) {
-            foreach ($this->_validators as $validator) {
+        if (!empty($this->validators)) {
+            foreach ($this->validators as $validator) {
                 $validator->resetErrors();
             }
         }
@@ -808,9 +931,9 @@ class Validate extends \Skinny\ObjectModelBase {
      * @todo - metoda nie powinna być publiczna - trzeba ją wydzielić osobno a stworzyć publiczną która zwróci już bezpośrednią wartość
      */
     public function getAllErrors(&$errors = []) {
-        if (!empty($this->_validators)) {
+        if (!empty($this->validators)) {
             $errors['@errors'] = [];
-            foreach ($this->_validators as $validator) {
+            foreach ($this->validators as $validator) {
                 if (($e = $validator->getErrors())) {
                     $errors['@errors'] = array_merge($errors['@errors'], $e);
                 }
@@ -818,12 +941,12 @@ class Validate extends \Skinny\ObjectModelBase {
             if (empty($errors['@errors'])) {
                 unset($errors['@errors']);
             }
-        } else if (empty($this->_items)) {
+        } else if (empty($this->items)) {
             return false;
         }
 
-        if (!empty($this->_items)) {
-            foreach ($this->_items as $item) {
+        if (!empty($this->items)) {
+            foreach ($this->items as $item) {
                 $errors[$item->_name] = [];
                 $item->getAllErrors($errors[$item->_name]);
                 if (empty($errors[$item->_name])) {
@@ -842,8 +965,8 @@ class Validate extends \Skinny\ObjectModelBase {
     public function getErrors() {
         $errors = [];
 
-        if (!empty($this->_validators)) {
-            foreach ($this->_validators as $validator) {
+        if (!empty($this->validators)) {
+            foreach ($this->validators as $validator) {
                 if (($e = $validator->getErrors())) {
                     $errors = array_merge($errors, $e);
                 }
@@ -876,25 +999,33 @@ class Validate extends \Skinny\ObjectModelBase {
      * @return boolean
      */
     public function validated() {
-        return $this->_status === self::STATUS_VALIDATED;
+        return $this->status === self::STATUS_VALIDATED;
     }
 
     /**
-     * Sprawdza czy obiekt był już walidowany i czy zawiera błędy.
+     * Łączy bieżący obiekt formularza z innym nadpisując przy tym powtarzające 
+     * się klucze.
      * 
-     * @return boolean
+     * @param self $value
+     * @throws Validate\Exception
      */
-    public function hasErrors() {
-        return $this->validated() && !$this->isValid();
-    }
+    public function mergeWith($value) {
+        if (!($value instanceof self)) {
+            throw new Validate\Exception('$value has to be an object of class Validate');
+        }
 
+        foreach ($value as $name => $item) {
+            $this->{$name} = $item;
+        }
+    }
+    
     /**
-     * Zwraca aktualnie ustawione dane dla całego obiektu.
+     * Zwraca aktualnie ustawione dane dla całego formularza.
      * 
      * @return array
      */
     public function getData() {
-        return $this->root()->__allData;
+        return $this->getRoot()->__allData;
     }
 
 }

@@ -2,7 +2,7 @@
 
 namespace Skinny;
 
-require_once __DIR__ . '/SomeClass.php';
+require_once __DIR__ . '/ObjectModelBase.php';
 
 /**
  * Klasa mająca na celu ułatwić pracę z tablicami.
@@ -64,7 +64,7 @@ require_once __DIR__ . '/SomeClass.php';
  * 
  * @author Daro
  */
-class Store extends SomeClass implements \JsonSerializable {
+class Store extends ObjectModelBase implements \JsonSerializable {
 
     /**
      * Obiekt Store może zostać zbudowany z innego obiektu lub tablicy.
