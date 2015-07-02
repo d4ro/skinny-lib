@@ -46,6 +46,7 @@ class RecordExists extends ValidatorBase {
             return false;
         }
         return true;
+        
     }
 
 }
