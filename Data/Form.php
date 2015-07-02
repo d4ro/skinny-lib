@@ -74,14 +74,24 @@ class Form extends Validate {
     /**
      * Dodatkowo ustawia domyślne wartości dla tworzonego pola na podstawie configa.
      * 
-     * @param type $name
-     * @return type
+     * @param string $name
+     * @return Form
      */
     public function &__get($name) {
-        return parent::__get($name)
-                        ->type(self::$_config->default->field->control) // domyślna kontrolka dla pól formularza
-                        ->attributesType(self::$_config->default->field->attributesControl) // domyślna kontrolka atrybutów dla pól formularza
-        ;
+        $new = !isset($this->_items[$name]);
+
+        // domyślna konstrukcja
+        $item = parent::__get($name);
+
+        // jeżeli obiekt jest na nowo tworzony należy przypisać mu standardową konfigurację
+        if ($new) {
+            $item
+                    ->type(self::$_config->default->field->control) // domyślna kontrolka dla pól formularza
+                    ->attributesType(self::$_config->default->field->attributesControl) // domyślna kontrolka atrybutów dla pól formularza
+            ;
+        }
+
+        return $item;
     }
 
     /**
@@ -116,11 +126,11 @@ class Form extends Validate {
                 return $this->_type;
             }
         } else {
-            if ($this->_name) {
-                // Jeżeli ma nazwę to znaczy że mamy do czynienia z polem formularza
+            if (!$this->isRoot()) {
+                // Mamy do czynienia z polem formularza
                 $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, 'control', $type . '.tpl'));
             } else {
-                // W przypadku braku nazwy mamy do czynienia z obiektem formularza - więc szablonem
+                // Mamy do czynienia z obiektem formularza - więc szablonem
                 $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, 'template', $type . '.tpl'));
             }
 

@@ -123,22 +123,22 @@ class Validate extends \Skinny\ObjectModelBase {
      * Odczyt nieistniejącej właściwości - tworzy nowy obiekt tej klasy oraz kopiuje do niego opcje z bieżącego poziomu.
      * 
      * @param string $name Nazwa pola do walidacji
-     * @return validate
+     * @return Validate
      */
-    public function __get($name) {
+    public function &__get($name) {
         $new = !isset($this->_items[$name]);
 
-        parent::__get($name);
+        $item = parent::__get($name);
 
         if ($new) {
-            $this->_items[$name]->mergeOptions($this->_options);
+            $item->mergeOptions($this->_options);
 
             // Budowanie kluczy od roota tak aby był do nich szybki dostęp (do danych)
-            $this->_items[$name]->__keysFromRoot = array_merge([], $this->__keysFromRoot);
-            $this->_items[$name]->__keysFromRoot[] = $name;
+            $item->__keysFromRoot = array_merge([], $this->__keysFromRoot);
+            $item->__keysFromRoot[] = $name;
         }
 
-        return $this->_items[$name];
+        return $item;
     }
 
     /**
@@ -408,6 +408,8 @@ class Validate extends \Skinny\ObjectModelBase {
             // przekazanie obecnego poziomu do walidatora simple w celu możliwości 
             // pobrania nazwy pola i dodawania kolejnych podpoziomów (np. przy walidatorach each)
             $validator->item = $this;
+            $validator->parent = $this->parent();
+            $validator->root = $this->root();
         }
 
         $this->mergeOptions($options);
@@ -708,15 +710,7 @@ class Validate extends \Skinny\ObjectModelBase {
             return $this->_result;
         }
 
-        if ($data !== null) {
-            if (is_array($data) && $this->isRoot()) {
-                foreach ($data as $k => $v) {
-                    $this->{$k}->__setAllDataLevelValue($v);
-                }
-            } else {
-                $this->__setAllDataLevelValue($data);
-            }
-        }
+        $this->setData($data);
 
         $i = 0;
         $result = null;
@@ -745,6 +739,24 @@ class Validate extends \Skinny\ObjectModelBase {
         }
 
         return $result;
+    }
+    
+    /**
+     * Ustawia (nadpisuje) dane dla wybranego poziomu.
+     * @param mixed $data
+     * @return \Skinny\Data\Validate
+     */
+    public function setData($data = null) {
+        if ($data !== null) {
+            if (is_array($data) && $this->isRoot()) {
+                foreach ($data as $k => $v) {
+                    $this->{$k}->__setAllDataLevelValue($v);
+                }
+            } else {
+                $this->__setAllDataLevelValue($data);
+            }
+        }
+        return $this;
     }
 
     /**
