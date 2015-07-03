@@ -5,9 +5,9 @@ namespace Skinny\Data\Validator;
 /**
  * Walidator sprawdzający czy wartość istnieje już w bazie danych w podanym polu podanej tabeli
  */
-class RecordExists extends ValidatorBase {
+class RecordNotExists extends ValidatorBase {
 
-    const MSG_NOT_RECORDEXISTS = 'notRecordExists';
+    const MSG_NOT_RECORDNOTEXISTS = 'notRecordNotExists';
     protected $db;
     const OPT_DB = 'db';
     protected $table;
@@ -19,7 +19,7 @@ class RecordExists extends ValidatorBase {
         parent::__construct($options);
 
         $this->_setMessagesTemplates([
-            self::MSG_NOT_RECORDEXISTS => "Brak wpisu w bazie danych"
+            self::MSG_NOT_RECORDNOTEXISTS => "W bazie danych istnieje już taki wpis"
         ]);
         
         if (!$this->_options['db']) {
@@ -39,8 +39,8 @@ class RecordExists extends ValidatorBase {
     public function isValid($value) {
         //$pattern = '/^\d{4}[\/\-](0?[1-9]|1[012])[\/\-](0?[1-9]|[12][0-9]|3[01])$/';
         $result = $this->db->fetchRow("select ".$this->field." from ".$this->table." where ".$this->field."='".$value."' limit 1");
-        if (!$result) {
-            $this->error(self::MSG_NOT_RECORDEXISTS);
+        if ($result) {
+            $this->error(self::MSG_NOT_RECORDNOTEXISTS);
             return false;
         }
         return true;
