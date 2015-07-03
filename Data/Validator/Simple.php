@@ -31,9 +31,21 @@ class Simple extends ValidatorBase {
     
     /**
      * Przechowuje wskaźnik na bieżący poziom obiektu validate
-     * @var \model\validate
+     * @var \Skinny\Data\Validate
      */
     public $item = null;
+    
+    /**
+     * Wskaźnik na obiekt rodzica
+     * @var \Skinny\Data\Validate
+     */
+    public $parent = null;
+    
+    /**
+     * Wskaźnik na obiekt główny
+     * @var \Skinny\Data\Validate
+     */
+    public $root = null;
 
     /**
      * Konstruktor sprawdza podany walidator i zapamiętuje go pod odpowiednią zmienną klasy.
@@ -73,6 +85,15 @@ class Simple extends ValidatorBase {
         }
 
         return empty($this->_errors);
+    }
+    
+    /**
+     * Alias do metody value z obiektu $this->item
+     * @param mixed $value
+     * @return \Skinny\Data\Validate
+     */
+    public function value($value = null) {
+        return $this->item->value($value);
     }
 
     /**
