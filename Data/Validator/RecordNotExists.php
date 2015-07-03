@@ -3,7 +3,7 @@
 namespace Skinny\Data\Validator;
 
 /**
- * Walidator sprawdzający czy wartość istnieje już w bazie danych w podanym polu podanej tabeli
+ * Walidator sprawdzający czy podana wartość nie istnieje jeszcze w bazie danych w podanym polu podanej tabeli
  */
 class RecordNotExists extends RecordExists {
     
@@ -11,7 +11,7 @@ class RecordNotExists extends RecordExists {
         parent::__construct($options);
         
         $this->_setMessagesTemplates([
-            self::MSG_RECORD_NOT_EXISTS => "Wpis już istnieje"
+            self::ERR_RECORD_EXISTS => "Wpis już istnieje"
         ]);
     }
 

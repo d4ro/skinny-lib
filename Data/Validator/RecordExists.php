@@ -7,49 +7,53 @@ namespace Skinny\Data\Validator;
  */
 class RecordExists extends ValidatorBase {
 
-    const MSG_RECORD_NOT_EXISTS = 'notRecordExists';
-    const OPT_DB = 'db';
-    const OPT_TABLE = 'table';
+    /**
+     * Komunikat zwracany w przypadku braku wpisu w bazie
+     */
+    const ERR_RECORD_NOT_EXISTS = 'ERR_RECORD_NOT_EXISTS';
+    
+    /**
+     * Opcja przetrzymująca połączenie z bazą
+     */
+    const OPT_DB = 'OPT_DB';
+    
+    /**
+     * Opcja ustawiająca w której tabeli znajduje się sprawdzane pole
+     */
+    const OPT_TABLE = 'OPT_TABLE';
 
     /**
      * Opcja ustawiająca które pole ma być sprawdzone w bazie
      */
-    const OPT_FIELD = 'field';
+    const OPT_FIELD = 'OPT_FIELD';
 
-    protected $_db;
-    protected $_table;
-    protected $_field;
 
     public function __construct($options = null) {
         parent::__construct($options);
 
         $this->_setMessagesTemplates([
-            self::MSG_RECORD_NOT_EXISTS => "Brak wpisu w bazie danych"
+            self::ERR_RECORD_NOT_EXISTS => "Brak wpisu w bazie danych"
         ]);
 
-        if (!$this->_options['db']) {
-            throw new exception("Błąd połączenia z bazą");
+        if (!$this->_options[self::OPT_DB]) {
+            throw new exception("Brak kluczowej opcji OPT_DB");
         }
-        if (!$this->_options['table']) {
-            throw new exception("Nie podano tabeli");
+        if (!$this->_options[self::OPT_TABLE]) {
+            throw new exception("Brak kluczowej opcji OPT_TABLE");
         }
-        if (!$this->_options['field']) {
-            throw new exception("Nie podano pola");
+        if (!$this->_options[self::OPT_FIELD]) {
+            throw new exception("Brak kluczowej opcji OPT_FIELD");
         }
-
-        $this->_db = $this->_options['db'];
-        $this->_table = $this->_options['table'];
-        $this->_field = $this->_options['field'];
     }
 
     public function isValid($value) {
         //$pattern = '/^\d{4}[\/\-](0?[1-9]|1[012])[\/\-](0?[1-9]|[12][0-9]|3[01])$/';
-        $query = "select " . $this->_field . " from " . $this->_table . " where " . $this->_field . "='" . $value . "' limit 1";
-        $result = $this->_db->fetchRow($query);
+        $query = "select " . $this->_options[self::OPT_FIELD] . " from " . $this->_options[self::OPT_TABLE] . " where " . $this->_options[self::OPT_FIELD] . "='" . $value . "' limit 1";
+        $result = $this->_options[self::OPT_DB]->fetchRow($query);
 //        die(var_dump($result));
 
         if (!$result) {
-            $this->error(self::MSG_RECORD_NOT_EXISTS);
+            $this->error(self::ERR_RECORD_NOT_EXISTS);
             return false;
         }
         return true;
