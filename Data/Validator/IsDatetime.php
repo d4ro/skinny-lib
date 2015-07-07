@@ -7,6 +7,9 @@ namespace Skinny\Data\Validator;
  */
 class IsDatetime extends ValidatorBase {
 
+    /**
+     * Komunikat zwracany w przypadku niepoprawnego formatu daty i czasu
+     */
     const MSG_NOT_DATETIME = 'notDatetime';
 
     public function __construct($options = null) {

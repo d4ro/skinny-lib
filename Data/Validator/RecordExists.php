@@ -32,7 +32,7 @@ class RecordExists extends ValidatorBase {
         parent::__construct($options);
 
         $this->_setMessagesTemplates([
-            self::ERR_RECORD_NOT_EXISTS => "Brak wpisu w bazie danych"
+            self::ERR_RECORD_NOT_EXISTS => "Brak rekordu"
         ]);
 
         if (!$this->_options[self::OPT_DB]) {
@@ -47,16 +47,16 @@ class RecordExists extends ValidatorBase {
     }
 
     public function isValid($value) {
-        //$pattern = '/^\d{4}[\/\-](0?[1-9]|1[012])[\/\-](0?[1-9]|[12][0-9]|3[01])$/';
-        $query = "select " . $this->_options[self::OPT_FIELD] . " from " . $this->_options[self::OPT_TABLE] . " where " . $this->_options[self::OPT_FIELD] . "='" . $value . "' limit 1";
-        $result = $this->_options[self::OPT_DB]->fetchRow($query);
-//        die(var_dump($result));
-
+        $select = $this->_options[self::OPT_DB]->select();
+        $select->from($this->_options[self::OPT_TABLE],$this->_options[self::OPT_FIELD]);
+        $select->where($this->_options[self::OPT_FIELD]."=?",$value);
+        $select->limit(1);
+        $result = $this->_options[self::OPT_DB]->fetchRow($select);
+        
         if (!$result) {
             $this->error(self::ERR_RECORD_NOT_EXISTS);
             return false;
         }
         return true;
     }
-
 }

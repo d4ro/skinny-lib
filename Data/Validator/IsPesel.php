@@ -7,6 +7,9 @@ namespace Skinny\Data\Validator;
  */
 class IsPesel extends ValidatorBase {
 
+    /**
+     * Komunikat zwracany w przypadku niepoprawnego numeru pesel
+     */
     const MSG_NOT_PESEL = 'notPesel';
 
     public function __construct($options = null) {
