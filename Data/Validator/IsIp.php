@@ -7,6 +7,9 @@ namespace Skinny\Data\Validator;
  */
 class IsIp extends ValidatorBase {
 
+    /**
+     * Komunikat zwracany w przypadku niepoprawnego formatu adresu IP
+     */
     const MSG_NOT_IP = 'notIp';
 
     public function __construct($options = null) {
