@@ -43,7 +43,7 @@ abstract class ObjectModelBase implements \IteratorAggregate {
     protected $_root = null;
 
     /**
-     * Umożliwia iterowanie bezpośrednio po elementach tablicy items.
+     * Umożliwia iterowanie bezpośrednio po elementach tablicy $_items.
      * 
      * @return ArrayIterator
      */
