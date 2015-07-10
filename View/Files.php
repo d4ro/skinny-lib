@@ -9,6 +9,7 @@ class Files implements \IteratorAggregate {
     protected $_baseUrl = null;
     
     protected $_items = [];
+    protected $_index = [];
     
     /**
      * Umożliwia iterowanie bezpośrednio po elementach tablicy $_items.
@@ -27,18 +28,14 @@ class Files implements \IteratorAggregate {
      * @throws Exception
      */
     public function __construct($baseUrl, $path, $extension) {
+        if(empty($baseUrl) || !is_string($baseUrl)) {
+            throw new Exception('Argument $baseUrl (' . $baseUrl . ') is invalid');
+        }
         if(empty($path) || !is_string($path)) {
-            throw new Exception('Argument $path is invalid');
+            throw new Exception('Argument $path (' . $path . ') is invalid');
         }
         if(empty($extension) || !is_string($extension)) {
-            throw new Exception('Argument $extension is invalid');
-        }
-        if(empty($baseUrl) || !is_string($baseUrl)) {
-            throw new Exception('Argument $baseUrl is invalid');
-        }
-        
-        if($extension[0] !== '.') {
-            $extension = '.' + $extension;
+            throw new Exception('Argument $extension (' . $extension . ') is invalid');
         }
         
         $this->_filesPath = $path;
@@ -51,7 +48,7 @@ class Files implements \IteratorAggregate {
      * Dodaje plik do kolekcji.
      * 
      * @param string $file
-     * @param boolean $checkFileExistance
+     * @param boolean $checkFileExistance Wymusza sprawdzenie istnienia pliku
      * @return \Skinny\View\Files
      * @throws Exception
      */
@@ -64,13 +61,36 @@ class Files implements \IteratorAggregate {
             }
         }
         
-        $this->_items[$file] = $filePath;
+        $this->_items[] = $filePath;
+        $this->_index[$file] = &$this->_items[count($this->_items) - 1];
         
         return $this;
     }
     
     /**
-     * Konfiguruje i zwraca ścieżkę do wybranego pliku.
+     * Dodaje plik na początku.
+     * @param string $file
+     * @param voolean $checkFileExistance
+     * @return \Skinny\View\Files
+     * @throws Exception
+     */
+    public function addFirst($file, $checkFileExistance = false) {
+        $filePath = $this->_getFilePath($file);
+        
+        if($checkFileExistance) {
+            if(!file_exists($filePath)) {
+                throw new Exception("File $filePath doesn't exist");
+            }
+        }
+        
+        array_unshift($this->_items, $filePath);
+        $this->_index[$file] = &$this->_items[0];
+        
+        return $this;
+    }
+    
+    /**
+     * Konfiguruje i zwraca pełną ścieżkę (absolutną lub url) do wybranego pliku.
      * 
      * @param string $file
      * @return string
@@ -92,8 +112,8 @@ class Files implements \IteratorAggregate {
      * @return \Skinny\View\Files
      */
     public function remove($file) {
-        if(isset($this->_items[$file])) {
-            unset($this->_items[$file]);
+        if(isset($this->_index[$file])) {
+            unset($this->_index[$file]);
         }
         
         return $this;
