@@ -59,6 +59,7 @@ class Url {
 
     public static function isCorrect($url) {
         // TODO: sprawdzić poprawność algorytmu
+        // TODO: ERROR - url nie jest poprawny dla zapisu: "//onet.pl"
         return (bool) preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i", $url);
     }
 
