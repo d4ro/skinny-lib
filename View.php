@@ -42,23 +42,32 @@ class View extends \Skinny\Store {
 
         $this->js = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->jsPath, $this->_config->jsExtension);
         $this->css = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->cssPath, $this->_config->cssExtension);
-        
-        $this->path->js = Url::combine($this->_config->baseUrl, $this->_config->jsPath);
-        $this->path->css = Url::combine($this->_config->baseUrl, $this->_config->cssPath);
     }
     
+    /**
+     * Ustawienie bieżącego renderera.
+     * 
+     * @param \Skinny\View\Renderer $renderer
+     * @return \Skinny\View
+     */
     public function setRenderer(View\Renderer $renderer) {
         $this->__renderer = $renderer;
         return $this;
     }
     
+    /**
+     * Pobranie bieżącego renderera.
+     * 
+     * @return View\Renderer
+     */
     public function getRenderer() {
         return $this->__renderer;
     }
 
     /**
+     * Ustawienie configa (merge).
      * 
-     * @param type $config
+     * @param View\Config|array $config
      * @return \Skinny\View
      */
     public function setConfig($config) {
@@ -79,25 +88,50 @@ class View extends \Skinny\Store {
         return $this->_config;
     }
 
+    /**
+     * Widok nie będzie renderowany przez renderer.
+     * 
+     * @return \Skinny\View
+     */
     public function setNoRender() {
         $this->_config->isRenderAllowed = false;
         return $this;
     }
 
+    /**
+     * Czy widok ma być renderowany?
+     * 
+     * @return boolean
+     */
     public function isRenderAllowed() {
         return $this->_config->isRenderAllowed;
     }
 
+    /**
+     * Ustawia layout dla bieżącego żądania.
+     * 
+     * @param string $layout
+     */
     public function setLayout($layout) {
         $this->_config->layout = $layout;
     }
 
+    /**
+     * Sprawdza czy layout został ustawiony.
+     * 
+     * @return boolean
+     */
     public function isLayoutSet() {
         return !empty($this->_config->layout);
     }
 
+    /**
+     * Pobiera ustawiony layout.
+     * 
+     * @return string
+     */
     public function getLayout() {
-        $this->_config->layout;
+        return $this->_config->layout;
     }
 
     /**

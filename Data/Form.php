@@ -7,7 +7,7 @@ namespace Skinny\Data;
  * - jeżeli jest to metoda o nazwie "class" - nastapi ustawienie/pobranie
  *   atrybutu "class" przy pomocy metody __cls
  */
-class Form extends Validate {
+class Form extends Validate implements \JsonSerializable {
 
     /**
      * Konfiguracja modułu
@@ -358,6 +358,7 @@ class Form extends Validate {
      * Dodaje klasę/klasy do istniejących
      * 
      * @param string $class
+     * @return \Skinny\Data\Form
      */
     public function addClass($class) {
         if (empty($class) || !is_string($class)) {
@@ -392,12 +393,57 @@ class Form extends Validate {
 
         return $this;
     }
+    
+    /**
+     * Ustawia atrybut "id" formularza.
+     * 
+     * @param string $id
+     * @return \Skinny\Data\Form
+     */
+    public function id($id) {
+        $this->setAttribute('id', $id);
+        return $this;
+    }
 
     /**
      * Alias metody add
      */
     public function addValidator($validator, $errorMsg = null, $options = null) {
         return $this->add($validator, $errorMsg, $options);
+    }
+
+    /**
+     * Ustawienie serializacji obiektu do JSON.
+     * Wynikiem jest tablica indeksowana nazwami pól.
+     * Jeżeli pole zawiera jakieś podelementy będzie zawierało klucz "items" - dalej rekurencyjnie.
+     * Jeżeli pole jest liściem w polu "value" przyjmnie bieżąco ustawioną wartość.
+     * Jeżeli pole zawiera błędy - np. po walidacji - w polu "errors" będzie zawierało tablicę błędów.
+     * 
+     * @return array
+     */
+    public function jsonSerialize() {
+        $json = [];
+
+        foreach ($this->_items as $name => $item) {
+            $json[$name] = [];
+
+            if (!empty($item->_items)) {
+                // Przypisanie ewentualnych podelementów jeśli istnieją (rekurencyjnie)
+                $json[$name]['items'] = $item;
+            } else {
+                // Przypisanie ustawionej wartości dla bieżącego pola jeżeli jest liściem
+                $json[$name]['value'] = $item->value();
+                $json[$name]['keysFromRoot'] = $item->_keysFromRoot;
+            }
+
+            // Przypisanie błędów po walidacji pola - jeśli istnieją
+            $errors = $item->getErrors();
+            if (!empty($errors)) {
+                $json[$name]['errors'] = $errors;
+            }
+        }
+
+        return $json;
     }
 
 }
