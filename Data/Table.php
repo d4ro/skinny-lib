@@ -2,30 +2,26 @@
 
 namespace Skinny\Data;
 
-/**
- * Wywołanie nieistniejącej metody:
- * - jeżeli jest to metoda o nazwie "class" - nastapi ustawienie/pobranie
- *   atrybutu "class" przy pomocy metody __cls
- */
-class Form extends Validate implements \JsonSerializable {
+class Table extends \Skinny\ObjectModelBase {
 
     /**
      * Konfiguracja modułu
      * @var Store
      * 
      * Dostpne opcje konfiguracji:
-     * - templatesPath - ścieżka do szablonów formularzy
+     * - templatesPath - ścieżka do katalogu szablonów
      */
     protected static $_config;
 
     /**
-     * Przechowuje typ aktualnego pola (np. "input/text")
+     * Przechowuje typ aktualnego pola (np. "input/text").
+     * Typ określa ścieżkę kontrolki z katalogu templatesPath/control/...
      * @var string
      */
     protected $_type = null;
 
     /**
-     * Przechowuje typ kontrolki atrybutów dla aktualnego pola - domyślnie "standard"
+     * Przechowuje typ kontrolki atrybutów dla aktualnego pola
      * @var string
      */
     protected $_attributesType = null;
@@ -60,14 +56,21 @@ class Form extends Validate implements \JsonSerializable {
      */
     protected $_classes = [];
 
-    public function __construct() {
-        parent::__construct();
+    /**
+     * Label dla pola.
+     * @var string
+     */
+    protected $_label = null;
 
+    /**
+     * Dane tabel niezbędne do wyświetlenia :)
+     */
+    protected $_data;
+
+    public function __construct() {
         $this
-                ->type(self::$_config->default->form->control) // domyślna kontrolka formularza
-                ->method(self::$_config->default->form->method) // domyślna metoda - atrybut
-                ->action(self::$_config->default->form->action) // domyślna akcja  - atrybut
-                ->attributesType(self::$_config->default->form->attributesControl) // domyślna kontrolka atrybutów dla formularza
+                ->type(self::$_config->default->table->control) // domyślna kontrolka formularza
+                ->attributesType(self::$_config->default->table->attributesControl) // domyślna kontrolka atrybutów dla formularza
         ;
     }
 
@@ -75,7 +78,7 @@ class Form extends Validate implements \JsonSerializable {
      * Dodatkowo ustawia domyślne wartości dla tworzonego pola na podstawie configa.
      * 
      * @param string $name
-     * @return Form
+     * @return static
      */
     public function &__get($name) {
         $new = !isset($this->_items[$name]);
@@ -95,7 +98,7 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Ustawienie konfiguracji modułu
+     * Ustawia config.
      * @param \Skinny\Store $config
      */
     public static function setConfig(\Skinny\Store $config) {
@@ -103,19 +106,19 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Ustawia typ kontrolki dla danego pola formularza lub zwraca ustawioną już 
-     * wartość jeżeli nie podano argumentu ($type = null)
+     * Ustawia typ kontrolki dla danego pola lub zwraca ustawioną już 
+     * wartość jeżeli nie podano argumentu ($type = null).
      * 
      * @param string $type - typ kontrolki znajdującej się w odpowiednim katalogu
      *                       np. "input/text"
      * 
-     * @return string|\Skinny\Data\Form
-     * @throws Form\Exception
+     * @return string|static
+     * @throws Exception
      */
     public function type($type = null) {
         if ($type === null) {
             if ($this->_type === null) {
-                throw new Form\Exception("Type has not been set");
+                throw new Exception("Type has not been set");
             }
 
             if (empty($this->_type)) {
@@ -148,19 +151,19 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Ustawia typ kontrolki atrybutów dla danego pola formularza lub zwraca ustawioną już 
-     * wartość jeżeli nie podano argumentu ($type = null)
+     * Ustawia typ kontrolki atrybutów dla danego pola lub zwraca ustawioną już 
+     * wartość jeżeli nie podano argumentu ($type = null).
      * 
      * @param string $type - typ kontrolki atrybutów znajdującej się w odpowiednim katalogu (attribute)
-     *                       np. "standard" (domyślnie)
+     *                       np. "standard"
      * 
-     * @return string|\Skinny\Data\Form
-     * @throws Form\Exception
+     * @return string|static
+     * @throws Exception
      */
     public function attributesType($type = null) {
         if ($type === null) {
             if ($this->_attributesType === null) {
-                throw new Form\Exception("Attributes type has not been set");
+                throw new Exception("Attributes type has not been set");
             }
 
             if (empty($this->_attributesType)) {
@@ -186,7 +189,7 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Zwraca obiekt konfiguracyjny
+     * Zwraca obiekt konfiguracyjny.
      * @return \Skinny\Store
      */
     public function getConfig() {
@@ -194,39 +197,39 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Zwraca ścieżkę aktualnej kontrolki
+     * Zwraca ścieżkę aktualnej kontrolki.
      * 
      * @return string
-     * @throws Form\Exception
+     * @throws Exception
      */
     public function getControlPath() {
         if ($this->_controlPath === null) {
-            throw new Form\Exception("No control is set. Yo have to setup 'type' first");
+            throw new Exception("No control is set. Yo have to setup 'type' first");
         }
 
         return $this->_controlPath;
     }
 
     /**
-     * Zwraca ścieżkę aktualnej kontrolki atrybutów
+     * Zwraca ścieżkę aktualnej kontrolki atrybutów.
      * 
      * @return string
-     * @throws Form\Exception
+     * @throws Exception
      */
     public function getAttributesControlPath() {
         if ($this->_attributesControlPath === null) {
-            throw new Form\Exception("No control is set. Yo have to setup 'attributesType' first");
+            throw new Exception("No control is set. Yo have to setup 'attributesType' first");
         }
 
         return $this->_attributesControlPath;
     }
 
     /**
-     * Ustawia wartość dla wybranego atrybutu (nadpisuje poprzednią)
+     * Ustawia wartość dla wybranego atrybutu (nadpisuje poprzednią).
      * 
      * @param string $key klucz atrybutu
      * @param mixed $value
-     * @return \Skinny\Data\Form
+     * @return static
      */
     public function setAttribute($key, $value) {
         $this->_attributes[$key] = $value;
@@ -234,10 +237,10 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Ustawia wiele atrybutów nadpisując ustawione wartości
+     * Ustawia wiele atrybutów nadpisując ustawione wartości.
      * 
      * @param array $attributes
-     * @return \Skinny\Data\Form
+     * @return static
      */
     public function setAttributes(array $attributes) {
         $this->_attributes = array_merge($this->_attributes, $attributes);
@@ -245,7 +248,7 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Pobiera wartość wybranego atrybutu
+     * Pobiera wartość wybranego atrybutu.
      * 
      * @param string $key klucz atrybutu
      * @return mixed
@@ -255,7 +258,7 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Zwraca tablicę ustawionych atrybutów
+     * Zwraca tablicę ustawionych atrybutów.
      * 
      * @return array
      */
@@ -271,26 +274,17 @@ class Form extends Validate implements \JsonSerializable {
     public function __call($name, $arguments) {
         if ($name === 'class') {
             return call_user_method_array('__cls', $this, $arguments);
-        }/* elseif (in_array($name, $this->__availableMagicAttributes)) {
-          if($arguments[0] === null) {
-          // pobranie ustawionej wartości
-          return @$this->_attributes[$name];
-          } else {
-          // ustawienie odpowiedniego atrybutu
-          $this->setAttribute($name, $arguments[0]);
-          return $this;
-          }
-          } */ else {
-            throw new Form\Exception("No method \"$name\"");
+        } else {
+            throw new Exception("No method \"$name\"");
         }
     }
 
     /**
      * Pobiera atrybut klasy dla danego elementu lub ustawia jego wartość
-     * zastępując istniejące klasy
+     * zastępując istniejące klasy.
      * 
      * @param string $class
-     * @return string|\Skinny\Data\Form
+     * @return string|static
      */
     private function __cls($class = null) {
         if ($class === null) {
@@ -300,7 +294,7 @@ class Form extends Validate implements \JsonSerializable {
             return $cls;
         } else {
             if (!is_string($class)) {
-                throw new Form\Exception('Invalid class name');
+                throw new Exception('Invalid class name');
             }
 
             $this->_classes = explode(' ', $class);
@@ -315,7 +309,7 @@ class Form extends Validate implements \JsonSerializable {
      * 
      * @param string $attribute
      * @param mixed $value
-     * @return \Skinny\Data\Form|string
+     * @return static|string
      */
     private function __getOrSetAttribute($attribute, $value = null) {
         if ($value === null) {
@@ -328,44 +322,14 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Ustawia lub pobiera atrybut o nazwie takiej jak metoda.
-     * 
-     * @param mixed $value
-     * @return type
-     */
-    public function method($value = null) {
-        return $this->__getOrSetAttribute('placeholder', $value);
-    }
-
-    /**
-     * Ustawia lub pobiera atrybut o nazwie takiej jak metoda.
-     * 
-     * @param mixed $value
-     * @return type
-     */
-    public function action($value = null) {
-        return $this->__getOrSetAttribute('placeholder', $value);
-    }
-
-    /**
-     * Ustawia lub pobiera atrybut o nazwie takiej jak metoda.
-     * 
-     * @param mixed $value
-     * @return type
-     */
-    public function placeholder($value = null) {
-        return $this->__getOrSetAttribute('placeholder', $value);
-    }
-
-    /**
-     * Dodaje klasę/klasy do istniejących
+     * Dodaje klasę/klasy do istniejących.
      * 
      * @param string $class
-     * @return \Skinny\Data\Form
+     * @return static
      */
     public function addClass($class) {
         if (empty($class) || !is_string($class)) {
-            throw new Form\Exception('Invalid class name');
+            throw new Exception('Invalid class name');
         }
 
         $this->_classes = array_merge($this->_classes, explode(' ', $class));
@@ -375,13 +339,13 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Usuwa wybraną klasę/klasy
+     * Usuwa wybraną klasę/klasy.
      * 
      * @param string $class
      */
     public function removeClass($class) {
         if (empty($class) || !is_string($class)) {
-            throw new Form\Exception('Invalid class name');
+            throw new Exception('Invalid class name');
         }
 
         $classes = explode(' ', $class);
@@ -396,12 +360,12 @@ class Form extends Validate implements \JsonSerializable {
 
         return $this;
     }
-    
+
     /**
-     * Ustawia atrybut "id" formularza.
+     * Ustawia atrybut "id".
      * 
      * @param string $id
-     * @return \Skinny\Data\Form
+     * @return static
      */
     public function id($id) {
         $this->setAttribute('id', $id);
@@ -409,44 +373,53 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Alias metody add
+     * Ustawia atrybut "title".
+     * 
+     * @param string $title
+     * @return \Skinny\Data\HtmlBase
      */
-    public function addValidator($validator, $errorMsg = null, $options = null) {
-        return $this->add($validator, $errorMsg, $options);
+    public function title($title) {
+        $this->setAttribute('title', $title);
+        return $this;
     }
 
     /**
-     * Ustawienie serializacji obiektu do JSON.
-     * Wynikiem jest tablica indeksowana nazwami pól.
-     * Jeżeli pole zawiera jakieś podelementy będzie zawierało klucz "items" - dalej rekurencyjnie.
-     * Jeżeli pole jest liściem w polu "value" przyjmnie bieżąco ustawioną wartość.
-     * Jeżeli pole zawiera błędy - np. po walidacji - w polu "errors" będzie zawierało tablicę błędów.
-     * 
-     * @return array
+     * Pobiera lub ustawia label.
+     * @param string $label
+     * @return \Skinny\Data\Table
      */
-    public function jsonSerialize() {
-        $json = [];
-
-        foreach ($this->_items as $name => $item) {
-            $json[$name] = [];
-
-            if (!empty($item->_items)) {
-                // Przypisanie ewentualnych podelementów jeśli istnieją (rekurencyjnie)
-                $json[$name]['items'] = $item;
-            } else {
-                // Przypisanie ustawionej wartości dla bieżącego pola jeżeli jest liściem
-                $json[$name]['value'] = $item->value();
-                $json[$name]['keysFromRoot'] = $item->_keysFromRoot;
+    public function label($label = null) {
+        if ($label === null) {
+            // pobranie wartości
+            return $this->_label;
+        } else {
+            if (!is_string($label)) {
+                throw new Exception("Invalid label type. String expected.");
             }
 
-            // Przypisanie błędów po walidacji pola - jeśli istnieją
-            $errors = $item->getErrors();
-            if (!empty($errors)) {
-                $json[$name]['errors'] = $errors;
-            }
+            // ustawienie wartości
+            $this->_label = $label;
         }
 
-        return $json;
+        return $this;
+    }
+
+    /**
+     * Ustawia dane niezbędne do wyrenderowania tabeli.
+     * 
+     * @param mixed $data
+     */
+    public function setData($data) {
+        $this->_data = $data;
+    }
+
+    /**
+     * Zwraca obiekt danych.
+     * 
+     * @return mixed
+     */
+    public function getData() {
+        return $this->_data;
     }
 
 }
