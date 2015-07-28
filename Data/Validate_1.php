@@ -468,7 +468,7 @@ class Validate1 implements \IteratorAggregate {
     public function mergeOptions($options) {
         if (!empty($options) && is_array($options)) {
 //            $this->options = array_merge($this->options, $options);
-            $this->options = \Skinny\ArrayWrapper::deepMerge($this->options, $options);
+            $this->options = \Skinny\DataObject\ArrayWrapper::deepMerge($this->options, $options);
         }
     }
 

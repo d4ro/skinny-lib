@@ -1,6 +1,6 @@
 <?php
 
-namespace Skinny;
+namespace Skinny\DataObject;
 
 /**
  * Jest to model umożliwiający wygodniejszą pracę z tablicami/obiektami.
