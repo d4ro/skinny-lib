@@ -19,7 +19,7 @@ namespace Skinny\View;
  * 
  * @property boolean $isRenderAllowed Czy widok ma być domyślnie renderowany
  */
-class Config extends \Skinny\Store {
+class Config extends \Skinny\DataObject\Store {
 
     public function __construct($obj = null) {
         // Domyślna konfiguracja

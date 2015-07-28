@@ -5,7 +5,7 @@ namespace Skinny;
 /**
  * Model obsługujący renderowanie widoku strony.
  */
-class View extends \Skinny\Store {
+class View extends DataObject\Store {
 
     /**
      * Obiekt konfiguracyjny.

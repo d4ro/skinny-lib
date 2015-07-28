@@ -4,7 +4,7 @@ namespace Skinny\Application;
 
 use Skinny\IOException;
 use Skinny\Path;
-use Skinny\Store;
+use Skinny\DataObject\Store;
 use Skinny\Action\ActionException;
 use Skinny\Application\Router\Container;
 

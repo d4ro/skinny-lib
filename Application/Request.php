@@ -50,8 +50,9 @@ class Request {
      * @return Request\Step
      */
     public function current() {
-        if ($this->_current < 0 || $this->_stepCount <= $this->_current)
+        if ($this->_current < 0 || $this->_stepCount <= $this->_current) {
             return null;
+        }
         return $this->_steps[$this->_current];
     }
 
@@ -68,8 +69,10 @@ class Request {
      * @return Request\Step
      */
     public function first() {
-        if ($this->_stepCount < 1)
+        if ($this->_stepCount < 1) {
             return null;
+        }
+
         return $this->_steps[0];
     }
 
@@ -78,8 +81,10 @@ class Request {
      * @return Request\Step
      */
     public function previous() {
-        if ($this->_current < 1)
+        if ($this->_current < 1) {
             return null;
+        }
+
         return $this->_steps[$this->_current - 1];
     }
 
@@ -93,8 +98,10 @@ class Request {
         // TODO: możliwy błąd, gdy ktoś forwaduje kilka razy pod rząd - wtedy po kolei wszystkie żądania będą wykonywane
         // TODO: z drugiej strony to może być celowe działanie
         if (null === $step || $this->_current < $this->_stepCount - 1) {
-            if ($this->_current < $this->_stepCount - 1)
+            if ($this->_current < $this->_stepCount - 1) {
                 return $this->_steps[$this->_current + 1];
+            }
+
             return null;
         }
 
@@ -104,10 +111,12 @@ class Request {
         $current = $this->current();
         if (null !== $current) {
             $current->next($step)->previous($current);
-            if ($current->isProcessed())
+            if ($current->isProcessed()) {
                 ++$this->_current;
-        } else
+            }
+        } else {
             ++$this->_current;
+        }
         return $step;
     }
 
@@ -136,8 +145,10 @@ class Request {
      */
     public function proceed() {
         $current = $this->current();
-        if (null != $current)
+        if (null != $current) {
             $current->setProcessed(true);
+        }
+
         ++$this->_current;
     }
 
@@ -167,15 +178,17 @@ class Request {
      */
     public function resolve() {
         $current = $this->current();
-        if (null === $current)
+        if (null === $current) {
             return;
+        }
 
         if ($current->isResolved()) {
             if (null !== $current->next()) {
                 ++$this->_current;
                 $current = $this->current();
-            } else
+            } else {
                 return;
+            }
         }
 
         $current->resolve($this->getRouter());
@@ -204,6 +217,16 @@ class Request {
      */
     public function acceptJson() {
         return false !== strstr($_SERVER['HTTP_ACCEPT'], 'application/json');
+    }
+
+    public function toBreadCrumbs() {
+        $s = '';
+        $i = $this->first();
+        while ($i) {
+            $s .= $i->getActionUrl() . ' (' . json_encode($i->getParams()) . ') > ';
+            $i = $i->next();
+        }
+        return $s;
     }
 
 }

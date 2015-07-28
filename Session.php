@@ -2,6 +2,8 @@
 
 namespace Skinny;
 
+use Skinny\DataObject\Store;
+
 if (!defined('PHP_VERSION_ID')) {
     $version = explode('.', PHP_VERSION);
 
@@ -14,7 +16,7 @@ if (!defined('PHP_VERSION_ID')) {
  *
  * @author Daro
  */
-class Session extends ArrayWrapper {
+class Session extends DataObject\ArrayWrapper {
 
     /**
      * Session configuration object

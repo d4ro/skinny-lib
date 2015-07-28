@@ -7,6 +7,9 @@ namespace Skinny\Data\Validator;
  */
 class IsUrl extends ValidatorBase {
 
+    /**
+     * Komunikat zwracany w przypadku niepoprawnego adresu internetowego
+     */
     const MSG_NOT_URL = 'notUrl';
 
     public function __construct($options = null) {
