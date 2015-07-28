@@ -5,9 +5,6 @@ namespace Skinny\Data;
 /**
  * Klasa validate jest klasą umożliwiającą walidację danych wejściowych 
  * za pomocą istniejących walidatorów lub stworzonych przez siebie.
- * 
- * @todo aliasy nazw pól np. w danych do walidacji jest klucz "title", 
- * który w komunikacie ma zostać zamieniony na "tytuł"
  */
 class Validate extends \Skinny\DataObject\ObjectModelBase {
 
@@ -53,7 +50,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * 
      * @var array
      */
-    private $__keysFromRoot = [];
+    protected $_keysFromRoot = [];
 
     /**
      * Tablica przechowująca wszystkie walidatory przypisane do bieżącego pola.
@@ -134,8 +131,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             $item->mergeOptions($this->_options);
 
             // Budowanie kluczy od roota tak aby był do nich szybki dostęp (do danych)
-            $item->__keysFromRoot = array_merge([], $this->__keysFromRoot);
-            $item->__keysFromRoot[] = $name;
+            $item->_keysFromRoot = array_merge([], $this->_keysFromRoot);
+            $item->_keysFromRoot[] = $name;
         }
 
         return $item;
@@ -624,7 +621,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
                 $data = $this->root()->__allData;
                 // Odnalezienie ścieżki danych, które zawsze są aktualne w __allData
                 // i zwrócenie odpowiedniego klucza - lub null jeżeli brak wartości
-                foreach ($this->__keysFromRoot as $key) {
+                foreach ($this->_keysFromRoot as $key) {
                     if (!isset($data[$key])) {
                         $data = null;
                         break;
@@ -667,7 +664,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         $data = $this->root()->__allData;
         $rootData = &$data;
         $prev = "root";
-        foreach ($this->__keysFromRoot as $key) {
+        foreach ($this->_keysFromRoot as $key) {
             if (!isset($data[$key])) {
                 $data[$key] = [];
             }

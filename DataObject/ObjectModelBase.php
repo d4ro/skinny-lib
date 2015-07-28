@@ -43,7 +43,7 @@ abstract class ObjectModelBase implements \IteratorAggregate {
     protected $_root = null;
 
     /**
-     * Umożliwia iterowanie bezpośrednio po elementach tablicy items.
+     * Umożliwia iterowanie bezpośrednio po elementach tablicy $_items.
      * 
      * @return ArrayIterator
      */
@@ -286,12 +286,23 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      */
     public function merge($obj) {
         if (!$this->isSelf($obj)) {
-//            throw new IOException('$value has to be an object of class ' . self::class);
-            throw new IOException('$value has to be an object of class SomeClass'); // TODO: zmiana nazwy
+            throw new IOException('$value has to be an instance of ObjectModelBase');
         }
 
         foreach ($obj as $name => $item) {
             $this->{$name} = $item;
+        }
+        
+        return $this;
+    }
+    
+    /**
+     * Czyści cały obiekt ze wszystkich ustawionych zmiennych.
+     * @return ObjectModelBase
+     */
+    public function clear() {
+        foreach ($this as $key => $value) {
+            unset($this->$key);
         }
         
         return $this;
