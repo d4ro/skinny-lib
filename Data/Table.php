@@ -2,7 +2,7 @@
 
 namespace Skinny\Data;
 
-class Table extends \Skinny\ObjectModelBase {
+abstract class Table extends \Skinny\DataObject\ObjectModelBase {
 
     /**
      * Konfiguracja modułu.
@@ -125,7 +125,7 @@ class Table extends \Skinny\ObjectModelBase {
      * Ustawia config.
      * @param \Skinny\Store $config
      */
-    public static function setConfig(\Skinny\Store $config) {
+    public static function setConfig(\Skinny\DataObject\Store $config) {
         self::$_config = $config;
     }
 
@@ -472,8 +472,7 @@ class Table extends \Skinny\ObjectModelBase {
      * @return static
      */
     public function id($id) {
-        $this->setAttribute('id', $id);
-        return $this;
+        return $this->__getOrSetAttribute('id', $id);
     }
 
     /**
@@ -483,8 +482,7 @@ class Table extends \Skinny\ObjectModelBase {
      * @return \Skinny\Data\HtmlBase
      */
     public function title($title) {
-        $this->setAttribute('title', $title);
-        return $this;
+        return $this->__getOrSetAttribute('title', $title);
     }
 
     /**
