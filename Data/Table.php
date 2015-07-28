@@ -5,7 +5,7 @@ namespace Skinny\Data;
 class Table extends \Skinny\ObjectModelBase {
 
     /**
-     * Konfiguracja modułu
+     * Konfiguracja modułu.
      * @var Store
      * 
      * Dostpne opcje konfiguracji:
@@ -21,37 +21,49 @@ class Table extends \Skinny\ObjectModelBase {
     protected $_type = null;
 
     /**
-     * Przechowuje typ kontrolki atrybutów dla aktualnego pola
+     * Przechowuje typ kontrolki atrybutów dla aktualnego pola.
      * @var string
      */
     protected $_attributesType = null;
-
+    
     /**
-     * Przechowuje wartość pola
+     * Przechowuje typ kontrolki wyszukiwarki dla aktualnego pola.
      * @var string
      */
-    protected $_value = null;
+    protected $_searchType = null;
 
     /**
-     * Tablica atrybutów elementu
+     * Przechowuje wartość pola.
+     * @var string
+     */
+    protected $_searchValue = null;
+
+    /**
+     * Tablica atrybutów elementu.
      * @var array
      */
     protected $_attributes = [];
 
     /**
-     * Ścieżka kontrolki
+     * Ścieżka kontrolki.
      * @var string
      */
     protected $_controlPath = null;
 
     /**
-     * Ścieżka kontrolki atrybutów
+     * Ścieżka kontrolki atrybutów.
      * @var string
      */
     protected $_attributesControlPath = null;
+    
+    /**
+     * Ścieżka kontrolki wyszukiwarki.
+     * @var string
+     */
+    protected $_searchControlPath = null;
 
     /**
-     * Przechowuje ustawione klasy
+     * Przechowuje ustawione klasy.
      * @var array
      */
     protected $_classes = [];
@@ -66,6 +78,18 @@ class Table extends \Skinny\ObjectModelBase {
      * Dane tabel niezbędne do wyświetlenia :)
      */
     protected $_data;
+    
+    /**
+     * Parametry z linka i/lub z POST'a.
+     * @var array
+     */
+    protected $_params;
+    
+    /**
+     * Dodatkowe dane wyszukiwarek - np. dane do selecta.
+     * @var mixed Domyślnie pusta tablica
+     */
+    protected $_searchData = [];
 
     public function __construct() {
         $this
@@ -187,6 +211,68 @@ class Table extends \Skinny\ObjectModelBase {
             return $this;
         }
     }
+    
+    /**
+     * Ustawia typ kontrolki wyszukiwarki dla danego pola lub zwraca ustawioną już wartość.
+     * 
+     * @param string $type
+     * @return \Skinny\Data\Table
+     * @throws Exception
+     */
+    public function searchType($type = null) {
+        if ($type === null) {
+            return $this->_searchType;
+        } else {
+            $path = \Skinny\Path::combine(self::$_config->templatesPath, 'control/search', $type . '.tpl');
+            $controlPath = realpath($path);
+
+            if (!file_exists($controlPath)) {
+                throw new Exception("Search control \"$path\" does not exist");
+            }
+
+            $this->_searchType = $type;
+            $this->_searchControlPath = $controlPath;
+
+            return $this;
+        }
+    }
+    
+    /**
+     * Ustawia lub zwraca ustawioną wartość pola wyszukiwarki.
+     * Jeżeli wartośćjest nie ustawiona przy próbie pobrania - metoda sprawdzi czy 
+     * istnieje odpowiedni klucz w tablicy post (np. search_nazwapola).
+     * 
+     * @param mixed $value
+     * @return \Skinny\Data\Table
+     */
+    public function searchValue($value = null) {
+        if($value === null) {
+            if($this->_searchValue === null && !empty($_POST['search_' + $this->getName()])) {
+                $this->_searchValue = $_POST['search_' + $this->getName()];
+            }
+            return $this->_searchValue;
+        } else {
+            $this->_searchValue = $value;
+        }
+        
+        return $this;
+    }
+    
+    /**
+     * Ustawia lub zwraca dodatkowe dane dołączone do pola wyszukiwarki (np. dane do select'a).
+     * 
+     * @param mixed $data
+     * @return \Skinny\Data\Table
+     */
+    public function searchData($data = null) {
+        if($data === null) {
+            return $this->_searchData;
+        } else {
+            $this->_searchData = $data;
+        }
+        
+        return $this;
+    }
 
     /**
      * Zwraca obiekt konfiguracyjny.
@@ -222,6 +308,24 @@ class Table extends \Skinny\ObjectModelBase {
         }
 
         return $this->_attributesControlPath;
+    }
+    
+    /**
+     * Zwraca ścieżkę aktualnej kontrolki wyszukiwarki.
+     * 
+     * @return string
+     * @throws Exception
+     */
+    public function getSearchControlPath() {
+        if ($this->_attributesControlPath === null) {
+            throw new Exception("No control is set. Yo have to setup 'searchType' first");
+        }
+
+        return $this->_searchControlPath;
+    }
+    
+    public function getSearchData() {
+        return [];
     }
 
     /**
@@ -420,6 +524,24 @@ class Table extends \Skinny\ObjectModelBase {
      */
     public function getData() {
         return $this->_data;
+    }
+    
+    /**
+     * Ustawia dodatkowe parametry dla tabeli.
+     * 
+     * @param array $params
+     */
+    public function setParams(array $params) {
+        $this->_params = $params;
+    }
+    
+    /**
+     * Pobiera dodatkowe parametry tabeli.
+     * 
+     * @param array $params
+     */
+    public function getParams() {
+        return $this->_params;
     }
 
 }
