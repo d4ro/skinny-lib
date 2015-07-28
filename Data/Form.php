@@ -2,6 +2,8 @@
 
 namespace Skinny\Data;
 
+use Skinny\DataObject\Store;
+
 /**
  * Wywołanie nieistniejącej metody:
  * - jeżeli jest to metoda o nazwie "class" - nastapi ustawienie/pobranie
@@ -96,9 +98,9 @@ class Form extends Validate {
 
     /**
      * Ustawienie konfiguracji modułu
-     * @param \Skinny\Store $config
+     * @param Store $config
      */
-    public static function setConfig(\Skinny\Store $config) {
+    public static function setConfig(Store $config) {
         self::$_config = $config;
     }
 
@@ -184,7 +186,7 @@ class Form extends Validate {
 
     /**
      * Zwraca obiekt konfiguracyjny
-     * @return \Skinny\Store
+     * @return Store
      */
     public function getConfig() {
         return self::$_config;

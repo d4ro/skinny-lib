@@ -9,7 +9,7 @@ namespace Skinny\Data;
  * @todo aliasy nazw pól np. w danych do walidacji jest klucz "title", 
  * który w komunikacie ma zostać zamieniony na "tytuł"
  */
-class Validate extends \Skinny\ObjectModelBase {
+class Validate extends \Skinny\DataObject\ObjectModelBase {
 
     /**
      * Oczekuje na walidację
@@ -345,7 +345,7 @@ class Validate extends \Skinny\ObjectModelBase {
     public function mergeOptions($options) {
         if (!empty($options) && is_array($options)) {
 //            $this->_options = array_merge($this->_options, $options);
-            $this->_options = \Skinny\ArrayWrapper::deepMerge($this->_options, $options);
+            $this->_options = \Skinny\DataObject\ArrayWrapper::deepMerge($this->_options, $options);
         }
     }
 

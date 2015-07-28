@@ -2,10 +2,13 @@
 
 namespace Skinny;
 
+use Skinny\DataObject\Store;
 use Skinny\Application\Components;
 use Skinny\Application\Request;
 use Skinny\Application\Response;
 use Skinny\Application\Router;
+
+require_once __DIR__ . '/DataObject/Store.php';
 
 /**
  * Główna klasa przygotowująca aplikację bazującą na podstawce Skinny.
@@ -84,8 +87,6 @@ class Application {
         $this->_appCwd = getcwd();
 
         // config
-        require_once __DIR__ . '/Store.php';
-
         if (!isset($_SERVER['APPLICATION_ENV'])) {
             die('Application environment is not set. Application cannot be run.');
         }
@@ -253,14 +254,13 @@ class Application {
         while (!$this->_request->isProcessed()) {
             try {
                 --$counter;
-//                if ($counter === 0) {
-//                    var_dump($this->_request);
-//                    die();
-//                }
-                Exception::throwIf($counter === 0, new Action\ActionException("Too many actions dispatched in one request: $maxForwardCount in action '{$this->_request->current()->getRequestUrl()}'."));
 
                 if (!$this->_request->isResolved()) {
                     $this->_request->resolve();
+                }
+
+                if ($counter === 0) {
+                    throw new Action\ActionException("Too many actions dispatched in one request: $maxForwardCount in action '{$this->_request->current()->getRequestUrl()}'. Actions: " . $this->_request->toBreadCrumbs());
                 }
 
                 $action = $this->_request->current()->getAction();
@@ -278,17 +278,8 @@ class Application {
 
                 Exception::throwIf(!($action instanceof Action), new Action\ActionException("Action's '{$this->_request->current()->getRequestUrl()}' object is not an instance of the Skinny\\Action base class."));
 
-//                $action->setApplication($this);
                 $action->onInit();
-
-//                try {
                 $permission = $action->onCheckPermission();
-//                } catch (\Skinny\Action\ForwardException $e) {
-//                    
-//                }
-//                if ($this->isRequestForwarded()) {
-//                    continue;
-//                }
 
                 if (true !== $permission) {
                     $accessDeniedAction = $this->_config->actions->accessDenied('/accessDenied');
@@ -312,31 +303,13 @@ class Application {
                     }
                 }
 
-//                try {
                 $action->onPrepare();
-//                } catch (\Skinny\Action\ForwardException $e) {
-//                    
-//                }
-//                if ($this->isRequestForwarded()) {
-//                    continue;
-//                }
-//                try {
                 $action->onAction();
-//                } catch (\Skinny\Action\ForwardException $e) {
-//                    
-//                }
-//                if ($this->isRequestForwarded()) {
-//                    continue;
-//                }
-//                try {
                 $action->onComplete();
-//                } catch (\Skinny\Action\ForwardException $e) {
-//                    
-//                }
-
+                
                 $this->_request->proceed();
             } catch (\Skinny\Action\ForwardException $e) {
-                
+                $this->_request->proceed();
             } catch (\Exception $e) {
                 // get URL of error action
                 $errorAction = $this->_config->actions->error('/error');
@@ -368,6 +341,8 @@ class Application {
                 } catch (Action\ForwardException $ex) {
                     continue;
                 }
+                
+                $this->_request->proceed();
             }
         }
 

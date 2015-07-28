@@ -2,7 +2,7 @@
 
 namespace Skinny\Application;
 
-use Skinny\Store;
+use Skinny\DataObject\Store;
 
 /**
  * Kontener komponentów aplikacji Skinny

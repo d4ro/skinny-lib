@@ -2,12 +2,14 @@
 
 namespace Skinny\Db\Record;
 
+use Skinny\DataObject\Store;
+
 /**
  * Description of RecordBase
  *
  * @author Daro
  */
-abstract class RecordBase {
+abstract class RecordBase extends \Skinny\DataObject\DataBase {
 
     /**
      * Nazwa głównej tabeli, w której przechowywany jest wiersz (rekord)
@@ -37,13 +39,19 @@ abstract class RecordBase {
      * Określa, które kolumny należy odczytać pobierając rekord z tabeli głównej.
      * @var array
      */
-    protected $_allowedColumns = ['*'];
+    protected $_columns = null;
 
     /**
-     * Określa, które kolumny ze zbioru danych rekordu nie należą do tabeli głównej oraz których kolumn nie należy z niej pobierać.
+     * Określa, które kolumny ze zbioru danych rekordu mają nie być odczytywane z bazy danych.
      * @var array
      */
-    protected $_disallowedColumns = [];
+    protected $_readingDisabledColumns = [];
+
+    /**
+     * Określa, które kolumny ze zbioru danych rekordu mają nie być zapisywane do bazy danych.
+     * @var array
+     */
+    protected $_writingDisabledColumns = [];
 
     /**
      * Zawiera informację o kolumnach zakodowanych JSON'em, które mają byc automatycznie odkodowane
@@ -52,10 +60,40 @@ abstract class RecordBase {
     protected $_jsonColumns = [];
 
     /**
+     * Określa, które kolumny z kluczem obcym traktować jako rekord
+     * @var array
+     */
+    protected $_recordColumns = [];
+
+    /**
+     * Określa wirtualne kolumny będące kolekcją rekordów
+     * @var array
+     */
+    protected $_collectionVirtualColumns = [];
+
+    /**
      * Przechowuje opcje rekordu
-     * @var \Skinny\Store
+     * @var Store
      */
     protected $_config;
+
+    /**
+     * Czy rekord ma swój odpowiednik w bazie danych
+     * @var boolean
+     */
+    protected $_exists;
+
+    /**
+     * Czy rekord został zmodyfikowany po ostatniej synchronizacji z bazą
+     * @var boolean
+     */
+    protected $_isModified;
+
+    /**
+     * Czy rekord jest w trakcie procesu zapisywania
+     * @var boolean
+     */
+    protected $_isSaving;
 
     /**
      * Połączenie do bazy danych
@@ -91,13 +129,16 @@ abstract class RecordBase {
      */
     public function __construct($mainTable, $idColumns = 'id', $data = array(), $options = null) {
         \Skinny\Exception::throwIf(self::$db === null, new \Skinny\Db\DbException('Database adaptor used by record is not set'));
-        \Skinny\Exception::throwIf($options !== null && !($options instanceof \Skinny\Store), new \InvalidArgumentException('Param $options is not instance of Store'));
+        \Skinny\Exception::throwIf($options !== null && !($options instanceof Store), new \InvalidArgumentException('Param $options is not instance of Store'));
 
         if (null === $options) {
-            $options = new \Skinny\Store();
+            $options = new Store();
         }
 
         $this->_config = $options;
+        $this->_exists = false;
+        $this->_isModified = false;
+        $this->_isSaving = false;
 
         if (!is_array($idColumns)) {
             $idColumns = [$idColumns];
@@ -110,7 +151,141 @@ abstract class RecordBase {
         $this->_tableName = $mainTable;
 
         if (!empty($data)) {
-            $this->set($data);
+            $this->importData($data);
+        }
+    }
+
+    /**
+     * Stwierdza, czy 
+     * @return type
+     */
+    public function exists($checkInDatabase = false) {
+        if ($checkInDatabase) {
+            
+        }
+
+        return $this->_exists;
+    }
+
+    /**
+     * Stwierdza, czy rekord został modyfikowany po ostatniej synchronizacji z bazą.
+     * Nowe rekordy, które nie zostały jeszcze wprowadzone do bazy są zawsze "zmodyfikowane".
+     * @return boolean
+     */
+    public function isModified() {
+        return $this->_isModified;
+    }
+
+    /**
+     * Stwierdza, czy rekord jest w trakcie procesu zapisywania.
+     * @return boolean
+     */
+    public function isSaving() {
+        return $this->_isSaving;
+    }
+
+    /**
+     * Ustawia podaną kolumnę lub podane kolumny jak JSONowe.
+     * Wartości w tych kolumnach będą traktowane jako obiekty zapisywane w bazie w notacji JSON.
+     * @param string|array $columnNames
+     */
+    protected function _setJsonColumns($columnNames) {
+        $columnName = (array) $columnName;
+        foreach ($columnNames as $$columnName) {
+            if (!array_key_exists($columnName, $this->_jsonColumns)) {
+                $this->_jsonColumns[$columnName] = ['value' => null, 'hasValue' => false];
+            }
+        }
+    }
+
+    protected function _setRecordColumn($columnName, $recordClassName, array $ids) {
+        $this->_recordColumns[$columnName] = ['value' => null, 'hasValue' => false, 'recordClassName' => $recordClassName, 'ids' => $ids];
+    }
+
+    protected function _setCollectionVirtualColumn($columnName, $recordClassName, array $where, $collectionClassName = null) {
+        $this->_collectionVirtualColumns[$columnName] = ['value' => null, 'recordClassName' => $recordClassName, 'where' => $where, 'collectionClassName' => $collectionClassName];
+    }
+
+    protected function _getColumns() {
+        if (null === $this->_columns) {
+            $structure = $this->_getTableStructure($this->_tableName);
+            $this->_columns = array_keys($structure);
+            user_error('Performance issue: Record columns have not been specified. Had to describe table.', E_NOTICE);
+        }
+
+        return $this->_columns;
+    }
+
+    protected function _getTableStructure($tableName) {
+        return self::$db->describeTable($tableName);
+    }
+
+    public function &__get($name) {
+        if (array_key_exists($name, $this->_collectionVirtualColumns)) {
+            // TODO
+        }
+
+        if (!array_key_exists($name, $this->_data)) {
+            return null;
+        }
+
+        if (array_key_exists($name, $this->_recordColumns)) {
+            if (!$this->_recordColumns[$name]['hasValue']) {
+                // $ids ma odpowiedniki tam => tu [on1 => ja1, on2 => ja2]
+                // u mnie jest [ja1 => 1, ja2 => 2, ja3 => 3]
+                // chcę uzyskać [on1 => 1, on2 => 2]
+                $ids = $this->_recordColumns[$name]['ids'];
+                foreach ($ids as $key => $value) {
+                    $ids[$key] = $this->_data[$value];
+                }
+
+                try {
+                    $this->_recordColumns[$name]['value'] = null;
+                    $this->_recordColumns[$name]['hasValue'] = true;
+                    $ids = $this->_validateIdentifier($ids);
+                    $this->_recordColumns[$name]['value'] = call_user_func(array($this->_recordColumns[$name]['recordClassName'], 'get'), $ids);
+                } catch (Exception $ex) {
+                    // niepowodzenie pobrania danych
+                }
+            }
+
+            return $this->_recordColumns[$name]['value'];
+        }
+
+        if (array_key_exists($name, $this->_jsonColumns)) {
+            if (!$this->_jsonColumns[$name]['hasValue']) {
+                $this->_jsonColumns[$name]['value'] = json_decode($this->_data[$name]);
+                $this->_jsonColumns[$name]['hasValue'] = true;
+            }
+
+            return $this->_jsonColumns[$name]['value'];
+        }
+
+        return parent::__get($name);
+    }
+
+    public function __set($name, $value) {
+        $this->_isModified = true;
+        $setData = true;
+
+        if (array_key_exists($name, $this->_jsonColumns)) {
+            $this->_jsonColumns[$name]['hasValue'] = false; //json_decode($value, true);
+        }
+
+        if (array_key_exists($name, $this->_recordColumns)) {
+            if ($value instanceof self) {
+                $this->_recordColumns[$name]['value'] = $value;
+                $this->_recordColumns[$name]['hasValue'] = true;
+                $setData = false;
+                // TODO: pobrać ID i wpisać w to pole $this->_data[$name] = ???
+                throw new Exception('not implemented');
+            } else {
+                $this->_recordColumns[$name]['hasValue'] = false;
+            }
+        }
+
+        if ($setData) {
+            parent::__set($name, $value);
         }
     }
 
@@ -208,37 +383,29 @@ abstract class RecordBase {
     }
 
     /**
-     * Pobiera dane rekordu
+     * Pobiera dane rekordu do zapisu do bazy danych
      * Koduje ustawione pola w _jsonColumns do JSONA
      * Usuwa kolumny niedozwolone
-     * Jeżeli allowedColumns != * to wybiera tylko te
      * @param boolean $mainTable czy dane mają się tyczyć tylko tabeli głównej rekordu
      * @return array dane
      */
-    private function _getData() {
-        $data = \Skinny\ObjectHelper::getPublicProperties($this);
-
-        // jeżeli nie ma * w nazwach kolumn, ogranicz wyniki tylko do tych w $this->_allowedColumns
-        if (!in_array("*", $this->_allowedColumns)) {
-            $data2 = [];
-            foreach ($this->_allowedColumns as $column) {
-                if (key_exists($column, $data)) {
-                    $data2[$column] = $data[$column];
-                }
+    private function _exportData() {
+        $data = [];
+        foreach ($this->_getColumns() as $column) {
+            if (key_exists($column, $this->_data)) {
+                $data[$column] = $this->_data[$column];
             }
-            $data = $data2;
-            unset($data2);
         }
 
-        // pozbywamy się tych kolumn w danych, które są w $this->_disallowedColumns
-        foreach ($this->_disallowedColumns as $column) {
+        // pozbywamy się tych kolumn w danych, które są w $this->_writingDisabledColumns
+        foreach ($this->_writingDisabledColumns as $column) {
             unset($data[$column]);
         }
 
         // kolumny przechowujące wartości JSON kodujemy
         foreach ($this->_jsonColumns as $column) {
-            if (isset($data[$column])) {
-                $this->$column = $data[$column] = json_decode($data[$column]); // wartości od razu powinny mieć taką formę jak przy odczycie z bazy - czyli tablice powinny być obiektami
+            if ($column['hasValue']) {
+                $this->_data[$column] = $data[$column] = json_encode($column['value']); // wartości od razu powinny mieć taką formę jak przy odczycie z bazy - czyli tablice powinny być obiektami
             }
         }
 
@@ -250,7 +417,7 @@ abstract class RecordBase {
      * @return array dane
      */
     public function toArray() {
-        return $this->_getData();
+        return $this->_exportData();
     }
 
     /**
@@ -259,7 +426,7 @@ abstract class RecordBase {
      * @return boolean informacja o powodzeniu
      */
     public function insert($refreshData = true) {
-        $data = $this->_getData();
+        $data = $this->_exportData();
         return $this->_insert($data, $refreshData && !$this->_config->isAutoRefreshForbidden(false, true));
     }
 
@@ -270,8 +437,10 @@ abstract class RecordBase {
      * @return boolean informacja o powodzeniu
      */
     final protected function _insert($data, $refreshData) {
+        $this->_isSaving = true;
         self::$db->insert($this->_tableName, $data);
         $id = $this->getLastInsertId();
+
         foreach ($this->_idColumns as $col) {
             if (array_key_exists($col, $id)) {
                 continue;
@@ -279,27 +448,36 @@ abstract class RecordBase {
 
             if (array_key_exists($col, $this->_idValue)) {
                 $id[$col] = $this->_idValue[$col];
-            } elseif (isset($this->$col)) {
-                $id[$col] = $this->$col;
+            } elseif (isset($data[$col])) {
+                $id[$col] = $data[$col];
             }
         }
 
         $this->_idValue = $this->_validateIdentifier($id);
 
+        $this->_exists = true;
+        $this->_isSaving = false;
+        $this->_isModified = false;
+
         if ($refreshData) {
-            $this->_load($id);
+            $this->_load($this->_idValue);
         }
 
-        return true;
+        return $this->_exists;
     }
 
     /**
      * Aktualizuje rekord w tabeli
      * @param boolean $refreshData czy ma pobrać rekord z bazy po aktualizacji
+     * @param boolean $force czy ma wykonać update nawet wtedy, gdy rekord nie był modyfikowany
      * @return boolean informacja o powodzeniu
      */
-    public function update($refreshData = true) {
-        $data = $this->_getData();
+    public function update($refreshData = true, $force = false) {
+        if (!$this->_isModified && !$force) {
+            return true;
+        }
+
+        $data = $this->_exportData();
         return $this->_update($data, $refreshData && !$this->_config->isAutoRefreshForbidden(false, true));
     }
 
@@ -307,6 +485,7 @@ abstract class RecordBase {
      * Aktualizuje rekord w tabeli podanymi danymi
      * @param array $data dane
      * @param boolean $refreshData czy ma pobrać rekord z bazy po aktualizacji
+     * @param boolean $force czy ma wykonać update nawet wtedy, gdy rekord nie był modyfikowany
      * @return boolean informacja o powodzeniu
      */
     final protected function _update($data, $refreshData) {
@@ -314,13 +493,29 @@ abstract class RecordBase {
             return false;
         }
 
-        self::$db->update($this->_tableName, $data, $this->_getWhere());
+        $id = $this->_validateIdentifier($this->_idValue);
+        $this->_isSaving = true;
 
-        if ($refreshData) {
-            $this->_load($this->_idValue);
+        $success = self::$db->update($this->_tableName, $data, $this->_getWhere());
+
+        if ($success === 0) {
+            $this->_exists = false;
+            return false;
         }
 
-        return true;
+        if ($success > 1) {
+            throw new \Skinny\Db\DbException('Record identified by its primary key is ambiguous in table "' . $this->_tableName . '". Rows updated: ' . $success);
+        }
+
+        if ($refreshData) {
+            $success = $this->_load($this->_idValue);
+        }
+
+        $this->_exists = true;
+        $this->_isSaving = false;
+        $this->_isModified = false;
+
+        return (boolean) $success;
     }
 
     /**
@@ -331,7 +526,7 @@ abstract class RecordBase {
      * @return boolean informacja o powodzeniu
      */
     public function save($refreshData = true) {
-        if (null === $this->_idValue) {
+        if (!$this->_exists) {
             $result = $this->insert($refreshData);
         } else {
             $result = $this->update($refreshData);
@@ -397,7 +592,7 @@ abstract class RecordBase {
      */
     final protected function _getSelect() {
         $select = self::$db->select()
-                ->from($this->_tableName, $this->_allowedColumns);
+                ->from($this->_tableName, $this->_getColumns());
         return $select;
     }
 
@@ -421,8 +616,7 @@ abstract class RecordBase {
             $id = array_combine($obj->_idColumns, func_get_args());
         }
 
-        $class_name = get_called_class();
-        $obj = new $class_name();
+        $obj = new static();
         if ($obj->_load($id)) {
             return $obj;
         } else {
@@ -431,25 +625,30 @@ abstract class RecordBase {
     }
 
     /**
-     * Dodaje do obiektu elementy znajdujące się w tablicy asocjacyjnej (wykluczając te znajdujące się w disallowedColumns)
+     * Dodaje do obiektu elementy znajdujące się w tablicy asocjacyjnej.
      * @param array $data
      * @return boolean
      */
-    public function set(array $data) {
+    public function importData(array $data) {
         if (empty($data)) {
             return true;
         }
 
         foreach ($data as $key => $value) {
-            if (in_array($key, $this->_disallowedColumns)) {
+            if (array_key_exists($key, $this->_collectionVirtualColumns)) {
+                $this->_recordColumns[$key]['value'] = $value;
                 continue;
             }
 
-            if (in_array($key, $this->_jsonColumns) && !is_object($value) && !is_array($value)) {
-                $value = json_decode($value);
+            if (array_key_exists($key, $this->_recordColumns)) {
+                $this->_recordColumns[$key]['hasValue'] = false;
             }
 
-            $this->$key = $value;
+            if (array_key_exists($key, $this->_jsonColumns)) {
+                $this->_jsonColumns[$key]['hasValue'] = false;
+            }
+
+            $this->_data[$key] = $value;
         }
 
         return true;
@@ -462,6 +661,7 @@ abstract class RecordBase {
      */
     protected function _load($id) {
         $id = $this->_validateIdentifier($id);
+        $this->_exists = false;
 
         // select
         $select = $this->_getSelect();
@@ -469,41 +669,32 @@ abstract class RecordBase {
         foreach ($where as $key => $value) {
             $select->where($key, $value);
         }
+
         $data = self::$db->fetchRow($select);
+        if ($data) {
+            // ustawiamy dane
+            $this->_idValue = $id;
 
-        if (!$data) {
-            return false;
-        }
+            foreach ($this->_readingDisabledColumns as $column) {
+                unset($data[$column]);
+            }
 
-        foreach ($this->_disallowedColumns as $column) {
-            unset($data[$column]);
-        }
+            foreach ($data as $key => $value) {
+                $this->_data[$key] = $value;
 
-        // ustawiamy dane
-        $this->_idValue = $id;
-        foreach ($data as $key => $value) {
-            $this->$key = $value;
-        }
+                if (array_key_exists($key, $this->_recordColumns)) {
+                    $this->_recordColumns[$key]['hasValue'] = false;
+                }
 
-        $this->_decodeJsonColumns($this, $this->_jsonColumns);
-
-        return true;
-    }
-
-    /**
-     * Dekoduje kolumny JSON i przypisuje odpowiednią wartość przez referencję do wskazanego obiektu
-     * @param object $obj
-     * @param array $columns
-     */
-    private function _decodeJsonColumns(&$obj, $columns) {
-        // odkodowanie kolumn przechowujących dane w formacie JSON
-        if (!empty($columns)) {
-            foreach ($columns as $column) {
-                if (isset($obj->$column) && ($encoded = json_decode($obj->$column))) {
-                    $obj->$column = $encoded;
+                if (array_key_exists($key, $this->_jsonColumns)) {
+                    $this->_jsonColumns[$key]['hasValue'] = false;
                 }
             }
+
+            $this->_exists = true;
         }
+
+        return $this->_exists;
     }
 
     /**
@@ -617,22 +808,26 @@ abstract class RecordBase {
             foreach ($this->_idColumns as $column) {
                 $obj->_idValue[$column] = $row[$column];
             }
-            $result[] = $obj;
 
             // usuwamy niechciane kolumny
-            foreach ($this->_idColumns as $column) {
-                unset($row[$column]);
-            }
-            foreach ($this->_disallowedColumns as $column) {
+            foreach ($this->_readingDisabledColumns as $column) {
                 unset($row[$column]);
             }
 
             // i przypisujemy ich wartości do obiektu
             foreach ($row as $key => $value) {
-                $obj->$key = $value;
+                $obj->_data[$key] = $value;
             }
 
-            $this->_decodeJsonColumns($obj, $this->_jsonColumns);
+            if (array_key_exists($key, $obj->_recordColumns)) {
+                $obj->_recordColumns[$key]['hasValue'] = false;
+            }
+
+            if (array_key_exists($key, $obj->_jsonColumns)) {
+                $obj->_jsonColumns[$key]['hasValue'] = false;
+            }
+
+            $result[] = $obj;
         }
 
         return $result;
@@ -669,7 +864,7 @@ abstract class RecordBase {
             unset($assocArray[$column]);
         }
 
-        $obj->set($assocArray);
+        $obj->importData($assocArray);
 
         return $obj;
     }
@@ -713,7 +908,7 @@ abstract class RecordBase {
      * @param mixed $id
      * @throws RecordException
      */
-    private function _validateIdentifier($id) {
+    protected function _validateIdentifier($id) {
         if (!is_array($id)) {
             if (count($this->_idColumns) !== 1) {
                 throw new RecordException("Invalid identifier for multi-column primary key");

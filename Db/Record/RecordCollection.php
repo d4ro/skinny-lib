@@ -13,7 +13,7 @@ namespace Skinny\Db\Record;
  *
  * @author Daro
  */
-class RecordCollection extends \Skinny\ArrayWrapper {
+class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     public function __construct(array $collection = array(), $strictCheckType = true) {
         $this->checkArrayType($collection, $strictCheckType, true);
