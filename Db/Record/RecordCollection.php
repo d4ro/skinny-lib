@@ -15,11 +15,6 @@ namespace Skinny\Db\Record;
  */
 class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
-    public function __construct(array $collection = array(), $strictCheckType = true) {
-        $this->checkArrayType($collection, $strictCheckType, true);
-        parent::__construct($collection);
-    }
-
     /**
      * Połączenie do bazy danych
      * @var \Zend_Db_Adapter_Pdo_Mysql
@@ -42,6 +37,15 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     public static function setDb($db) {
         // TODO: sprawdzenie typu
         self::$db = $db;
+    }
+
+    public function __construct(array $collection = array(), $strictCheckType = true) {
+        $this->checkArrayType($collection, $strictCheckType, true);
+        parent::__construct($collection);
+    }
+
+    public function __call($name, $arguments) {
+        return $this->call($name, $arguments);
     }
 
     /**
@@ -132,8 +136,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     public function call($method, array $params = array()) {
         $result = array();
-        foreach ($this->_data as $record) {
-            $result[$record->getIdAsString()] = call_user_method_array($method, $record, $params);
+        foreach ($this->_data as $key => $record) {
+            $result[$key] = call_user_method_array($method, $record, $params);
         }
         return $result;
     }

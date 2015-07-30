@@ -306,10 +306,8 @@ class Application {
                 $action->onPrepare();
                 $action->onAction();
                 $action->onComplete();
-                
-                $this->_request->proceed();
             } catch (\Skinny\Action\ForwardException $e) {
-                $this->_request->proceed();
+                
             } catch (\Exception $e) {
                 // get URL of error action
                 $errorAction = $this->_config->actions->error('/error');
@@ -339,11 +337,11 @@ class Application {
                 try {
                     $this->forwardError(['@error' => 'exception', '@exception' => $e], $errorAction);
                 } catch (Action\ForwardException $ex) {
-                    continue;
+                    
                 }
-                
-                $this->_request->proceed();
             }
+            
+            $this->_request->proceed();
         }
 
 //        $this->_response->respond();
@@ -372,7 +370,7 @@ class Application {
 
         $discarded = $this->_request->forceNext(new Request\Step($errorAction, $params));
         $this->_request->next()->setParams(['@discardedSteps' => $discarded]);
-        $this->_request->proceed();
+//        $this->_request->proceed();
         throw new Action\ForwardException();
     }
 
