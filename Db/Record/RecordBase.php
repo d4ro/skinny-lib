@@ -12,6 +12,13 @@ use Skinny\DataObject\Store;
 abstract class RecordBase extends \Skinny\DataObject\DataBase {
 
     /**
+     * Połączenie do bazy danych
+     * @var \Zend_Db_Adapter_Pdo_Mysql
+     * @todo Uniezależnienie od Zend_Db
+     */
+    protected static $db;
+
+    /**
      * Nazwa głównej tabeli, w której przechowywany jest wiersz (rekord)
      * @var string
      */
@@ -96,11 +103,40 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     protected $_isSaving;
 
     /**
-     * Połączenie do bazy danych
-     * @var \Zend_Db_Adapter_Pdo_Mysql
-     * @todo Uniezależnienie od Zend_Db
+     * Pomocnicza funkcja pobierająca wszystkie rekordy spełniające warunki selecta.
+     * @param string|Zend_Db_Select $select zapytanie SELECT do bazy
+     * @return array tablica obiektów rekordów będących rezultatem zapytania
      */
-    protected static $db;
+    private static function _select($select) {
+        $data = self::$db->fetchAll($select);
+
+        // czy są dane
+        $result = array();
+        if (!$data) {
+            return $result;
+        }
+
+        foreach ($data as $row) {
+            // nowy obiekt z id
+            $obj = new static();
+            $obj->_idValue = [];
+            foreach ($obj->_idColumns as $column) {
+                $obj->_idValue[$column] = $row[$column];
+            }
+
+            // usuwamy niechciane kolumny
+            foreach ($this->_readingDisabledColumns as $column) {
+                unset($row[$column]);
+            }
+
+            // i przypisujemy ich wartości do obiektu
+            self::_setRecordData($obj, $row);
+
+            $result[] = $obj;
+        }
+
+        return $result;
+    }
 
     public static function getDb() {
         return self::$db;
@@ -109,6 +145,40 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     public static function setDb($db) {
         // TODO: sprawdzenie typu
         self::$db = $db;
+    }
+
+    /**
+     * Pobiera nazwę tabeli głównej wiersza.
+     * @return string
+     */
+    public static function getTableName() {
+        $obj = new static();
+        return $obj->_tableName;
+    }
+
+    /**
+     * Pobiera nazwę kolumny (lub tablicę nazw gdy PK jest wielopolowy) przechowującej identyfikator wiersza w tabeli głównej
+     * @return string
+     */
+    public static function getIdColumn() {
+        $obj = new static();
+        if (count($obj->_idColumns) === 1) {
+            return $obj->_idColumns[0];
+        } else {
+            return $obj->_idColumns;
+        }
+    }
+
+    /**
+     * Pobiera wszystkie rekordy będące rezultatem zapytania SELECT.
+     * Ważne jest, aby zapytanie wybierało faktycznie rekordy tyczące się tego obiektu oraz wszelkie dodatkowe użyte kolumny były zawarte w _disallowedColumns.
+     * W przeciwnym wypadku funckje zapisujące rekord się nie powiodą.
+     * UWAGA! To sprawa programisty, czy select wybiera właściwe kolumny z właściwych tabel. Nie ma co do tego żadnej walidacji!
+     * @param string|Zend_Db_Select $select zapytanie SELECT do bazy
+     * @return array tablica obiektów rekordów będących rezultatem zapytania
+     */
+    public static function select($select) {
+        return static::_select($select);
     }
 
     /**
@@ -155,71 +225,6 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         }
     }
 
-    /**
-     * Stwierdza, czy 
-     * @return type
-     */
-    public function exists($checkInDatabase = false) {
-        if ($checkInDatabase) {
-            
-        }
-
-        return $this->_exists;
-    }
-
-    /**
-     * Stwierdza, czy rekord został modyfikowany po ostatniej synchronizacji z bazą.
-     * Nowe rekordy, które nie zostały jeszcze wprowadzone do bazy są zawsze "zmodyfikowane".
-     * @return boolean
-     */
-    public function isModified() {
-        return $this->_isModified;
-    }
-
-    /**
-     * Stwierdza, czy rekord jest w trakcie procesu zapisywania.
-     * @return boolean
-     */
-    public function isSaving() {
-        return $this->_isSaving;
-    }
-
-    /**
-     * Ustawia podaną kolumnę lub podane kolumny jak JSONowe.
-     * Wartości w tych kolumnach będą traktowane jako obiekty zapisywane w bazie w notacji JSON.
-     * @param string|array $columnNames
-     */
-    protected function _setJsonColumns($columnNames) {
-        $columnName = (array) $columnName;
-        foreach ($columnNames as $$columnName) {
-            if (!array_key_exists($columnName, $this->_jsonColumns)) {
-                $this->_jsonColumns[$columnName] = ['value' => null, 'hasValue' => false];
-            }
-        }
-    }
-
-    protected function _setRecordColumn($columnName, $recordClassName, array $ids) {
-        $this->_recordColumns[$columnName] = ['value' => null, 'hasValue' => false, 'recordClassName' => $recordClassName, 'ids' => $ids];
-    }
-
-    protected function _setCollectionVirtualColumn($columnName, $recordClassName, array $where, $collectionClassName = null) {
-        $this->_collectionVirtualColumns[$columnName] = ['value' => null, 'recordClassName' => $recordClassName, 'where' => $where, 'collectionClassName' => $collectionClassName];
-    }
-
-    protected function _getColumns() {
-        if (null === $this->_columns) {
-            $structure = $this->_getTableStructure($this->_tableName);
-            $this->_columns = array_keys($structure);
-            user_error('Performance issue: Record columns have not been specified. Had to describe table.', E_NOTICE);
-        }
-
-        return $this->_columns;
-    }
-
-    protected function _getTableStructure($tableName) {
-        return self::$db->describeTable($tableName);
-    }
-
     public function &__get($name) {
         if (array_key_exists($name, $this->_collectionVirtualColumns)) {
             // TODO
@@ -231,19 +236,19 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
 
         if (array_key_exists($name, $this->_recordColumns)) {
             if (!$this->_recordColumns[$name]['hasValue']) {
-                // $ids ma odpowiedniki tam => tu [on1 => ja1, on2 => ja2]
+                // $identifier ma odpowiedniki tam => tu [on1 => ja1, on2 => ja2]
                 // u mnie jest [ja1 => 1, ja2 => 2, ja3 => 3]
                 // chcę uzyskać [on1 => 1, on2 => 2]
-                $ids = $this->_recordColumns[$name]['ids'];
-                foreach ($ids as $key => $value) {
-                    $ids[$key] = $this->_data[$value];
+                $identifier = $this->_recordColumns[$name]['identifier'];
+                foreach ($identifier as $key => $value) {
+                    $identifier[$key] = $this->_data[$value];
                 }
 
                 try {
                     $this->_recordColumns[$name]['value'] = null;
                     $this->_recordColumns[$name]['hasValue'] = true;
-                    $ids = $this->_validateIdentifier($ids);
-                    $this->_recordColumns[$name]['value'] = call_user_func(array($this->_recordColumns[$name]['recordClassName'], 'get'), $ids);
+//                    $identifier = $this->_validateIdentifier($identifier);
+                    $this->_recordColumns[$name]['value'] = call_user_func(array($this->_recordColumns[$name]['recordClassName'], 'get'), $identifier);
                 } catch (Exception $ex) {
                     // niepowodzenie pobrania danych
                 }
@@ -254,7 +259,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
 
         if (array_key_exists($name, $this->_jsonColumns)) {
             if (!$this->_jsonColumns[$name]['hasValue']) {
-                $this->_jsonColumns[$name]['value'] = json_decode($this->_data[$name]);
+                $this->_jsonColumns[$name]['value'] = json_decode($this->_data[$name], true);
                 $this->_jsonColumns[$name]['hasValue'] = true;
             }
 
@@ -309,77 +314,30 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     }
 
     /**
-     * Wewnętrzna metoda pobierająca wartość klucza podstawowego wiersza z tabeli głównej.
-     * @return mixed
+     * Ustawia dane rekordu na podstawie arraya z danymi, gdzie klucz to nazwa kolumny, a wartością jest jej wartość.
+     * Wewnętrzne ustawienie danych jest obojętne na status modyfikacji pól rekordu. Tego ustawienia powinna wykonać metoda korzystająca z _setRecordData().
+     * @param RecordBase $record rekord, któremu mają być ustawione dane
+     * @param array $data dane do ustawienia
      */
-    protected function _getId() {
-        if (count($this->_idColumns) === 1) {
-            return $this->_idValue[$this->_idColumns[0]];
-        } else {
-            return $this->_idValue;
-        }
-    }
-
-    /**
-     * Pobiera identyfikator wiersza z tabeli głównej.
-     * Jeżeli primary key jest wielopolowy to zwróci tablicę asocjacyjną (klucz => wartość) w przeciwnym wypadku wartość identyfikatora.
-     * @return mixed identyfikator rekordu lub tablica asocjacyjna
-     * @assert () == null
-     */
-    public function getId() {
-        return $this->_getId();
-    }
-
-    /**
-     * Ustawia własny identyfikator (np. gdy id nie jest autoincrement).
-     * Umożliwia usyawienie części klucza.
-     * @param mixed $id
-     */
-    public function setId($id) {
-        if (!is_array($id)) {
-            if (count($this->_idColumns) == 1) {
-                $this->_idValue[$this->_idColumns[0]] = $id;
-            } else {
-                throw new \Skinny\Db\DbException('Invalid identifier set for multi-column primary key.');
-            }
-        } else {
-            foreach ($id as $key => $value) {
-                if (in_array($key, $this->_idColumns)) {
-                    $this->_idValue[$key] = $value;
-                } else {
-                    throw new \Skinny\Db\DbException('"' . $key . '" id not part of primary key.');
+    protected static function _setRecordData(RecordBase $record, array $data) {
+        foreach ($data as $key => $value) {
+            if (array_key_exists($key, $record->_collectionVirtualColumns)) {
+                if (null === $value || $value instanceof RecordCollection) {
+                    $record->_collectionVirtualColumns[$key]['value'] = $value;
                 }
+                continue;
             }
+
+            if (array_key_exists($key, $record->_recordColumns)) {
+                $record->_recordColumns[$key]['hasValue'] = false;
+            }
+
+            if (array_key_exists($key, $record->_jsonColumns)) {
+                $record->_jsonColumns[$key]['hasValue'] = false;
+            }
+
+            $record->_data[$key] = $value;
         }
-    }
-
-    /**
-     * Pobiera identyfikator wiersza w postaci JSONa.
-     */
-    public function getIdAsString() {
-        return json_encode($this->_idValue);
-    }
-
-    /**
-     * Pobiera nazwę kolumny (lub tablicę nazw gdy PK jest wielopolowy) przechowującej identyfikator wiersza w tabeli głównej
-     * @return string
-     */
-    public static function getIdColumn() {
-        $obj = new static();
-        if (count($obj->_idColumns) === 1) {
-            return $obj->_idColumns[0];
-        } else {
-            return $obj->_idColumns;
-        }
-    }
-
-    /**
-     * Pobiera nazwę tabeli głównej wiersza.
-     * @return string
-     */
-    public static function getTableName() {
-        $obj = new static();
-        return $obj->_tableName;
     }
 
     /**
@@ -413,6 +371,181 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     }
 
     /**
+     * Wewnętrzna metoda pobierająca wartość klucza podstawowego wiersza z tabeli głównej.
+     * @return mixed
+     */
+    protected function _getId() {
+        if (count($this->_idColumns) === 1) {
+            return $this->_idValue[$this->_idColumns[0]];
+        } else {
+            return $this->_idValue;
+        }
+    }
+
+    /**
+     * Ustawia podaną kolumnę lub podane kolumny jak JSONowe.
+     * Wartości w tych kolumnach będą traktowane jako obiekty zapisywane w bazie w notacji JSON.
+     * @param string|array $columnNames
+     */
+    protected function _setJsonColumns($columnNames) {
+        $columnName = (array) $columnName;
+        foreach ($columnNames as $$columnName) {
+            if (!array_key_exists($columnName, $this->_jsonColumns)) {
+                $this->_jsonColumns[$columnName] = ['value' => null, 'hasValue' => false];
+            }
+        }
+    }
+
+    /**
+     * Ustawia podaną kolumnę jako identyfikator dla innego rekordu. Umożliwia obsługę danego pola rekordu jako referencji do innego obiektu rekordu.
+     * @param string $columnName nazwa kolumny (pola) rekordu, która ma być traktowana jako referencja do innego obiektu rekordu
+     * @param string $recordClassName nazwa klasy rekordu obsługującego dane pole
+     * @param array $identifier identyfikator zdalnego rekordu na podstawie danych bieżącego rekordu w formacie priKey1 => col1, priKey2 => col2
+     * @todo Umożliwić obsługę stałych wartości w definicji identyfikatora zdalnego rekordu
+     */
+    protected function _setRecordColumn($columnName, $recordClassName, array $identifier) {
+        $this->_recordColumns[$columnName] = ['value' => null, 'hasValue' => false, 'recordClassName' => $recordClassName, 'identifier' => $identifier];
+    }
+
+    /**
+     * Ustawia podane wirtualne pole rekordu jako kolekcję rekordów na podstawie podanego warunku where i typu rekordu lub kolekcji
+     * @param string $columnName nazwa nieistniejącego (wirtualnego) pola rekordu, które ma być obsługiwane jako kolekcja rekordów
+     * @param array $where warunek zapytania dla pobrania rekordów kolekcji
+     * @param string $recordClassName nazwa klasy rekordów kolekcji (musi zostać być podana, jeżeli nazwa klasy kolekcji nie została)
+     * @param string $collectionClassName nazwa specyficznej klasy kolekcji rekordów (musi zostać być podana, jeżeli nazwa klasy rekordów nie została)
+     */
+    protected function _setCollectionVirtualColumn($columnName, array $where, $recordClassName = null, $collectionClassName = null) {
+        $this->_collectionVirtualColumns[$columnName] = ['value' => null, 'recordClassName' => $recordClassName, 'where' => $where, 'collectionClassName' => $collectionClassName];
+    }
+
+    /**
+     * Zwraca nazwy obsługiwanych kolumn tabeli głównej bieżącego rekordu. Pola wirtualne nie są brane pod uwagę.
+     * @return array
+     */
+    protected function _getColumns() {
+        if (null === $this->_columns) {
+            $structure = $this->_getTableStructure($this->_tableName);
+            $this->_columns = array_keys($structure);
+            user_error('Performance issue: Record columns have not been specified. Had to describe table.', E_NOTICE);
+        }
+
+        return $this->_columns;
+    }
+
+    /**
+     * Pobiera strukturę tabeli o podanej nazwie w postaci tablicy. Kluczami tablicy są nazwy kolumn tabeli.
+     * @param string $tableName
+     * @return array
+     */
+    protected function _getTableStructure($tableName) {
+        return self::$db->describeTable($tableName);
+    }
+
+    /**
+     * Stwierdza, czy rekord istnieje w bazie danych.
+     * @param boolean $checkInDatabase czy ma sprawdzić, czy na pewno jest w bazie danych
+     * @return type
+     */
+    public function exists($checkInDatabase = false) {
+        if ($checkInDatabase) {
+            $select = $this->_getSelectWhere();
+            $select->limit(1);
+            $sql = "SELECT EXISTS($select)";
+            $result = self::$db->fetchOne($sql);
+            $this->_exists = (boolean) $result;
+        }
+
+        return $this->_exists;
+    }
+
+    /**
+     * Stwierdza, czy rekord został modyfikowany po ostatniej synchronizacji z bazą.
+     * Nowe rekordy, które nie zostały jeszcze wprowadzone do bazy są zawsze "zmodyfikowane".
+     * @return boolean
+     */
+    public function isModified() {
+        // TODO: do przerobiena
+        return $this->_isModified;
+    }
+
+    /**
+     * Stwierdza, czy rekord jest w trakcie procesu zapisywania.
+     * @return boolean
+     */
+    public function isSaving() {
+        return $this->_isSaving;
+    }
+
+    /**
+     * Pobiera identyfikator wiersza z tabeli głównej.
+     * Jeżeli primary key jest wielopolowy to zwróci tablicę asocjacyjną (klucz => wartość) w przeciwnym wypadku wartość identyfikatora.
+     * @return mixed identyfikator rekordu lub tablica asocjacyjna
+     * @assert () == null
+     */
+    public function getId() {
+        if (count($this->_idColumns) === 1) {
+            return $this->_idValue[$this->_idColumns[0]];
+        } else {
+            return $this->getFullId();
+        }
+    }
+
+    /**
+     * Pobiera indentyfikator wiersza z tabeli głównej.
+     * @return array klucz główny w postaci indeks = nazwa kolumny => wartość kolumny
+     * @todo Optymalizacja / cache'owanie
+     */
+    public function getFullId() {
+        $result = array();
+        sort($this->_idColumns);
+        foreach ($this->_idColumns as $col) {
+            if (array_key_exists($col, $this->_idValue)) {
+                $result[$col] = $this->_idValue[$col];
+            } else {
+                $result[$col] = isset($this->_data[$col]) ? $this->_data[$col] : null;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Pobiera identyfikator wiersza w postaci unikalnego dla typu rekordu stringa.
+     * @return string stringowa reprezentacja id
+     */
+    public function getIdAsString() {
+        $fullId = $this->getFullId();
+        $result = '';
+        foreach ($fullId as $val) {
+            $result .= '"' . htmlspecialchars($val) . '",';
+        }
+        return substr($result, 0, strlen($result) - 1);
+    }
+
+    /**
+     * Ustawia własny identyfikator (np. gdy id nie jest autoincrement).
+     * Umożliwia usyawienie części klucza.
+     * @param mixed $id
+     */
+    public function setId($id) {
+        if (!is_array($id)) {
+            if (count($this->_idColumns) == 1) {
+                $this->_idValue[$this->_idColumns[0]] = $id;
+            } else {
+                throw new \Skinny\Db\DbException('Invalid identifier set for multi-column primary key.');
+            }
+        } else {
+            foreach ($id as $key => $value) {
+                if (in_array($key, $this->_idColumns)) {
+                    $this->_idValue[$key] = $value;
+                } else {
+                    throw new \Skinny\Db\DbException('"' . $key . '" id not part of primary key.');
+                }
+            }
+        }
+    }
+
+    /**
      * Pobiera dane rekordu w postaci tablicy.
      * @return array dane
      */
@@ -439,6 +572,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     final protected function _insert($data, $refreshData) {
         $this->_isSaving = true;
         self::$db->insert($this->_tableName, $data);
+        /* @var $id array */
         $id = $this->getLastInsertId();
 
         foreach ($this->_idColumns as $col) {
@@ -455,12 +589,23 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
 
         $this->_idValue = $this->_validateIdentifier($id);
 
+//        if ($id['id'] == 58) {
+//            var_dump( $this->_idValue);
+//            die();
+//        }
+
         $this->_exists = true;
         $this->_isSaving = false;
         $this->_isModified = false;
 
         if ($refreshData) {
+            // pobierz dane z bazy
             $this->_load($this->_idValue);
+        } else {
+            // przynajmniej zaktualizuj dane z klucza głównego
+            foreach ($this->_idValue as $key => $value) {
+                $this->_data[$key] = $value;
+            }
         }
 
         return $this->_exists;
@@ -493,7 +638,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             return false;
         }
 
-        $id = $this->_validateIdentifier($this->_idValue);
+        $this->_idValue = $this->_validateIdentifier($this->_idValue);
         $this->_isSaving = true;
 
         $success = self::$db->update($this->_tableName, $data, $this->_getWhere());
@@ -570,14 +715,14 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      */
     final protected function _getWhere($id = null) {
         if (null === $id) {
-            $id = $this->_idValue;
+            $id = $this->getFullId();
         }
 
-        $id = $this->_validateIdentifier($id);
+//        $id = $this->_validateIdentifier($id);
 
         $where = [];
         foreach ($this->_idColumns as $col) {
-            if (empty($id[$col])) {
+            if (!isset($id[$col])) {
                 $where[] = self::$db->quoteIdentifier($col) . ' is null';
             } else {
                 $where[self::$db->quoteIdentifier($col) . ' = ?'] = $id[$col];
@@ -597,6 +742,34 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     }
 
     /**
+     * Zwraca obiekt zapytania select z przygotowanymi kolumnami i nazwą tabeli.
+     * Dodaje do zapytania wszystkie warunki where z metody _getWhere().
+     * @param int $id identyfikator rekordu
+     * @param mixed $where Parametry zapytania, jeżeli brak pobierane na podstawie klucza głównego
+     * @return Zend_Db_Select
+     */
+    final protected function _getSelectWhere($id = null, $where = null) {
+        $select = $this->_getSelect();
+        if (null === $where) {
+            $where = $this->_getWhere($id);
+        }
+
+        if (is_array($where)) {
+            foreach ($where as $k => $v) {
+                if (!is_numeric($k)) {
+                    $select->where($k, $v);
+                } else {
+                    $select->where($v);
+                }
+            }
+        } else {
+            $select->where($where);
+        }
+
+        return $select;
+    }
+
+    /**
      * Zwraca obiekt zapytania select z przygotowanymi kolumnami i nazwą tabeli
      * @return Zend_Db_Select
      */
@@ -611,12 +784,14 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @return record
      */
     public static function get($id) {
-        if (!is_array($id) && func_num_args() > 1) {
-            $obj = new static();
-            $id = array_combine($obj->_idColumns, func_get_args());
-        }
+//        if (!is_array($id) && func_num_args() > 1) {
+//            $obj = new static();
+//            $id = array_combine($obj->_idColumns, func_get_args());
+//        }
 
         $obj = new static();
+        $id = $obj->_validateIdentifier($id);
+
         if ($obj->_load($id)) {
             return $obj;
         } else {
@@ -634,22 +809,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             return true;
         }
 
-        foreach ($data as $key => $value) {
-            if (array_key_exists($key, $this->_collectionVirtualColumns)) {
-                $this->_recordColumns[$key]['value'] = $value;
-                continue;
-            }
-
-            if (array_key_exists($key, $this->_recordColumns)) {
-                $this->_recordColumns[$key]['hasValue'] = false;
-            }
-
-            if (array_key_exists($key, $this->_jsonColumns)) {
-                $this->_jsonColumns[$key]['hasValue'] = false;
-            }
-
-            $this->_data[$key] = $value;
-        }
+        self::_setRecordData($this, $data);
 
         return true;
     }
@@ -660,15 +820,11 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @return boolean informacja o powodzeniu
      */
     protected function _load($id) {
-        $id = $this->_validateIdentifier($id);
+//        $id = $this->_validateIdentifier($id);
         $this->_exists = false;
 
         // select
-        $select = $this->_getSelect();
-        $where = $this->_getWhere($id);
-        foreach ($where as $key => $value) {
-            $select->where($key, $value);
-        }
+        $select = $this->_getSelectWhere($id);
 
         $data = self::$db->fetchRow($select);
         if ($data) {
@@ -679,21 +835,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
                 unset($data[$column]);
             }
 
-            foreach ($data as $key => $value) {
-                $this->_data[$key] = $value;
-
-                if (array_key_exists($key, $this->_recordColumns)) {
-                    $this->_recordColumns[$key]['hasValue'] = false;
-                }
-
-                if (array_key_exists($key, $this->_jsonColumns)) {
-                    $this->_jsonColumns[$key]['hasValue'] = false;
-                }
-            }
+            self::_setRecordData($this, $data);
 
             $this->_exists = true;
         }
-
         return $this->_exists;
     }
 
@@ -705,33 +850,36 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @param int $offset część zapytania OFFSET
      * @return array tablica obiektów rekordów będących rezultatem zapytania
      */
-    public static function find($where = null, $order = null, $limit = null, $offset = null) {
-        $class_name = get_called_class();
-        $obj = new $class_name();
+    protected static function _find($where = null, $order = null, $limit = null, $offset = null) {
+        $obj = new static();
 
         // select
-        $select = $obj->_getSelect();
-        if ($order) {
+        $select = $obj->_getSelectWhere(null, $where);
+        if (null !== $order) {
             $select->order($order);
         }
-        if ($limit) {
+
+        if (null !== $limit || null !== $offset) {
             $select->limit($limit, $offset);
         }
-        if ($where) {
-            if (is_array($where)) {
-                foreach ($where as $k => $v) {
-                    if (!is_numeric($k)) {
-                        $select->where($k, $v);
-                    } else {
-                        $select->where($v);
-                    }
-                }
-            } else {
-                $select->where($where);
-            }
-        }
 
-        return $obj->_select($select);
+        return static::_select($select);
+    }
+
+    /**
+     * Pobiera kolekcję wszystkich rekordów spełniających podane warunki w odpowiedniej kolejności.
+     * @param string $where część zapytania WHERE
+     * @param string $order część zapytania ORDER BY
+     * @param int $limit część zapytania LIMIT
+     * @param int $offset część zapytania OFFSET
+     * @return RecordCollection kolekcja rekordów będących rezultatem zapytania
+     */
+    public static function find($where = null, $order = null, $limit = null, $offset = null) {
+        $records = static::_find($where, $order, $limit, $offset);
+        // TODO: przerobienie na collection
+        $collection = $records;
+
+        return $collection;
     }
 
     /**
@@ -741,7 +889,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @return record|null pierwszy rekord spełniający warunki lub null
      */
     public static function findOne($where = null, $order = null, $offset = null) {
-        $result = self::find($where, $order, 1, $offset);
+        $result = self::_find($where, $order, 1, $offset);
         if (!empty($result)) {
             return $result[0];
         }
@@ -771,66 +919,6 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         }
 
         return self::$db->fetchOne($select);
-    }
-
-    /**
-     * Pobiera wszystkie rekordy będące rezultatem zapytania SELECT.
-     * Ważne jest, aby zapytanie wybierało faktycznie rekordy tyczące się tego obiektu oraz wszelkie dodatkowe użyte kolumny były zawarte w _disallowedColumns.
-     * W przeciwnym wypadku funckje zapisujące rekord się nie powiodą.
-     * UWAGA! To sprawa programisty, czy select wybiera właściwe kolumny z właściwych tabel. Nie ma co do tego żadnej walidacji!
-     * @param string|Zend_Db_Select $select zapytanie SELECT do bazy
-     * @return array tablica obiektów rekordów będących rezultatem zapytania
-     */
-    public static function select($select) {
-        $class_name = get_called_class();
-        $obj = new $class_name();
-        return $obj->_select($select);
-    }
-
-    /**
-     * Pomocnicza funkcja pobierająca wszystkie rekordy spełniające warunki selecta.
-     * @param string|Zend_Db_Select $select zapytanie SELECT do bazy
-     * @return array tablica obiektów rekordów będących rezultatem zapytania
-     */
-    private function _select($select) {
-        $data = self::$db->fetchAll($select);
-
-        // czy są dane
-        $result = array();
-        if (!$data) {
-            return $result;
-        }
-
-        foreach ($data as $row) {
-            // nowy obiekt z id
-            $obj = new static();
-            $obj->_idValue = [];
-            foreach ($this->_idColumns as $column) {
-                $obj->_idValue[$column] = $row[$column];
-            }
-
-            // usuwamy niechciane kolumny
-            foreach ($this->_readingDisabledColumns as $column) {
-                unset($row[$column]);
-            }
-
-            // i przypisujemy ich wartości do obiektu
-            foreach ($row as $key => $value) {
-                $obj->_data[$key] = $value;
-            }
-
-            if (array_key_exists($key, $obj->_recordColumns)) {
-                $obj->_recordColumns[$key]['hasValue'] = false;
-            }
-
-            if (array_key_exists($key, $obj->_jsonColumns)) {
-                $obj->_jsonColumns[$key]['hasValue'] = false;
-            }
-
-            $result[] = $obj;
-        }
-
-        return $result;
     }
 
     /**
@@ -872,8 +960,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     /**
      * Pobiera wszystkie wartości wybranej kolumny z rekordów w kolekcji w formie tablicy.
      * Jeżeli jakaś kolumna nie istnieje lub ma pustą wartość nie zostanie zwrócona w tablicy.
+     * @param string $col nazwa kolumny
      * @param array $records Tablica rekordów
      * @return array Tablica wartości z wybranej kolumny
+     * @deprecated since version 0.3 na rzecz customowej obsługi w collection
      */
     public static function fetchCol($col, array $records) {
         if (!$col) {
@@ -917,7 +1007,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         } else {
             foreach ($this->_idColumns as $column) {
                 if (!isset($id[$column])) {
-                    throw new RecordException("Incomplete identifier for multi-column primary key");
+                    throw new RecordException("Incomplete identifier for multi-column primary key. Key part '$column' is not set.");
                 }
             }
         }
@@ -939,6 +1029,12 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         return true;
     }
 
+    /**
+     * Pobiera ostatnio wstawioną wartość automatycznego id z tabeli głównej rekordu.
+     * Można podać, o którą kolumnę id chodzi, jeśli jest to niejednoznaczne.
+     * @param string $idCol nazwa kolumny, któej wartość chcemy pobrać
+     * @return string
+     */
     public function getLastInsertId($idCol = null) {
         if (null !== $idCol) {
             return $this->getLastInsertIdHelper($idCol);
