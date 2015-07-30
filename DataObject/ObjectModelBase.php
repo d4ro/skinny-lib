@@ -34,7 +34,7 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      * @var static
      */
     protected $_parent = null;
-    
+
     /**
      * Wskazuje na element root.
      * 
@@ -79,8 +79,10 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      */
     public function __set($name, $value) {
         $this->_items[$name] = $value;
-        $this->_items[$name]->_name = $name;
-        $this->_items[$name]->_parent = $this;
+        if ($value instanceof self) {
+            $this->_items[$name]->_name = $name;
+            $this->_items[$name]->_parent = $this;
+        }
     }
 
     /**
@@ -152,7 +154,7 @@ abstract class ObjectModelBase implements \IteratorAggregate {
 
         return $this->length() == 0;
     }
-    
+
     /**
      * Zwraca liczbę elementów dla danego poziomu razem z wszystkimi podelementami
      * (liczy również puste elementy, tj. takie, które nie mają przypisanej 
@@ -231,81 +233,81 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      *                              jeśli nie zostanie odnaleziony.
      */
     public function parent($levelsUp = 1) {
-        if((!is_int($levelsUp) || $levelsUp < 1) && (!is_string($levelsUp) || empty($levelsUp))) {
-            throw new IOException('Incorrect $levelsUp param');
-        }
+    if((!is_int($levelsUp) || $levelsUp < 1) && (!is_string($levelsUp) || empty($levelsUp))) {
+        throw new IOException('Incorrect $levelsUp param');
+    }
 
-        $parent = $this->_parent;
-        if (is_int($levelsUp)) {
-            // poszukiwanie rodzica po liczbie poziomów
-            for ($i = 1; $i < $levelsUp; $i++) {
-                if ($parent && !$parent->isRoot()) {
-                    $parent = $parent->parent();
-                } else {
-                    $parent = null;
-                    break;
-                }
-            }
-        } else {
-            // poszukiwanie rodzica po jego nazwie
-            while (!$parent->isRoot()) {
-                if ($parent->getName() === $levelsUp) {
-                    return $parent;
-                }
+    $parent = $this->_parent;
+    if (is_int($levelsUp)) {
+        // poszukiwanie rodzica po liczbie poziomów
+        for ($i = 1; $i < $levelsUp; $i++) {
+            if ($parent && !$parent->isRoot()) {
                 $parent = $parent->parent();
-            }
-            $parent = null;
-        }
-
-        return $parent;
-    }
-
-    /**
-     * Zwraca obiekt root'a.
-     * 
-     * @return static
-     */
-    public function root() {
-        if ($this->_root === null) {
-            if (!$this->isRoot()) {
-                $this->_root = $this->parent()->root();
             } else {
-                $this->_root = $this;
+                $parent = null;
+                break;
             }
         }
-        
-        return $this->_root;
-    }
-    
-    /**
-     * Łączy bieżący obiekt z innym obiektem tego samego typu nadpisując
-     * istniejące klucze.
-     * 
-     * @param static $obj
-     * @throws IOException
-     */
-    public function merge($obj) {
-        if (!$this->isSelf($obj)) {
-            throw new IOException('$value has to be an instance of ObjectModelBase');
+    } else {
+        // poszukiwanie rodzica po jego nazwie
+        while (!$parent->isRoot()) {
+            if ($parent->getName() === $levelsUp) {
+                return $parent;
+            }
+            $parent = $parent->parent();
         }
+        $parent = null;
+    }
 
-        foreach ($obj as $name => $item) {
-            $this->{$name} = $item;
+    return $parent;
+}
+
+/**
+ * Zwraca obiekt root'a.
+ * 
+ * @return static
+ */
+public function root() {
+    if ($this->_root === null) {
+        if (!$this->isRoot()) {
+            $this->_root = $this->parent()->root();
+        } else {
+            $this->_root = $this;
         }
-        
-        return $this;
     }
-    
-    /**
-     * Czyści cały obiekt ze wszystkich ustawionych zmiennych.
-     * @return ObjectModelBase
-     */
-    public function clear() {
-        foreach ($this as $key => $value) {
-            unset($this->$key);
-        }
-        
-        return $this;
+
+    return $this->_root;
+}
+
+/**
+ * Łączy bieżący obiekt z innym obiektem tego samego typu nadpisując
+ * istniejące klucze.
+ * 
+ * @param static $obj
+ * @throws IOException
+ */
+public function merge($obj) {
+    if (!$this->isSelf($obj)) {
+        throw new IOException('$value has to be an instance of ObjectModelBase');
     }
+
+    foreach ($obj as $name => $item) {
+        $this->{$name} = $item;
+    }
+
+    return $this;
+}
+
+/**
+ * Czyści cały obiekt ze wszystkich ustawionych zmiennych.
+ * @return ObjectModelBase
+ */
+public function clear() {
+    foreach ($this as $key => $value) {
+        unset($this->$key);
+    }
+
+    return $this;
+}
 
 }

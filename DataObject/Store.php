@@ -173,7 +173,7 @@ class Store extends ObjectModelBase implements \JsonSerializable {
                 $closure = $this->$name;
                 return call_user_func_array($closure, $arguments);
             } else {
-                return $this->_items[$name];
+                return $this->$name; //$this->_items[$name];
             }
         }
 
@@ -192,7 +192,21 @@ class Store extends ObjectModelBase implements \JsonSerializable {
             return $default;
         }
 
-        return $this->_createObject();
+        return new self;
+//
+//        $default = isset($arguments[0]) ? $arguments[0] : null;
+//        $create = isset($arguments[1]) ? $arguments[1] : false;
+//        $return_default = isset($arguments[2]) ? $arguments[2] : isset($arguments[0]);
+//
+//        if ($create) {
+//            $this->$name = $default;
+//        }
+//
+//        if ($return_default) {
+//            return $default;
+//        }
+//
+//        return $this->_createObject();
     }
 
     /**
