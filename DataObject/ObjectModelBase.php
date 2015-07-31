@@ -79,7 +79,7 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      */
     public function __set($name, $value) {
         $this->_items[$name] = $value;
-        if ($value instanceof self) {
+        if ($value instanceof static) {
             $this->_items[$name]->_name = $name;
             $this->_items[$name]->_parent = $this;
         }
