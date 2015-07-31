@@ -130,7 +130,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             }
 
             // i przypisujemy ich wartości do obiektu
-            self::_setRecordData($obj, $row);
+            $obj->_setData($row);
 
             $result[] = $obj;
         }
@@ -282,8 +282,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
                 $this->_recordColumns[$name]['value'] = $value;
                 $this->_recordColumns[$name]['hasValue'] = true;
                 $setData = false;
-                // TODO: pobrać ID i wpisać w to pole $this->_data[$name] = ???
-                throw new Exception('not implemented');
+
+                $identifier = $this->_recordColumns[$name]['identifier'];
+                foreach ($identifier as $remoteCol => $localCol) {
+                    if ($localCol === $name) {
+                        $this->_data[$localCol] = $value->_idValue[$remoteCol]; // TODO do testowania
+                    }
+                }
             } else {
                 $this->_recordColumns[$name]['hasValue'] = false;
             }
@@ -316,58 +321,41 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     /**
      * Ustawia dane rekordu na podstawie arraya z danymi, gdzie klucz to nazwa kolumny, a wartością jest jej wartość.
      * Wewnętrzne ustawienie danych jest obojętne na status modyfikacji pól rekordu. Tego ustawienia powinna wykonać metoda korzystająca z _setRecordData().
-     * @param RecordBase $record rekord, któremu mają być ustawione dane
      * @param array $data dane do ustawienia
      */
-    protected static function _setRecordData(RecordBase $record, array $data) {
+    protected function _setData(array $data) {
         foreach ($data as $key => $value) {
-            if (array_key_exists($key, $record->_collectionVirtualColumns)) {
+            if (array_key_exists($key, $this->_collectionVirtualColumns)) {
                 if (null === $value || $value instanceof RecordCollection) {
-                    $record->_collectionVirtualColumns[$key]['value'] = $value;
+                    $this->_collectionVirtualColumns[$key]['value'] = $value;
                 }
                 continue;
             }
 
-            if (array_key_exists($key, $record->_recordColumns)) {
-                $record->_recordColumns[$key]['hasValue'] = false;
+            if (array_key_exists($key, $this->_recordColumns)) {
+                if ($value instanceof self) {
+                    $this->_recordColumns[$key]['value'] = $value;
+                    $this->_recordColumns[$key]['hasValue'] = true;
+
+                    $identifier = $this->_recordColumns[$key]['identifier'];
+                    foreach ($identifier as $remoteCol => $localCol) {
+                        if ($localCol === $key) {
+                            $this->_data[$localCol] = $value->_idValue[$remoteCol]; // TODO do testowania
+                        }
+                    }
+
+                    continue;
+                }
+
+                $this->_recordColumns[$key]['hasValue'] = false;
             }
 
-            if (array_key_exists($key, $record->_jsonColumns)) {
-                $record->_jsonColumns[$key]['hasValue'] = false;
+            if (array_key_exists($key, $this->_jsonColumns)) {
+                $this->_jsonColumns[$key]['hasValue'] = false;
             }
 
-            $record->_data[$key] = $value;
+            $this->_data[$key] = $value;
         }
-    }
-
-    /**
-     * Pobiera dane rekordu do zapisu do bazy danych
-     * Koduje ustawione pola w _jsonColumns do JSONA
-     * Usuwa kolumny niedozwolone
-     * @param boolean $mainTable czy dane mają się tyczyć tylko tabeli głównej rekordu
-     * @return array dane
-     */
-    private function _exportData() {
-        $data = [];
-        foreach ($this->_getColumns() as $column) {
-            if (key_exists($column, $this->_data)) {
-                $data[$column] = $this->_data[$column];
-            }
-        }
-
-        // pozbywamy się tych kolumn w danych, które są w $this->_writingDisabledColumns
-        foreach ($this->_writingDisabledColumns as $column) {
-            unset($data[$column]);
-        }
-
-        // kolumny przechowujące wartości JSON kodujemy
-        foreach ($this->_jsonColumns as $column) {
-            if ($column['hasValue']) {
-                $this->_data[$column] = $data[$column] = json_encode($column['value']); // wartości od razu powinny mieć taką formę jak przy odczycie z bazy - czyli tablice powinny być obiektami
-            }
-        }
-
-        return $data;
     }
 
     /**
@@ -439,6 +427,46 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      */
     protected function _getTableStructure($tableName) {
         return self::$db->describeTable($tableName);
+    }
+
+    /**
+     * Pobiera dane rekordu do zapisu do bazy danych
+     * Koduje ustawione pola w _jsonColumns do JSONA
+     * Pomija kolumny niedozwolone
+     * @return array dane
+     */
+    public function exportData() {
+        $data = [];
+        foreach ($this->_getColumns() as $column) {
+            // ignorujemy kolumny, których mamy nie zapisywać do bazy
+            if (in_array($column, $this->_writingDisabledColumns)) {
+                continue;
+            }
+
+            // konwertujemy kolumny jsonowe, gdy jest w nich wartość
+            if (array_key_exists($column, $this->_jsonColumns) && $this->_jsonColumns[$column]['hasValue']) {
+                $this->_data[$column] = json_encode($this->_jsonColumns[$column]['value']);
+            }
+
+            // pobieramy ID z obcych rekordów, o ile są załadowane
+            if (array_key_exists($column, $this->_recordColumns) && $this->_recordColumns[$column]['hasValue']) {
+                $value = $this->_recordColumns[$column]['value'];
+//                var_dump($value);
+//                die();
+                $identifier = $this->_recordColumns[$column]['identifier'];
+                foreach ($identifier as $remoteCol => $localCol) {
+                    if ($localCol === $column) {
+                        $this->_data[$localCol] = $value->_idValue[$remoteCol]; // TODO do testowania
+                    }
+                }
+            }
+
+            if (key_exists($column, $this->_data)) {
+                $data[$column] = $this->_data[$column];
+            }
+        }
+
+        return $data;
     }
 
     /**
@@ -550,7 +578,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @return array dane
      */
     public function toArray() {
-        return $this->_exportData();
+        return $this->exportData();
     }
 
     /**
@@ -559,7 +587,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @return boolean informacja o powodzeniu
      */
     public function insert($refreshData = true) {
-        $data = $this->_exportData();
+        $data = $this->exportData();
         return $this->_insert($data, $refreshData && !$this->_config->isAutoRefreshForbidden(false, true));
     }
 
@@ -622,7 +650,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             return true;
         }
 
-        $data = $this->_exportData();
+        $data = $this->exportData();
         return $this->_update($data, $refreshData && !$this->_config->isAutoRefreshForbidden(false, true));
     }
 
@@ -809,7 +837,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             return true;
         }
 
-        self::_setRecordData($this, $data);
+        $this->_setData($data);
 
         return true;
     }
@@ -835,7 +863,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
                 unset($data[$column]);
             }
 
-            self::_setRecordData($this, $data);
+            $this->_setData($data);
 
             $this->_exists = true;
         }
@@ -1054,6 +1082,24 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
           } */
 
         return self::$db->lastInsertId(/* $tableName */$this->_tableName, $idCol);
+    }
+
+    /**
+     * Stwierdza, czy podany w argumencie rekord jest dokładnie tym samym co bieżący
+     * @param \Skinny\Db\Record\RecordBase $record
+     */
+    public function equals(RecordBase $record) {
+        if (null === $record) {
+            return false;
+        }
+
+        if (!$this->exists() || !$record->exists()) {
+            return false;
+        }
+
+        return
+                $this->_tableName == $record->_tableName &&
+                $this->getFullId() == $record->getFullId();
     }
 
 }
