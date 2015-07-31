@@ -77,7 +77,7 @@ abstract class ValidatorBase {
     public function __construct($options = null) {
         $this->_mergeOptions($options);
         
-        if($options !== null && !isset($options[self::OPT_MSG_PARAMS])) {
+        if($options !== null && isset($options[self::OPT_MSG_PARAMS])) {
             $this->setMessagesParams($options[self::OPT_MSG_PARAMS]);
         }
     }

@@ -400,14 +400,13 @@ class Form extends Validate implements \JsonSerializable {
     }
     
     /**
-     * Ustawia atrybut "id" formularza.
+     * Ustawia lub pobiera atrybut "id" formularza.
      * 
      * @param string $id
      * @return \Skinny\Data\Form
      */
-    public function id($id) {
-        $this->setAttribute('id', $id);
-        return $this;
+    public function id($id = null) {
+        return $this->__getOrSetAttribute('id', $id);
     }
 
     /**
