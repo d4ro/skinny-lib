@@ -273,6 +273,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         $this->_isModified = true;
         $setData = true;
 
+        if (array_key_exists($name, $this->_collectionVirtualColumns)) {
+            $setData = false;
+        }
+
         if (array_key_exists($name, $this->_jsonColumns)) {
             $this->_jsonColumns[$name]['hasValue'] = false; //json_decode($value, true);
         }
@@ -396,13 +400,25 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     }
 
     /**
-     * Ustawia podane wirtualne pole rekordu jako kolekcję rekordów na podstawie podanego warunku where i typu rekordu lub kolekcji
+     * Ustawia podane wirtualne pole rekordu jako kolekcję rekordów na podstawie podanego warunku where i typu rekordu lub kolekcji.
+     * Warunek zapytania jest tablicą, gdzie:
+     * - kluczem jest zapytaniem WHERE dla bazy danych, gdzie wartość kolumny jest zastąpiony znakiem zapytania
+     * - wartością może być:
+     *   - int - traktowany jest jako ostateczna wartość wstawiona do zapytania
+     *   - array - traktowany jest jako tablica ostatecznych wartości wtawionych do zapytania
+     *   - string rozpoczynający się od ' - traktowany jest jako ostateczna wartość wstawiona do zapytania, a pierwszy znak jest usuwany
+     *   - każdy pozostały string - traktowany jest nazwa kolumny z bieżącego rekordu, do zapytania wstawiana jest jego aktualna wartość w momencie pobierania kolekcji
+     *   - Closure - uruchamiany jest w momencie pobierania kolekcji, a wartość, którą zwróci wstawiana jest do zapytania
      * @param string $columnName nazwa nieistniejącego (wirtualnego) pola rekordu, które ma być obsługiwane jako kolekcja rekordów
      * @param array $where warunek zapytania dla pobrania rekordów kolekcji
      * @param string $recordClassName nazwa klasy rekordów kolekcji (musi zostać być podana, jeżeli nazwa klasy kolekcji nie została)
      * @param string $collectionClassName nazwa specyficznej klasy kolekcji rekordów (musi zostać być podana, jeżeli nazwa klasy rekordów nie została)
      */
     protected function _setCollectionVirtualColumn($columnName, array $where, $recordClassName = null, $collectionClassName = null) {
+        if (null === $recordClassName && null === $collectionClassName) {
+            throw new \Skinny\Db\DbException('Invalid arguments while declaring collection virtual column "' . $columnName . '". Arguments $recordClassName and/or $collectionClassName must be set.');
+        }
+
         $this->_collectionVirtualColumns[$columnName] = ['value' => null, 'recordClassName' => $recordClassName, 'where' => $where, 'collectionClassName' => $collectionClassName];
     }
 
