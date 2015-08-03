@@ -226,8 +226,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     }
 
     public function &__get($name) {
+        /* @var $collection RecordCollection */
         if (array_key_exists($name, $this->_collectionVirtualColumns)) {
-            // TODO
+            if (!$this->_collectionVirtualColumns[$name]['hasValue']) {
+                $this->_buildCollectionVirtualColumn($name);
+            }
+
+            return $this->_collectionVirtualColumns[$name]['value'];
         }
 
         if (!array_key_exists($name, $this->_data)) {
@@ -322,6 +327,50 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         return get_class() . ': ' . $this->_tableName . ' (' . substr($primary, 0, -2) . ')';
     }
 
+    private function _buildCollectionVirtualColumn($name) {
+        $recordClassName = $this->_collectionVirtualColumns[$name]['recordClassName'];
+
+        // instancjowanie kolekcji rekordów
+        if (!empty($this->_collectionVirtualColumns[$name]['collectionClassName'])) {
+            // TODO instancjowanie konkretnej kolekcji
+            $collection = new $this->_collectionVirtualColumns[$name]['collectionClassName']();
+            $recordClassName = $collection->getRecordClassName();
+        } else {
+            $collection = new RecordCollection();
+            $collection->setRecordClassName($recordClassName);
+        }
+
+        // budowanie zapytania
+        $where = [];
+        foreach ($this->_collectionVirtualColumns[$name]['where'] as $key => $value) {
+            if (is_int($value) || is_array($value)) {
+                // traktujemy dosłownie
+            } elseif (is_string($value) && strlen($value) > 1) {
+                // string
+                if ($value[0] == '\'') {
+                    // literal
+                    $value = substr($value, 1);
+                } else {
+                    // nazwa kolumny, TODO
+                }
+            } elseif ($value instanceof \Closure) {
+                $value = $value();
+            } else {
+                throw new RecordException('Invalid value');
+            }
+
+            $where[$key] = $value;
+        }
+
+        $records = call_user_func([$recordClassName, 'find'], $where, $this->_collectionVirtualColumns[$name]['order'], $this->_collectionVirtualColumns[$name]['limit'], $this->_collectionVirtualColumns[$name]['offset']);
+
+        // pobranie rekordów
+        $collection->addRecords($records);
+
+        $this->_collectionVirtualColumns[$name]['value'] = $collection;
+        $this->_collectionVirtualColumns[$name]['hasValue'] = true;
+    }
+
     /**
      * Ustawia dane rekordu na podstawie arraya z danymi, gdzie klucz to nazwa kolumny, a wartością jest jej wartość.
      * Wewnętrzne ustawienie danych jest obojętne na status modyfikacji pól rekordu. Tego ustawienia powinna wykonać metoda korzystająca z _setRecordData().
@@ -409,17 +458,30 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      *   - string rozpoczynający się od ' - traktowany jest jako ostateczna wartość wstawiona do zapytania, a pierwszy znak jest usuwany
      *   - każdy pozostały string - traktowany jest nazwa kolumny z bieżącego rekordu, do zapytania wstawiana jest jego aktualna wartość w momencie pobierania kolekcji
      *   - Closure - uruchamiany jest w momencie pobierania kolekcji, a wartość, którą zwróci wstawiana jest do zapytania
+     * 
      * @param string $columnName nazwa nieistniejącego (wirtualnego) pola rekordu, które ma być obsługiwane jako kolekcja rekordów
      * @param array $where warunek zapytania dla pobrania rekordów kolekcji
      * @param string $recordClassName nazwa klasy rekordów kolekcji (musi zostać być podana, jeżeli nazwa klasy kolekcji nie została)
      * @param string $collectionClassName nazwa specyficznej klasy kolekcji rekordów (musi zostać być podana, jeżeli nazwa klasy rekordów nie została)
+     * @param string $order opcjonalna kolejność wyników
+     * @param string $limit opcjonalny limit ilości wyników
+     * @param string $offset opcjonalne przesunięcie wyników
      */
-    protected function _setCollectionVirtualColumn($columnName, array $where, $recordClassName = null, $collectionClassName = null) {
+    protected function _setCollectionVirtualColumn($columnName, array $where, $recordClassName = null, $collectionClassName = null, $order = null, $limit = null, $offset = null) {
         if (null === $recordClassName && null === $collectionClassName) {
             throw new \Skinny\Db\DbException('Invalid arguments while declaring collection virtual column "' . $columnName . '". Arguments $recordClassName and/or $collectionClassName must be set.');
         }
 
-        $this->_collectionVirtualColumns[$columnName] = ['value' => null, 'recordClassName' => $recordClassName, 'where' => $where, 'collectionClassName' => $collectionClassName];
+        $this->_collectionVirtualColumns[$columnName] = [
+            'value' => null,
+            'hasValue' => false,
+            'recordClassName' => $recordClassName,
+            'where' => $where,
+            'collectionClassName' => $collectionClassName,
+            'order' => $order,
+            'limit' => $limit,
+            'offset' => $offset
+        ];
     }
 
     /**
@@ -434,6 +496,14 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         }
 
         return $this->_columns;
+    }
+
+    /**
+     * Ustawia nazwy kolumn używanych w rekordzie
+     * @param array $columns
+     */
+    protected function _setColumns(array $columns) {
+        $this->_columns = $columns;
     }
 
     /**
