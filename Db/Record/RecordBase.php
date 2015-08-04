@@ -125,7 +125,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             }
 
             // usuwamy niechciane kolumny
-            foreach ($this->_readingDisabledColumns as $column) {
+            foreach ($obj->_readingDisabledColumns as $column) {
                 unset($row[$column]);
             }
 
