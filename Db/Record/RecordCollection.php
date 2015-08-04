@@ -1,11 +1,5 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 namespace Skinny\Db\Record;
 
 /**
@@ -21,6 +15,18 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @todo Uniezależnienie od Zend_Db
      */
     protected static $db;
+
+    /**
+     * Nazwa klasy obsługującej rekordy w kolekcji
+     * @var string
+     */
+    protected $_recordClassName;
+
+    /**
+     * Czy typy rekordów mają być dokładnie sprawdzane
+     * @var boolean
+     */
+    protected $_isStrictTypeCheck;
 
     /**
      * Pobiera połączenie do bazy danych
@@ -39,8 +45,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         self::$db = $db;
     }
 
-    public function __construct(array $collection = array(), $strictCheckType = true) {
-        $this->checkArrayType($collection, $strictCheckType, true);
+    public function __construct(array $collection = array(), $strictTypeCheck = true) {
+        $this->_isStrictTypeCheck = $strictTypeCheck;
+        $this->_checkArrayType($collection, $strictTypeCheck, true);
         parent::__construct($collection);
     }
 
@@ -51,12 +58,12 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     /**
      * Sprawdza, czy array zawiera prawidłowe obiekty rekordów
      * @param array $collection
-     * @param bool $strict sprawdza, czy wszystkie rekordy są tego samego typu
-     * @param bool $throw
-     * @return type
+     * @param boolean $strict sprawdza, czy wszystkie rekordy są tego samego typu
+     * @param boolean $throw
+     * @return boolean
      */
-    protected function checkArrayType(array &$collection, $strict = true, $throw = false) {
-        $exception = new InvalidRecordException('Record Collection contains invalid elements.');
+    protected function _checkArrayType(array &$collection, $strict = true, $throw = false) {
+        $exception = new InvalidRecordException('Record Collection contains elements of invalid type');
         $error = false;
         $result = [];
 
@@ -67,6 +74,10 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         }
 
         $firstRecordClass = get_class($first);
+        if ($strict) {
+            $this->_recordClassName = $firstRecordClass;
+        }
+
         foreach ($collection as $element) {
             // sprawdzenie, czy obiekt jest rekordem
             if (!($element instanceof RecordBase)) {
@@ -87,6 +98,35 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         \Skinny\Exception::throwIf($error === true && $throw === true, $exception);
         $collection = $result;
         return !$error;
+    }
+
+    public function setStrictTypeCheck($isStrict) {
+        $this->_isStrictTypeCheck = $isStrict;
+    }
+
+    public function getStrictTypeCheck() {
+        return $this->_isStrictTypeCheck;
+    }
+
+    public function getRecordClassName() {
+        return $this->_recordClassName;
+    }
+
+    public function setRecordClassName($className) {
+        \Skinny\Exception::throwIf(isset($this->_recordClassName), new \Skinny\Db\DbException('Record type has been already set for this collection'));
+
+        $this->_recordClassName = $className;
+    }
+
+    /**
+     * Dodaje rekordy do kolekcji
+     * @param array $records
+     */
+    public function addRecords(array $records) {
+        $this->_checkArrayType($records, $this->_isStrictTypeCheck);
+        foreach ($records as $key => $value) {
+            $this->_data[$key] = $value;
+        }
     }
 
     public function getIds() {
@@ -111,13 +151,15 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     }
 
     public function forEachRecord($callback) {
+        $result = array();
         if ($callback instanceof \Closure) {
             foreach ($this->_data as $record) {
-                $callback($record);
+                $result[$key] = $callback($record);
             }
         } else {
             throw new \BadFunctionCallException('Callback is not a function.');
         }
+        return $result;
     }
 
     public function filter($callback) {
@@ -138,6 +180,18 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         $result = array();
         foreach ($this->_data as $key => $record) {
             $result[$key] = call_user_method_array($method, $record, $params);
+        }
+        return $result;
+    }
+
+    public function __set($name, $value) {
+        $this->apply($name, $value);
+    }
+
+    public function __get($name) {
+        $result = array();
+        foreach ($this->_data as $key => $record) {
+            $result[$key] = $record->$name;
         }
         return $result;
     }
