@@ -124,7 +124,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      */
     public function addRecords(array $records) {
         $this->_checkArrayType($records, $this->_isStrictTypeCheck);
-        array_merge($this->_data, $records);
+        foreach ($records as $key => $value) {
+            $this->_data[$key] = $value;
+        }
     }
 
     public function getIds() {
@@ -149,13 +151,15 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     }
 
     public function forEachRecord($callback) {
+        $result = array();
         if ($callback instanceof \Closure) {
             foreach ($this->_data as $record) {
-                $callback($record);
+                $result[$key] = $callback($record);
             }
         } else {
             throw new \BadFunctionCallException('Callback is not a function.');
         }
+        return $result;
     }
 
     public function filter($callback) {
@@ -176,6 +180,18 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         $result = array();
         foreach ($this->_data as $key => $record) {
             $result[$key] = call_user_method_array($method, $record, $params);
+        }
+        return $result;
+    }
+
+    public function __set($name, $value) {
+        $this->apply($name, $value);
+    }
+
+    public function __get($name) {
+        $result = array();
+        foreach ($this->_data as $key => $record) {
+            $result[$key] = $record->$name;
         }
         return $result;
     }
