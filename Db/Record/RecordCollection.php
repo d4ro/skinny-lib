@@ -120,9 +120,13 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Dodaje rekordy do kolekcji
-     * @param array $records
+     * @param array|RecordCollection $records
      */
-    public function addRecords(array $records) {
+    public function addRecords($records) {
+        if ($records instanceof RecordCollection) {
+            $records = $records->_data;
+        }
+
         $this->_checkArrayType($records, $this->_isStrictTypeCheck);
         foreach ($records as $key => $value) {
             $this->_data[$key] = $value;
@@ -170,10 +174,14 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
                     $result[$id] = $record;
                 }
             }
-            return $result;
+            $collection = new static();
+            $collection->_isStrictTypeCheck = $this->_isStrictTypeCheck;
+            $collection->_recordClassName = $this->_recordClassName;
+            $collection->_data = $result;
         } else {
             throw new \BadFunctionCallException('Callback is not a function.');
         }
+        return $collection;
     }
 
     public function call($method, array $params = array()) {
@@ -194,6 +202,23 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $result[$key] = $record->$name;
         }
         return $result;
+    }
+
+    /**
+     * Pobiera do kolekcji wszystkie rekordy spełniające podane warunki.
+     * Wymaga, aby nazwa klasy obsługiwanych rekordów była już ustawiona/
+     * 
+     * @param string $where część zapytania WHERE
+     * @param string $order część zapytania ORDER BY
+     * @param int $limit część zapytania LIMIT
+     * @param int $offset część zapytania OFFSET
+     * @return int ilość dodanych do kolekcji rekordów
+     */
+    public function find($where = null, $order = null, $limit = null, $offset = null) {
+        \Skinny\Exception::throwIf(empty($this->_recordClassName), new RecordException('Record class name has not been set for this record collection so find() cannot operate.'));
+        $records = call_user_func([$this->_recordClassName, 'findArray'], $where, $order, $limit, $offset);
+        $this->addRecords($records);
+        return count($records);
     }
 
 }
