@@ -972,17 +972,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             $where = $this->_getWhere($id);
         }
 
-        if (is_array($where)) {
-            foreach ($where as $k => $v) {
-                if (!is_numeric($k)) {
-                    $select->where($k, $v);
-                } else {
-                    $select->where($v);
-                }
-            }
-        } else {
-            $select->where($where);
-        }
+        self::_addWhereToSelect($select, $where);
 
         return $select;
     }
@@ -1072,7 +1062,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @param int $offset część zapytania OFFSET
      * @return array tablica obiektów rekordów będących rezultatem zapytania
      */
-    protected static function _find($where = null, $order = null, $limit = null, $offset = null) {
+    public static function findArray($where = null, $order = null, $limit = null, $offset = null) {
         $obj = new static();
 
         // select
@@ -1098,7 +1088,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @return RecordCollection kolekcja rekordów będących rezultatem zapytania
      */
     public static function find($where = null, $order = null, $limit = null, $offset = null) {
-        $records = static::_find($where, $order, $limit, $offset);
+        $records = static::findArray($where, $order, $limit, $offset);
 
         $collection = new RecordCollection($records);
 
@@ -1113,7 +1103,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @return record|null pierwszy rekord spełniający warunki lub null
      */
     public static function findOne($where = null, $order = null, $offset = null) {
-        $result = self::_find($where, $order, 1, $offset);
+        $result = self::findArray($where, $order, 1, $offset);
         if (!empty($result)) {
             return $result[0];
         }
@@ -1128,10 +1118,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @return integer
      */
     public static function count($where = null) {
-        $select = self::$db->select()
-                ->from(['t' => static::getTableName()], ['COUNT(1)']);
+        $select = self::$db->select()->from(['t' => static::getTableName()], ['COUNT(1)']);
 
-        $this->_addWhereToSelect($select, $where);
+        self::_addWhereToSelect($select, $where);
 
         return self::$db->fetchOne($select);
     }
@@ -1142,7 +1131,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @param \Zend_Db_Select $select zapytanie do modyfikacji
      * @param string|array $where warunki WHERE zapytania
      */
-    protected function _addWhereToSelect(\Zend_Db_Select $select, $where) {
+    protected static function _addWhereToSelect(\Zend_Db_Select $select, $where) {
         if ($where) {
             if (is_array($where)) {
                 foreach ($where as $k => $v) {
