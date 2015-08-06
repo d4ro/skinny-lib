@@ -236,7 +236,7 @@ class Form extends Validate implements \JsonSerializable {
     }
 
     /**
-     * Ustawia wiele atrybutów nadpisując ustawione wartości
+     * Ustawia wiele atrybutów nadpisując ustawione wartości.
      * 
      * @param array $attributes
      * @return \Skinny\Data\Form
