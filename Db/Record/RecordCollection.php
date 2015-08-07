@@ -221,4 +221,85 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         return count($records);
     }
 
+    public function offsetExists($offset) {
+        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
+            return null !== $this->getAt($offset);
+        } else {
+            return parent::offsetExists($offset);
+        }
+    }
+
+    public function offsetGet($offset) {
+        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
+            return $this->getAt($offset);
+        } else {
+            return parent::offsetGet($offset);
+        }
+    }
+
+    public function offsetSet($offset, $value) {
+        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
+            return $this->setAt($offset, $value);
+        } else {
+            return parent::offsetSet($offset, $value);
+        }
+    }
+
+    public function offsetUnset($offset) {
+        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
+            return $this->unsetAt($offset);
+        } else {
+            return parent::offsetUnset($offset);
+        }
+    }
+
+    public function getAt($offset) {
+        $keys = array_keys($this->_data);
+        if (!isset($keys[$offset])) {
+            return null;
+        }
+        return $this->_data[$keys[$offset]];
+
+//        $data = $this->_data;
+//        reset($data);
+//        for ($i = 0; $i < $offset; $i++) {
+//            if (!next($data)) {
+//                return null;
+//            }
+//        }
+//        return current($data);
+    }
+
+    public function setAt($offset, $value) {
+        $keys = array_keys($this->_data);
+        if (isset($keys[$offset])) {
+            $this->_data[$keys[$offset]] = $value;
+        }
+
+//        $data = $this->_data;
+//        reset($data);
+//        for ($i = 0; $i < $offset; $i++) {
+//            if (!next($data)) {
+//                return null;
+//            }
+//        }
+//        $this->_data[key($data)] = $value;
+    }
+
+    public function unsetAt($offset) {
+        $keys = array_keys($this->_data);
+        if (isset($keys[$offset])) {
+            unset($this->_data[$keys[$offset]]);
+        }
+
+//        $data = $this->_data;
+//        reset($data);
+//        for ($i = 0; $i < $offset; $i++) {
+//            if (!next($data)) {
+//                return null;
+//            }
+//        }
+//        unset($this->_data[key($data)]);
+    }
+
 }
