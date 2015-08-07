@@ -329,32 +329,17 @@ class Form extends Validate implements \JsonSerializable {
         }
     }
 
-    /**
-     * Ustawia lub pobiera atrybut o nazwie takiej jak metoda.
-     * 
-     * @param mixed $value
-     * @return type
-     */
+
     public function method($value = null) {
-        return $this->__getOrSetAttribute('placeholder', $value);
+        return $this->__getOrSetAttribute('method', $value);
     }
 
-    /**
-     * Ustawia lub pobiera atrybut o nazwie takiej jak metoda.
-     * 
-     * @param mixed $value
-     * @return type
-     */
+
     public function action($value = null) {
-        return $this->__getOrSetAttribute('placeholder', $value);
+        return $this->__getOrSetAttribute('action', $value);
     }
 
-    /**
-     * Ustawia lub pobiera atrybut o nazwie takiej jak metoda.
-     * 
-     * @param mixed $value
-     * @return type
-     */
+
     public function placeholder($value = null) {
         return $this->__getOrSetAttribute('placeholder', $value);
     }
