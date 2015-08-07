@@ -149,9 +149,7 @@ abstract class Action extends Application\Components\ComponentsAware {
      * @return Request
      */
     public function getRequest() {
-        $this->requireApplication('Request');
-
-        return $this->getApplication()->getRequest();
+        return $this->getComponent('request');
     }
 
     /**
@@ -159,9 +157,7 @@ abstract class Action extends Application\Components\ComponentsAware {
      * @return Request
      */
     public function getResponse() {
-        $this->requireApplication('Response');
-
-        return $this->getApplication()->getResponse();
+        return $this->getRequest()->getResponse();
     }
 
     /**
