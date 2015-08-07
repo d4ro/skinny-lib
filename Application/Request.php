@@ -35,6 +35,12 @@ class Request {
     protected $_router;
 
     /**
+     *  Obiekt odpowiedzi zarządzający informacją zwrotną
+     * @var Response\ResponseInterface
+     */
+    protected $_response;
+
+    /**
      * Konstruktor obiektu żądania.
      * @param Router\RouterInterface $router instancja routera do rozwiązywania żądania
      */
@@ -208,6 +214,22 @@ class Request {
      */
     public function getRouter() {
         return $this->_router;
+    }
+
+    /**
+     * Pobiera obiekt odpowiedzi.
+     * @return Response\ResponseInterface
+     */
+    public function getResponse() {
+        return $this->_response;
+    }
+
+    /**
+     * Ustawia obiekt odpowiedzi.
+     * @param \Skinny\Application\Response\ResponseInterface $response
+     */
+    public function setResponse(Response\ResponseInterface $response) {
+        $this->_response = $response;
     }
 
     /**

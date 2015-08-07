@@ -1,19 +1,14 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 namespace Skinny\Application\Components;
 
-/**
- * Description of ComponentsAware
- *
- * @author Daro
- */
-class ComponentsAware extends \Skinny\Application\ApplicationAware {
+class ComponentsAware {
+
+    /**
+     * 
+     * @var \Skinny\Application\Components
+     */
+    private static $_components;
 
     /**
      * Pobiera obiekt komponentu z aplikacji.
@@ -21,9 +16,7 @@ class ComponentsAware extends \Skinny\Application\ApplicationAware {
      * @return mixed
      */
     public function getComponent($name) {
-        $this->requireApplication('Components');
-
-        return $this->getApplication()->getComponent($name);
+        return self::$_components->getComponent($name);
     }
 
     /**
@@ -34,6 +27,11 @@ class ComponentsAware extends \Skinny\Application\ApplicationAware {
      */
     public function __get($name) {
         return $this->getComponent($name);
+    }
+
+    final static public function setComponents(\Skinny\Application\Components $components) {
+        \Skinny\Exception::throwIf(null !== self::$_components, new \Skinny\Application\ApplicationException('Cannot set Components object to Components aware class. Components has been already set.'));
+        self::$_components = $components;
     }
 
 }

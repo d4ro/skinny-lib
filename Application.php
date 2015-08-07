@@ -61,12 +61,6 @@ class Application {
     protected $_request;
 
     /**
-     * Obiekt odpowiedzi zarządzający informacją zwrotną
-     * @var Response\ResponseInterface
-     */
-    protected $_response;
-
-    /**
      * Okresla katalog roboczy aplikacji, czyli ten, który był ustawiony przed jej inicjalizacją.
      * Wymagane, aby przywrócić katalog roboczy po jego samoczynnej zmianie w obsłudze shutdown.
      * @var string
@@ -129,6 +123,7 @@ class Application {
         // components
         $this->_components = new Components($this->_config);
         $this->_components->setInitializers($this->_config->components->toArray());
+        Components\ComponentsAware::setComponents($this->_components);
 
         // router
         $this->_router = new Router(
@@ -137,11 +132,14 @@ class Application {
 
         // request
         $this->_request = new Request($this->_router);
+        $this->_components->setInitializers(['request' => function () {
+                return $this->_request;
+            }]);
 
         // error handler
         $this->registerErrorHandler();
 
-        Application\ApplicationAware::setApplication($this);
+//        Application\ApplicationAware::setApplication($this);
     }
 
     /**
@@ -223,14 +221,6 @@ class Application {
     }
 
     /**
-     * Pobiera obiekt odpowiedzi.
-     * @return Response\ResponseInterface
-     */
-    public function getResponse() {
-        return $this->_response;
-    }
-
-    /**
      * Główna pętla wykonań żądań do akcji aplikacji.
      * @param string $request_url url pierwszego żądania
      * @param array $params parametry pierwszego żądania
@@ -246,8 +236,8 @@ class Application {
             $this->_request->next(new Request\Step($request_url, $params));
         }
 
-        if (null === $this->_response) {
-            $this->_response = new Response\Http();
+        if (null === $this->_request->getResponse()) {
+            $this->_request->setResponse(new Response\Http());
         }
 
         $counter = $maxForwardCount = $this->_config->skinny->maxNumActionsForwarded(10);
@@ -270,7 +260,7 @@ class Application {
                     $errorAction = $this->_config->actions->error('/error');
 
                     Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException('Error handler action cannot be found.'));
-                    Exception::throwIf(null === $notFoundAction && ($this->_response->setCode(404) || true), new Action\ActionException("Cannot find action corresponding to URL '{$this->_request->current()->getRequestUrl()}'."));
+                    Exception::throwIf(null === $notFoundAction && ($this->_request->getResponse()->setCode(404) || true), new Action\ActionException("Cannot find action corresponding to URL '{$this->_request->current()->getRequestUrl()}'."));
                     Exception::throwIf($notFoundAction === $this->_request->current()->getRequestUrl(), new Action\ActionException('Cannot find the action for handling missing actions.'));
 
                     $this->forwardError(['@error' => 'notFound'], $notFoundAction);
@@ -340,7 +330,7 @@ class Application {
                     
                 }
             }
-            
+
             $this->_request->proceed();
         }
 
