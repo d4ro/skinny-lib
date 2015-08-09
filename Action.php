@@ -38,7 +38,7 @@ abstract class Action extends Application\Components\ComponentsAware {
      * Należy w tym miejscu sprecyzować sposoby (ways) wykorzystania akcji przez użytkownika (przy pomocy $this->getUsage()->allowUsage()).
      * @return boolean czy jest zezwolenie na wykonanie danej akcji
      */
-    abstract public function onCheckPermission();
+    abstract public function onPermissionCheck();
 
     /**
      * [Składnik akcji - opcjonalny]

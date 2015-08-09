@@ -5,7 +5,7 @@ namespace Skinny;
 /**
  * Model obsługujący renderowanie widoku strony.
  */
-class View extends DataObject\Store {
+class View extends DataObject\ArrayWrapper {
 
     /**
      * Obiekt konfiguracyjny.
@@ -14,11 +14,19 @@ class View extends DataObject\Store {
     protected $_config = null;
 
     /**
+     * Pliki js dołączane na końcu "body".
      * @var \Skinny\View\Files
      */
     public $js;
+    
+    /**
+     * Pliki js dołączane na końcu "head".
+     * @var \Skinny\View\Files
+     */
+    public $jsHead;
 
     /**
+     * Pliki css dołączane w sekcji "head".
      * @var \Skinny\View\Files
      */
     public $css;
@@ -31,23 +39,24 @@ class View extends DataObject\Store {
 
     /**
      * Obiekt renderera ustawionego dla tego widoku.
-     * @var View\Renderer
+     * @var \app\module\smartyRenderer
      */
     private $__renderer = null;
 
     public function __construct($config) {
-        parent::__construct();
+//        parent::__construct();
 
         $this->setConfig($config);
 
         $this->js = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->jsPath, $this->_config->jsExtension);
+        $this->jsHead = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->jsPath, $this->_config->jsExtension);
         $this->css = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->cssPath, $this->_config->cssExtension);
     }
     
     /**
      * Ustawienie bieżącego renderera.
      * 
-     * @param \Skinny\View\Renderer $renderer
+     * @param \app\module\smartyRenderer $renderer
      * @return \Skinny\View
      */
     public function setRenderer(View\Renderer $renderer) {
@@ -204,6 +213,15 @@ class View extends DataObject\Store {
         }
                 
         $renderer->fetch($currentLayoutPath, $this);
+    }
+    
+    public function clear() {
+        parent::clear();
+        
+        $this->js->clear();
+        $this->css->clear();
+        $this->jsHead->clear();
+        $this->_jsVars = [];
     }
 
 }
