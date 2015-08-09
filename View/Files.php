@@ -150,7 +150,9 @@ class Files implements \IteratorAggregate {
             if (!\Skinny\Path::isAbsolute($file)) {
                 $file = \Skinny\Path::combine($this->_applicationPath, $this->_filesPath, $file);
             } else {
-                $file = \Skinny\Path::combine($this->_applicationPath . $this->_filesPath, $file);
+                // Jeżeli ścieżka jest absolutna należy zwrócić ścieżkę liczoną od
+                // katalogu publicznego aplikacji
+                $file = $this->_applicationPath . $file;
             }
             // dołączenie odpowiedniego rozszerzenia jeśli nie ustawione
             if (!$this->hasExtensionAlready($file)) {
@@ -206,6 +208,10 @@ class Files implements \IteratorAggregate {
      */
     public function hasExtensionAlready($file) {
         return false !== strrpos($file, $this->_extension);
+    }
+    
+    public function clear() {
+        $this->_items = [];
     }
 
 }

@@ -5,6 +5,8 @@ namespace Skinny\Data;
 /**
  * Klasa validate jest klasą umożliwiającą walidację danych wejściowych 
  * za pomocą istniejących walidatorów lub stworzonych przez siebie.
+ * 
+ * @todo Kolejność wykonywania walidacji?
  */
 class Validate extends \Skinny\DataObject\ObjectModelBase {
 
