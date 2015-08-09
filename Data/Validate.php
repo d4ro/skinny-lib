@@ -7,38 +7,45 @@ namespace Skinny\Data;
  * za pomocą istniejących walidatorów lub stworzonych przez siebie.
  * 
  * @todo Kolejność wykonywania walidacji?
+ * @todo Merge'owanie opcji - np. przy ustawianiu globalnych parametrów.
+ *       Gdy mamy do czynienia z predefiniowanymi formularzami gdzie definiujemy
+ *       pole "imie" to później chcąc ustawić globalny parametr komunikatów
+ *       to niestety już stworzone elementy nie dostaną tych opcji.
+ *       Należałoby ogarnąć to tak żeby dziedziczone wartości wskazywały na opcję
+ *       z obiektu po którym dziedziczą a wartości nadpisywane nie nadpisują wskaźnika
+ *       ale go zmieniają jeśli w obiekcie wyżej jest taka wartość...
  */
 class Validate extends \Skinny\DataObject\ObjectModelBase {
 
     /**
      * Oczekuje na walidację
      */
-    const STATUS_NOT_VALIDATED = 'notValidated';
+    const STATUS_NOT_VALIDATED = 'statusNotValidated';
 
     /**
      * W trakcie walidacji
      */
-    const STATUS_VALIDATION_IN_PROGRESS = 'validationInProgress';
+    const STATUS_VALIDATION_IN_PROGRESS = 'statusValidationInProgress';
 
     /**
      * Walidacja zakończona
      */
-    const STATUS_VALIDATED = 'validated';
+    const STATUS_VALIDATED = 'statusValidated';
 
     /**
      * Tablica kluczy i wartości które mają być podmienione przy komunikatach o błędach
      */
-    const OPTION_MESSAGES_PARAMS = 'messagesParams';
+    const OPTION_MESSAGES_PARAMS = 'optionMessagesParams';
 
     /**
      * Przerywa walidację gdy jedno z pól aktualnie walidowanych nie przejdzie walidacji
      */
-    const OPTION_BREAK_ON_ITEM_FAILURE = 'breakOnItemFailure';
+    const OPTION_BREAK_ON_ITEM_FAILURE = 'optionBreakOnItemFailure';
 
     /**
      * Przerywa walidację gdy jeden z walidatorów dla pola nie przejdzie walidacji
      */
-    const OPTION_BREAK_ON_VALIDATOR_FAILURE = 'breakOnValidatorFailure';
+    const OPTION_BREAK_ON_VALIDATOR_FAILURE = 'optionBreakOnValidatorFailure';
 
     /**
      * Limit "głębokich" walidacji, których każde wywołanie powoduje utworzenie nowych podelementów dla dowolnego poziomu
@@ -313,7 +320,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         ) {
             return true;
         }
-
+        
         foreach ($item->_validators as $validator) {
             // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
             $params = array_merge(
@@ -428,10 +435,10 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     public function label($label = null) {
         if ($label === null) {
             // pobranie wartości
-            return ($l = @$this->_options[Validator\ValidatorBase::OPT_MSG_PARAMS]['label']) !== null ? $l : "";
+            return ($l = @$this->_options[self::OPTION_MESSAGES_PARAMS]['label']) !== null ? $l : "";
         } else {
             $this->setOptions([
-                Validator\ValidatorBase::OPT_MSG_PARAMS => [
+                self::OPTION_MESSAGES_PARAMS => [
                     'label' => $label
                 ]
             ]);
@@ -447,7 +454,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      */
     public function setMessagesParams(array $params) {
         $this->setOptions([
-            Validator\ValidatorBase::OPT_MSG_PARAMS => $params
+            self::OPTION_MESSAGES_PARAMS => $params
         ]);
 
         return $this;
