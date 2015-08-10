@@ -292,7 +292,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             // jeżeli ustawiono walidatory dla wszystkich podelementów to należy je najpierw przygotować
             foreach ($data as $k => $v) {
                 foreach ($this->_eachValidators as $vData) {
-                    $this->$k->__prepend($vData['validator'], $vData['errorMsg'], $vData['options']);
+                    $this->$k->__prepend($vData['validator'],
+                            $vData['errorMsg'], $vData['options']);
                     $this->$k->mergeOptions($vData['options']); // TODO czy to na pewno tak ma być = opcje nadpisywane na poziomie każdego walidatora z osobna...
                 }
             }
@@ -320,11 +321,11 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         ) {
             return true;
         }
-        
+
         foreach ($item->_validators as $validator) {
             // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
             $params = array_merge(
-                    ['name' => $item->_name, 'value' => $value]
+                    [Validator\ValidatorBase::PRM_NAME => $item->_name, Validator\ValidatorBase::PRM_VALUE => $value]
                     , $item->_options[self::OPTION_MESSAGES_PARAMS]);
 
             $validator->setMessagesParams($params);
@@ -351,7 +352,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     public function mergeOptions($options) {
         if (!empty($options) && is_array($options)) {
 //            $this->_options = array_merge($this->_options, $options);
-            $this->_options = \Skinny\DataObject\ArrayWrapper::deepMerge($this->_options, $options);
+            $this->_options = \Skinny\DataObject\ArrayWrapper::deepMerge($this->_options,
+                            $options);
         }
     }
 
@@ -472,7 +474,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @param string|array                  $errorMsg   Parametr opisany przy metodzie validate::add()
      * @param array                         $options    Parametr opisany przy metodzie validate::add()
      */
-    public function addMultiple($names, $validator, $errorMsg = null, $options = null) {
+    public function addMultiple($names, $validator, $errorMsg = null,
+            $options = null) {
         if (empty($names) || !is_array($names)) {
             throw new Validate\Exception('Argument "$names" has to be an array');
         }
@@ -746,7 +749,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
 
         return $result;
     }
-    
+
     /**
      * Ustawia (nadpisuje) dane dla wybranego poziomu.
      * @param mixed $data

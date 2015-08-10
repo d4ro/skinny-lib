@@ -59,7 +59,7 @@ class StringLength extends IsString {
                 throw new exception("Invalid option: '" . self::OPT_MIN . "'. Integer expected.");
             }
             $this->setMessagesParams([
-                self::OPT_MIN => $this->_options[self::OPT_MIN]
+                self::PRM_MIN => $this->_options[self::OPT_MIN]
             ]);
         }
         if (key_exists(self::OPT_MAX, $this->_options)) {
@@ -67,7 +67,7 @@ class StringLength extends IsString {
                 throw new exception("Invalid option: '" . self::OPT_MAX . "'. Integer expected.");
             }
             $this->setMessagesParams([
-                self::OPT_MAX => $this->_options[self::OPT_MAX]
+                self::PRM_MAX => $this->_options[self::OPT_MAX]
             ]);
         }
 
