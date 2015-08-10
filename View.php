@@ -212,7 +212,7 @@ class View extends DataObject\ArrayWrapper {
             throw new View\Exception("Layout file is not readable");
         }
                 
-        $renderer->fetch($currentLayoutPath, $this);
+        echo $renderer->fetch($currentLayoutPath, ['this' => $this]);
     }
     
     public function clear() {

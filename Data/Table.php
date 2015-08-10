@@ -84,17 +84,11 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
      * @var array
      */
     protected $_params;
-    
-    /**
-     * Dodatkowe dane wyszukiwarek - np. dane do selecta.
-     * @var mixed Domyślnie pusta tablica
-     */
-    protected $_searchData = [];
 
     public function __construct() {
         $this
-                ->type(self::$_config->default->table->control) // domyślna kontrolka formularza
-                ->attributesType(self::$_config->default->table->attributesControl) // domyślna kontrolka atrybutów dla formularza
+                ->type(self::$_config->default->table->control) // domyślna kontrolka tabeli
+                ->attributesType(self::$_config->default->table->attributesControl) // domyślna kontrolka atrybutów dla tabeli
         ;
     }
 
@@ -113,8 +107,8 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
         // jeżeli obiekt jest na nowo tworzony należy przypisać mu standardową konfigurację
         if ($new) {
             $item
-                    ->type(self::$_config->default->field->control) // domyślna kontrolka dla pól formularza
-                    ->attributesType(self::$_config->default->field->attributesControl) // domyślna kontrolka atrybutów dla pól formularza
+                    ->type(self::$_config->default->field->control) // domyślna kontrolka dla pól tabeli
+                    ->attributesType(self::$_config->default->field->attributesControl) // domyślna kontrolka atrybutów dla pól tabeli
             ;
         }
 
@@ -210,68 +204,6 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
 
             return $this;
         }
-    }
-    
-    /**
-     * Ustawia typ kontrolki wyszukiwarki dla danego pola lub zwraca ustawioną już wartość.
-     * 
-     * @param string $type
-     * @return \Skinny\Data\Table
-     * @throws Exception
-     */
-    public function searchType($type = null) {
-        if ($type === null) {
-            return $this->_searchType;
-        } else {
-            $path = \Skinny\Path::combine(self::$_config->templatesPath, 'control/search', $type . '.tpl');
-            $controlPath = realpath($path);
-
-            if (!file_exists($controlPath)) {
-                throw new Exception("Search control \"$path\" does not exist");
-            }
-
-            $this->_searchType = $type;
-            $this->_searchControlPath = $controlPath;
-
-            return $this;
-        }
-    }
-    
-    /**
-     * Ustawia lub zwraca ustawioną wartość pola wyszukiwarki.
-     * Jeżeli wartośćjest nie ustawiona przy próbie pobrania - metoda sprawdzi czy 
-     * istnieje odpowiedni klucz w tablicy post (np. search_nazwapola).
-     * 
-     * @param mixed $value
-     * @return \Skinny\Data\Table
-     */
-    public function searchValue($value = null) {
-        if($value === null) {
-            if($this->_searchValue === null && !empty($_POST['search_' + $this->getName()])) {
-                $this->_searchValue = $_POST['search_' + $this->getName()];
-            }
-            return $this->_searchValue;
-        } else {
-            $this->_searchValue = $value;
-        }
-        
-        return $this;
-    }
-    
-    /**
-     * Ustawia lub zwraca dodatkowe dane dołączone do pola wyszukiwarki (np. dane do select'a).
-     * 
-     * @param mixed $data
-     * @return \Skinny\Data\Table
-     */
-    public function searchData($data = null) {
-        if($data === null) {
-            return $this->_searchData;
-        } else {
-            $this->_searchData = $data;
-        }
-        
-        return $this;
     }
 
     /**
