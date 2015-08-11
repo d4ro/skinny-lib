@@ -157,6 +157,19 @@ class Store extends ObjectModelBase implements \JsonSerializable {
     }
 
     /**
+     * Magiczny __set() sprawdza, czy argument jest tablicą i jeżeli tak to setuje go w postaci Stora.
+     * @param type $name
+     * @param type $value
+     */
+    public function __set($name, $value) {
+        if (is_array($value)) {
+            parent::__set($name, $this->_createObject()->merge($value));
+        } else {
+            parent::__set($name, $value);
+        }
+    }
+
+    /**
      * Magic call na nie istniejącej właściwości umożliwia zwrócenie wartości
      * domyslnej ustawionej jako pierwszy argument funkcji.
      * 
