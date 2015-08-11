@@ -61,6 +61,12 @@ class Form extends Validate implements \JsonSerializable {
      * @var array
      */
     protected $_classes = [];
+    
+    /**
+     * Przechowuje dane ustawione za pomocą magicznych wywołań.
+     * @var array
+     */
+    protected $_customData = [];
 
     public function __construct() {
         parent::__construct();
@@ -226,17 +232,17 @@ class Form extends Validate implements \JsonSerializable {
     /**
      * Ustawia wartość dla wybranego atrybutu (nadpisuje poprzednią)
      * 
-     * @param string $key klucz atrybutu
+     * @param string $name nazwa atrybutu
      * @param mixed $value
      * @return \Skinny\Data\Form
      */
-    public function setAttribute($key, $value) {
-        $this->_attributes[$key] = $value;
+    public function setAttribute($name, $value) {
+        $this->_attributes[$name] = $value;
         return $this;
     }
 
     /**
-     * Ustawia wiele atrybutów nadpisując ustawione wartości
+     * Ustawia wiele atrybutów nadpisując ustawione wartości.
      * 
      * @param array $attributes
      * @return \Skinny\Data\Form
@@ -249,11 +255,21 @@ class Form extends Validate implements \JsonSerializable {
     /**
      * Pobiera wartość wybranego atrybutu
      * 
-     * @param string $key klucz atrybutu
+     * @param string $name nazwa atrybutu
      * @return mixed
      */
-    public function getAttribute($key) {
-        return @$this->_attributes[$key];
+    public function getAttribute($name) {
+        return @$this->_attributes[$name];
+    }
+    
+    /**
+     * Sprawdza czy jest ustawiony atrybut o podanej nazwie.
+     * 
+     * @param string $name
+     * @return boolean
+     */
+    public function hasAttribute($name) {
+        return isset($this->_attributes[$name]);
     }
 
     /**
@@ -268,23 +284,35 @@ class Form extends Validate implements \JsonSerializable {
     /**
      * Magiczny call po to aby móc używać m.in. metody o nazwie "class".
      * 
+     * Każda inna nieistniejąca metoda wykona pobranie lub ustawienie 
+     * customowej zmiennej (np. icon).
+     * 
      * @return mixed Metoda w zależności od sytuacji może zwracać inną wartość
      */
     public function __call($name, $arguments) {
         if ($name === 'class') {
             return call_user_method_array('__cls', $this, $arguments);
-        }/* elseif (in_array($name, $this->__availableMagicAttributes)) {
-          if($arguments[0] === null) {
-          // pobranie ustawionej wartości
-          return @$this->_attributes[$name];
-          } else {
-          // ustawienie odpowiedniego atrybutu
-          $this->setAttribute($name, $arguments[0]);
-          return $this;
-          }
-          } */ else {
-            throw new Form\Exception("No method \"$name\"");
+        } else {
+            return $this->_setData($name, isset($arguments[0]) ? $arguments[0] : null, isset($arguments[1]) ? $arguments[1] : null);
         }
+    }
+    
+    /**
+     * Ustawia dodatkową daną - ustawiane przy pomocy magicznych wywołań.
+     * 
+     * @param string $name
+     * @param mixed $value
+     * @return type
+     */
+    protected function _setData($name, $value = null) {
+        if($value === null) {
+            // pobranie wartości
+            return @$this->_customData[$name];
+        } else {
+            $this->_customData[$name] = $value;
+        }
+        
+        return $this;
     }
 
     /**
@@ -329,17 +357,32 @@ class Form extends Validate implements \JsonSerializable {
         }
     }
 
-
+    /**
+     * Alias do ustawienia atrybutu o nazwie metody.
+     * 
+     * @param mixed $value
+     * @return \Skinny\Data\Form|string
+     */
     public function method($value = null) {
         return $this->__getOrSetAttribute('method', $value);
     }
 
-
+    /**
+     * Alias do ustawienia atrybutu o nazwie metody.
+     * 
+     * @param mixed $value
+     * @return \Skinny\Data\Form|string
+     */
     public function action($value = null) {
         return $this->__getOrSetAttribute('action', $value);
     }
 
-
+    /**
+     * Alias do ustawienia atrybutu o nazwie metody.
+     * 
+     * @param mixed $value
+     * @return \Skinny\Data\Form|string
+     */
     public function placeholder($value = null) {
         return $this->__getOrSetAttribute('placeholder', $value);
     }
@@ -382,6 +425,21 @@ class Form extends Validate implements \JsonSerializable {
         $this->setAttribute('class', implode(' ', $this->_classes));
 
         return $this;
+    }
+    
+    /**
+     * Sprawdza czy jest ustawiona klasa o podanej nazwie.
+     * 
+     * @param string $class
+     * @return boolean
+     * @throws Form\Exception
+     */
+    public function hasClass($class) {
+        if (empty($class) || !is_string($class)) {
+            throw new Form\Exception('Invalid class name');
+        }
+        
+        return in_array($class, $this->_classes);
     }
     
     /**
