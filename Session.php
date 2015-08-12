@@ -33,6 +33,7 @@ class Session extends DataObject\ArrayWrapper {
     public function __construct($config, $adapter) {
         $this->_config = $config;
         $this->_adapter = $adapter;
+//        $this->_adapter->setSessionConfig($this->_config);
 
         // zaślepka, ponieważ $_SESSION jeszcze nie istnieje
         $sessionData = array();
@@ -54,7 +55,6 @@ class Session extends DataObject\ArrayWrapper {
             return false;
         }
 
-        $this->_adapter->setSessionConfig($this->_config);
         $this->registerCallbacks();
         $defaulName = session_name();
         session_name($this->_config->name($defaulName));

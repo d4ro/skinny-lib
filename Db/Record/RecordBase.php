@@ -950,9 +950,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     /**
      * Zwraca obiekt zapytania select z przygotowanymi kolumnami i nazwą tabeli.
      * 
-     * @return Zend_Db_Select
+     * @return \Zend_Db_Select
      */
-    final protected function _getSelect() {
+    protected function _getSelect() {
         $select = self::$db->select()
                 ->from($this->_tableName, $this->getColumns());
         return $select;
@@ -964,7 +964,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * 
      * @param int $id identyfikator rekordu
      * @param mixed $where Parametry zapytania, jeżeli brak pobierane na podstawie klucza głównego
-     * @return Zend_Db_Select
+     * @return \Zend_Db_Select
      */
     final protected function _getSelectWhere($id = null, $where = null) {
         $select = $this->_getSelect();
@@ -980,7 +980,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
     /**
      * Zwraca obiekt zapytania select z przygotowanymi kolumnami i nazwą tabeli.
      * 
-     * @return Zend_Db_Select
+     * @return \Zend_Db_Select
      */
     public static function getSelect() {
         $obj = new static();
