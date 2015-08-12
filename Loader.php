@@ -8,6 +8,7 @@ use Skinny\DataObject\Store;
  * Description of Loader
  *
  * @author Daro
+ * @todo Zmiana obsługi Loaderów - callback zamiast klas obsługujący wszystkie możliwe przypadki
  */
 class Loader {
 
