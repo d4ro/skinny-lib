@@ -79,7 +79,7 @@ class Application {
      */
     public function __construct($config_path = 'config') {
         $this->_appCwd = getcwd();
-die('test');
+die('test'); 
 
         // config
         if (!isset($_SERVER['APPLICATION_ENV'])) {
