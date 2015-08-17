@@ -18,6 +18,11 @@ class MySQL extends AdapterBase {
 
     public function __construct($db) {
         $this->_db = $db;
+    }
+
+    public function setSessionConfig($config) {
+        parent::setSessionConfig($config);
+
         $this->_lifetime = $this->_config->lifetime(get_cfg_var("session.gc_maxlifetime"), true);
     }
 
