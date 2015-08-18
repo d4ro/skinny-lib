@@ -119,13 +119,6 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     protected $_result = null;
 
     /**
-     * Konstruktor
-     */
-    public function __construct() {
-        
-    }
-
-    /**
      * Odczyt nieistniejącej właściwości - tworzy nowy obiekt tej klasy oraz kopiuje do niego opcje z bieżącego poziomu.
      * 
      * @param string $name Nazwa pola do walidacji
@@ -147,14 +140,20 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         return $item;
     }
 
-//    /**
-//     * Domyślnie generowany nowy obiekt
-//     * 
-//     * @return \self
-//     */
-//    protected function _createObject() {
-//        return new self();
-//    }
+    /**
+     * Tworzy nowy obiekt w taki sposób aby miał wskaźnik na swojego rodzica oraz
+     * roota.
+     * 
+     * @param string $name Nazwa podobiektu
+     * @return \self
+     */
+    protected function _createObject($name) {
+        $item = new self();
+        $item->_name = $name;
+        $item->_parent = $this;
+        $item->_root = $this->_root;
+        return $item;
+    }
 
     /**
      * Zapis do nieistniejącej właściwości

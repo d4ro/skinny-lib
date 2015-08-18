@@ -309,7 +309,7 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
      */
     public function __call($name, $arguments) {
         if ($name === 'class') {
-            return call_user_method_array('__cls', $this, $arguments);
+            return call_user_func_array([$this, '__cls'], $arguments);
         } else {
             throw new Exception("No method \"$name\"");
         }
