@@ -31,9 +31,10 @@ class NSpace extends LoaderBase {
                 }
             }
             $path .= '.php';
-            
+
             if (is_readable($path)) {
-                include_once $path;
+                require $path;
+                return class_exists($className);
             }
 
             break;

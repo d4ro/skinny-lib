@@ -968,7 +968,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      */
     final protected function _getSelectWhere($id = null, $where = null) {
         $select = $this->_getSelect();
-        if (null === $where) {
+
+        if (null === $where && null !== $id) {
             $where = $this->_getWhere($id);
         }
 
@@ -1074,7 +1075,6 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         if (null !== $limit || null !== $offset) {
             $select->limit($limit, $offset);
         }
-
         return static::_select($select);
     }
 
