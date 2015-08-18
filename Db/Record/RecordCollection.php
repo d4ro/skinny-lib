@@ -187,7 +187,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     public function call($method, array $params = array()) {
         $result = array();
         foreach ($this->_data as $key => $record) {
-            $result[$key] = call_user_method_array($method, $record, $params);
+            $result[$key] = call_user_func_array([$record, $method], $params);
         }
         return $result;
     }

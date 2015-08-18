@@ -69,8 +69,6 @@ class Form extends Validate implements \JsonSerializable {
     protected $_customData = [];
 
     public function __construct() {
-        parent::__construct();
-
         $this
                 ->type(self::$_config->default->form->control) // domyślna kontrolka formularza
                 ->method(self::$_config->default->form->method) // domyślna metoda - atrybut
@@ -291,7 +289,7 @@ class Form extends Validate implements \JsonSerializable {
      */
     public function __call($name, $arguments) {
         if ($name === 'class') {
-            return call_user_method_array('__cls', $this, $arguments);
+            return call_user_func_array([$this, '__cls'], $arguments);
         } else {
             return $this->_setData($name, isset($arguments[0]) ? $arguments[0] : null, isset($arguments[1]) ? $arguments[1] : null);
         }
