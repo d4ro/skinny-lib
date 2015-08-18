@@ -137,15 +137,6 @@ class Store extends ObjectModelBase implements \JsonSerializable {
     }
 
     /**
-     * Przeciąża domyślną metodę tak aby zawsze konstruowane były obiekty self.
-     * 
-     * @return self
-     */
-    protected function _createObject() {
-        return new self();
-    }
-
-    /**
      * Funkcja czyści wszystkie puste wartości będące instancją tej klasy.
      */
     public function cleanup() {
