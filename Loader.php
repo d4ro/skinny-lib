@@ -2,10 +2,13 @@
 
 namespace Skinny;
 
+use Skinny\DataObject\Store;
+
 /**
  * Description of Loader
  *
  * @author Daro
+ * @todo Zmiana obsługi Loaderów - callback zamiast klas obsługujący wszystkie możliwe przypadki
  */
 class Loader {
 
@@ -88,14 +91,14 @@ class Loader {
 
     public function initLoaders($loaders, $priority = 5) {
         $loaders = (array) $loaders;
-        /*include_once __DIR__ . '/Loader/Standard.php';
-        if (isset($loaders['standard'])) {
-            $class = new Loader\Standard($this->_paths, $loaders['standard']);
-            unset($loaders['standard']);
-        } else {
-            $class = new Loader\Standard($this->_paths);
-        }
-        $this->putLoader($class, 'standard', $priority);*/
+        /* include_once __DIR__ . '/Loader/Standard.php';
+          if (isset($loaders['standard'])) {
+          $class = new Loader\Standard($this->_paths, $loaders['standard']);
+          unset($loaders['standard']);
+          } else {
+          $class = new Loader\Standard($this->_paths);
+          }
+          $this->putLoader($class, 'standard', $priority); */
 
         foreach ($loaders as $name => $config) {
             switch ($name) {

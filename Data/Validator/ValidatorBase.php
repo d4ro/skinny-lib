@@ -77,7 +77,7 @@ abstract class ValidatorBase {
     public function __construct($options = null) {
         $this->_mergeOptions($options);
         
-        if($options !== null && !isset($options[self::OPT_MSG_PARAMS])) {
+        if($options !== null && isset($options[self::OPT_MSG_PARAMS])) {
             $this->setMessagesParams($options[self::OPT_MSG_PARAMS]);
         }
     }
@@ -88,6 +88,7 @@ abstract class ValidatorBase {
      * @param string $key Klucz do błędu znajdujący się w zdefiniowanych komunikatach - jeżeli klucz nie istnieje dodawany jest błąd ogólny.
      */
     public function error($key = self::MSG_INVALID) {
+        
         if (isset($this->_userMessages) && is_string($this->_userMessages)) {
             $this->_errors[$key] = $this->_userMessages;
         } else if (isset($this->_userMessages[$key])) {
@@ -109,6 +110,7 @@ abstract class ValidatorBase {
             foreach ($this->_errors as &$error) {
                 if (is_string($error) && !empty($this->_messagesParams)) {
                     foreach ($this->_messagesParams as $param => $value) {
+                        $param = str_replace('%', '', $param);
                         while (false !== ($pos = strpos($error, "%$param%"))) {
                             $val = $value;
                             if ($error[$pos - 1] == '^' && is_string($value)) {

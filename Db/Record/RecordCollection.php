@@ -1,11 +1,5 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 namespace Skinny\Db\Record;
 
 /**
@@ -13,12 +7,7 @@ namespace Skinny\Db\Record;
  *
  * @author Daro
  */
-class RecordCollection extends \Skinny\ArrayWrapper {
-
-    public function __construct(array $collection = array(), $strictCheckType = true) {
-        $this->checkArrayType($collection, $strictCheckType, true);
-        parent::__construct($collection);
-    }
+class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Połączenie do bazy danych
@@ -26,6 +15,18 @@ class RecordCollection extends \Skinny\ArrayWrapper {
      * @todo Uniezależnienie od Zend_Db
      */
     protected static $db;
+
+    /**
+     * Nazwa klasy obsługującej rekordy w kolekcji
+     * @var string
+     */
+    protected $_recordClassName;
+
+    /**
+     * Czy typy rekordów mają być dokładnie sprawdzane
+     * @var boolean
+     */
+    protected $_isStrictTypeCheck;
 
     /**
      * Pobiera połączenie do bazy danych
@@ -44,15 +45,25 @@ class RecordCollection extends \Skinny\ArrayWrapper {
         self::$db = $db;
     }
 
+    public function __construct(array $collection = array(), $strictTypeCheck = true) {
+        $this->_isStrictTypeCheck = $strictTypeCheck;
+        $this->_checkArrayType($collection, $strictTypeCheck, true);
+        parent::__construct($collection);
+    }
+
+    public function __call($name, $arguments) {
+        return $this->call($name, $arguments);
+    }
+
     /**
      * Sprawdza, czy array zawiera prawidłowe obiekty rekordów
      * @param array $collection
-     * @param bool $strict sprawdza, czy wszystkie rekordy są tego samego typu
-     * @param bool $throw
-     * @return type
+     * @param boolean $strict sprawdza, czy wszystkie rekordy są tego samego typu
+     * @param boolean $throw
+     * @return boolean
      */
-    protected function checkArrayType(array &$collection, $strict = true, $throw = false) {
-        $exception = new InvalidRecordException('Record Collection contains invalid elements.');
+    protected function _checkArrayType(array &$collection, $strict = true, $throw = false) {
+        $exception = new InvalidRecordException('Record Collection contains elements of invalid type');
         $error = false;
         $result = [];
 
@@ -63,6 +74,10 @@ class RecordCollection extends \Skinny\ArrayWrapper {
         }
 
         $firstRecordClass = get_class($first);
+        if ($strict) {
+            $this->_recordClassName = $firstRecordClass;
+        }
+
         foreach ($collection as $element) {
             // sprawdzenie, czy obiekt jest rekordem
             if (!($element instanceof RecordBase)) {
@@ -83,6 +98,39 @@ class RecordCollection extends \Skinny\ArrayWrapper {
         \Skinny\Exception::throwIf($error === true && $throw === true, $exception);
         $collection = $result;
         return !$error;
+    }
+
+    public function setStrictTypeCheck($isStrict) {
+        $this->_isStrictTypeCheck = $isStrict;
+    }
+
+    public function getStrictTypeCheck() {
+        return $this->_isStrictTypeCheck;
+    }
+
+    public function getRecordClassName() {
+        return $this->_recordClassName;
+    }
+
+    public function setRecordClassName($className) {
+        \Skinny\Exception::throwIf(isset($this->_recordClassName), new \Skinny\Db\DbException('Record type has been already set for this collection'));
+
+        $this->_recordClassName = $className;
+    }
+
+    /**
+     * Dodaje rekordy do kolekcji
+     * @param array|RecordCollection $records
+     */
+    public function addRecords($records) {
+        if ($records instanceof RecordCollection) {
+            $records = $records->_data;
+        }
+
+        $this->_checkArrayType($records, $this->_isStrictTypeCheck);
+        foreach ($records as $key => $value) {
+            $this->_data[$key] = $value;
+        }
     }
 
     public function getIds() {
@@ -107,13 +155,15 @@ class RecordCollection extends \Skinny\ArrayWrapper {
     }
 
     public function forEachRecord($callback) {
+        $result = array();
         if ($callback instanceof \Closure) {
             foreach ($this->_data as $record) {
-                $callback($record);
+                $result[$key] = $callback($record);
             }
         } else {
             throw new \BadFunctionCallException('Callback is not a function.');
         }
+        return $result;
     }
 
     public function filter($callback) {
@@ -124,18 +174,132 @@ class RecordCollection extends \Skinny\ArrayWrapper {
                     $result[$id] = $record;
                 }
             }
-            return $result;
+            $collection = new static();
+            $collection->_isStrictTypeCheck = $this->_isStrictTypeCheck;
+            $collection->_recordClassName = $this->_recordClassName;
+            $collection->_data = $result;
         } else {
             throw new \BadFunctionCallException('Callback is not a function.');
         }
+        return $collection;
     }
 
     public function call($method, array $params = array()) {
         $result = array();
-        foreach ($this->_data as $record) {
-            $result[$record->getIdAsString()] = call_user_method_array($method, $record, $params);
+        foreach ($this->_data as $key => $record) {
+            $result[$key] = call_user_func_array([$record, $method], $params);
         }
         return $result;
+    }
+
+    public function __set($name, $value) {
+        $this->apply($name, $value);
+    }
+
+    public function __get($name) {
+        $result = array();
+        foreach ($this->_data as $key => $record) {
+            $result[$key] = $record->$name;
+        }
+        return $result;
+    }
+
+    /**
+     * Pobiera do kolekcji wszystkie rekordy spełniające podane warunki.
+     * Wymaga, aby nazwa klasy obsługiwanych rekordów była już ustawiona/
+     * 
+     * @param string $where część zapytania WHERE
+     * @param string $order część zapytania ORDER BY
+     * @param int $limit część zapytania LIMIT
+     * @param int $offset część zapytania OFFSET
+     * @return int ilość dodanych do kolekcji rekordów
+     */
+    public function find($where = null, $order = null, $limit = null, $offset = null) {
+        \Skinny\Exception::throwIf(empty($this->_recordClassName), new RecordException('Record class name has not been set for this record collection so find() cannot operate.'));
+        $records = call_user_func([$this->_recordClassName, 'findArray'], $where, $order, $limit, $offset);
+        $this->addRecords($records);
+        return count($records);
+    }
+
+    public function offsetExists($offset) {
+        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
+            return null !== $this->getAt($offset);
+        } else {
+            return parent::offsetExists($offset);
+        }
+    }
+
+    public function offsetGet($offset) {
+        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
+            return $this->getAt($offset);
+        } else {
+            return parent::offsetGet($offset);
+        }
+    }
+
+    public function offsetSet($offset, $value) {
+        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
+            return $this->setAt($offset, $value);
+        } else {
+            return parent::offsetSet($offset, $value);
+        }
+    }
+
+    public function offsetUnset($offset) {
+        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
+            return $this->unsetAt($offset);
+        } else {
+            return parent::offsetUnset($offset);
+        }
+    }
+
+    public function getAt($offset) {
+        $keys = array_keys($this->_data);
+        if (!isset($keys[$offset])) {
+            return null;
+        }
+        return $this->_data[$keys[$offset]];
+
+//        $data = $this->_data;
+//        reset($data);
+//        for ($i = 0; $i < $offset; $i++) {
+//            if (!next($data)) {
+//                return null;
+//            }
+//        }
+//        return current($data);
+    }
+
+    public function setAt($offset, $value) {
+        $keys = array_keys($this->_data);
+        if (isset($keys[$offset])) {
+            $this->_data[$keys[$offset]] = $value;
+        }
+
+//        $data = $this->_data;
+//        reset($data);
+//        for ($i = 0; $i < $offset; $i++) {
+//            if (!next($data)) {
+//                return null;
+//            }
+//        }
+//        $this->_data[key($data)] = $value;
+    }
+
+    public function unsetAt($offset) {
+        $keys = array_keys($this->_data);
+        if (isset($keys[$offset])) {
+            unset($this->_data[$keys[$offset]]);
+        }
+
+//        $data = $this->_data;
+//        reset($data);
+//        for ($i = 0; $i < $offset; $i++) {
+//            if (!next($data)) {
+//                return null;
+//            }
+//        }
+//        unset($this->_data[key($data)]);
     }
 
 }

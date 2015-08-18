@@ -22,7 +22,7 @@ class Standard extends LoaderBase {
         );
 
         // zarejestruj standardowy loader
-        spl_autoload_register();
+//        spl_autoload_register();
     }
 
     public function load($className) {

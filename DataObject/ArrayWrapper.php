@@ -1,6 +1,6 @@
 <?php
 
-namespace Skinny;
+namespace Skinny\DataObject;
 
 /**
  * Array Wrapper wraps an array so it can be used either as an array and also as an object.
@@ -8,9 +8,7 @@ namespace Skinny;
  *
  * @author Daro
  */
-class ArrayWrapper implements \JsonSerializable, \ArrayAccess, \IteratorAggregate, \Countable {
-
-    protected $_data;
+class ArrayWrapper extends DataBase implements \JsonSerializable, \ArrayAccess, \IteratorAggregate, \Countable {
 
     /**
      * Array wrapper constructor
@@ -21,51 +19,28 @@ class ArrayWrapper implements \JsonSerializable, \ArrayAccess, \IteratorAggregat
     }
 
     /**
-     * Magic isset function called by isseting member of the object.
-     * @param string $name
-     * @return bool
-     */
-    public function __isset($name) {
-        return isset($this->_data[$name]);
-    }
-
-    /**
-     * Magic get function called by getting member of the object.
-     * Returns null if no item of given name is present.
-     * @param string $name key name of the getting item
+     * Returns value of the item given by key name.
+     * If object contains no item with given name, default value is returned.
+     * @param string $name key name of getting item
+     * @param mixed $default optional default value returned if item cannot be found
      * @return mixed
      */
-    public function &__get($name) {
+    public function &get($name, $default = null) {
         if (array_key_exists($name, $this->_data)) {
             return $this->_data[$name];
         }
 
-        return $null = null;
+        return $default;
     }
 
     /**
-     * Magic set function called by setting member of the object.
+     * Sets value to the item given by key name.
+     * If the item does not exist it will be created.
      * @param string $name key name of setting item
-     * @param mixed $value value of the item
+     * @param mixed $value
      */
-    public function __set($name, $value) {
+    public function set($name, $value) {
         $this->_data[$name] = $value;
-    }
-
-    /**
-     * Magic unset function called by unsetting member of the object.
-     * @param string $name key name of unsetting item
-     */
-    public function __unset($name) {
-        unset($this->_data[$name]);
-    }
-
-    /**
-     * Returns wheter object has no value.
-     * @return bool
-     */
-    public function isEmpty() {
-        return empty($this->_data);
     }
 
     /**
@@ -115,41 +90,7 @@ class ArrayWrapper implements \JsonSerializable, \ArrayAccess, \IteratorAggregat
      * @return array
      */
     public function toArray() {
-        return clone $this->_data;
-    }
-
-    /**
-     * Returns wheather array wrapper constains item at given key.
-     * @param string $name name of checking key
-     * @return mixed
-     */
-    public function contains($name) {
-        return array_key_exists($name, $this->_data);
-    }
-
-    /**
-     * Returns value of the item given by key name.
-     * If object contains no item with given name, default value is returned.
-     * @param string $name key name of getting item
-     * @param mixed $default optional default value returned if item cannot be found
-     * @return mixed
-     */
-    public function &get($name, $default = null) {
-        if (array_key_exists($name, $this->_data)) {
-            return $this->_data[$name];
-        }
-
-        return $default;
-    }
-
-    /**
-     * Sets value to the item given by key name.
-     * If the item does not exist it will be created.
-     * @param string $name key name of setting item
-     * @param mixed $value
-     */
-    public function set($name, $value) {
-        $this->_data[$name] = $value;
+        return $this->_data;
     }
 
     /**
@@ -214,7 +155,7 @@ class ArrayWrapper implements \JsonSerializable, \ArrayAccess, \IteratorAggregat
     public function getIterator() {
         return new \ArrayIterator($this->_data);
     }
-    
+
     /**
      * Merge two arrays recursively
      *

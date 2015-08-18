@@ -4,7 +4,7 @@ namespace Skinny\Application;
 
 use Skinny\IOException;
 use Skinny\Path;
-use Skinny\Store;
+use Skinny\DataObject\Store;
 use Skinny\Action\ActionException;
 use Skinny\Application\Router\Container;
 
@@ -41,6 +41,36 @@ class Router implements Router\RouterInterface {
     protected $_config;
 
     /**
+     * Odczytuje zawartość katalogu i zwraca tablicę jego zawartości, gdzie:
+     * - pliki (wyłącznie z rozszerzeniem .php, niezaczynające się od kropki "."):
+     *   reprezentowane są bez rozszerzenia, pod kolejnym indeksem numerycznym
+     * - katalogi (niezaczynające się od kropki "."):
+     *   reprezentowane są w kluczu, gdzie wartość jest rekurencyjną zawartością katalogu
+     * @param string $dirPath ścieżka do katalogu
+     * @return array
+     */
+    protected static function _readActionsDir($dirPath) {
+        $dir = dir($dirPath);
+        $actions = [];
+        while ($item = $dir->read()) {
+            $path = $dirPath . DIRECTORY_SEPARATOR . $item;
+            if ($item[0] == '.') {
+                continue;
+            }
+
+            if (is_dir($path)) {
+                $actions[$item] = self::_readActionsDir($path);
+                continue;
+            }
+
+            if (substr($item, -4) == '.php') {
+                $actions[] = substr($item, 0, -4);
+            }
+        }
+        return $actions;
+    }
+
+    /**
      * Konstruktor obiektu routera. Pobiera ścieżkę zawartości aplikacji i cache'u oraz ustawnia router podaną konfiguracją.
      * @param string $contentPath
      * @param string $cachePath
@@ -50,6 +80,78 @@ class Router implements Router\RouterInterface {
         $this->_contentPath = $contentPath;
         $this->_cachePath = $cachePath;
         $this->_config = ($config instanceof Store) ? $config : new Store($config);
+    }
+
+    /**
+     * Iteruje po katalogu zawartości aplikacji wyszukując pliki .php akcji.
+     * Rezultat wyszukiwania zapisuje w cache.
+     * @return array tablica będąca reprezentacją struktury akcji w folderze zawartości aplikacji
+     * @throws IOException
+     */
+    protected function _resolveActions() {
+        if (!is_dir($this->_contentPath))
+            throw new IOException('Could not read application content directory.');
+
+        $actions = self::_readActionsDir($this->_contentPath);
+        $actionsPath = Path::combine($this->_cachePath, 'actions.php');
+
+        $file = new \Skinny\File($actionsPath);
+        $file->write('<?php return ' . var_export($actions, true) . ';');
+        return $actions;
+    }
+
+    protected function _setParam(&$params, $key, $value) {
+        $key = $this->_trueKey(urldecode($key));
+        $key = explode('/', $key);
+
+        $cursor = &$params;
+        $keyLength = count($key);
+        for ($i = 0; $i < $keyLength; $i++) {
+            $keyPart = $key[$i];
+            $lastPart = !($i + 1 < $keyLength);
+
+            // czy część klucza jest pusta - jeżeli tak, ma być numerem kolejnym
+            if (empty($keyPart)) {
+                $cursor[] = $lastPart ? $value : [];
+                end($cursor);
+                $lastInsertKey = key($cursor);
+                $cursor = &$cursor[$lastInsertKey];
+                continue;
+            }
+
+            // ostatnia część klucza zawsze wskazuje na wartość
+            if ($lastPart) {
+                $cursor[$keyPart] = $value;
+                break;
+            }
+
+            // jedziemy dalej, dlatego potrzebujemy arraya
+            if (!is_array($cursor[$keyPart])) {
+                $cursor[$keyPart] = [];
+            }
+
+            $cursor = &$cursor[$keyPart];
+            continue;
+        }
+    }
+
+    private function _trueKey($key) {
+        $start = strpos($key, '[');
+        if (false === $start) {
+            return $key;
+        }
+
+        $result = substr($key, 0, $start);
+        do {
+            $end = strpos($key, ']', $start);
+            if (false === $end) {
+                return $result . '/' . substr($key, $start + 1);
+            }
+
+            $result .= '/' . substr($key, $start + 1, $end - $start - 1);
+        } while ($start = strpos($key, '[', $end));
+
+        return $result;
     }
 
     /**
@@ -113,9 +215,11 @@ class Router implements Router\RouterInterface {
             }
 
             if (isset($args[$i + 1])) {
-                $params[$args[$i]] = $args[$i + 1];
+                $this->_setParam($params, $args[$i], $args[$i + 1]);
+//                $params[$args[$i]] = $args[$i + 1];
             } else if (count($args) == $i + 1) {
-                $params[$args[$i]] = '';
+                $this->_setParam($params, $args[$i], '');
+//                $params[$args[$i]] = '';
             }
         }
 
@@ -146,7 +250,7 @@ class Router implements Router\RouterInterface {
         $actions = file_exists($x) ? include $x : null;
 
         if (empty($actions) || !$this->_config->actionCache->enabled(true, true)) {
-            $actions = $this->resolveActions();
+            $actions = $this->_resolveActions();
         }
 
         $i = 0;
@@ -167,54 +271,6 @@ class Router implements Router\RouterInterface {
         } while ($match && $actions = $actions[$args[$i++]]);
 
         return $found + 1;
-    }
-
-    /**
-     * Iteruje po katalogu zawartości aplikacji wyszukując pliki .php akcji.
-     * Rezultat wyszukiwania zapisuje w cache.
-     * @return array tablica będąca reprezentacją struktury akcji w folderze zawartości aplikacji
-     * @throws IOException
-     */
-    protected function resolveActions() {
-        if (!is_dir($this->_contentPath))
-            throw new IOException('Could not read application content directory.');
-
-        $actions = self::readActionsDir($this->_contentPath);
-        $actionsPath = Path::combine($this->_cachePath, 'actions.php');
-
-        $file = new \Skinny\File($actionsPath);
-        $file->write('<?php return ' . var_export($actions, true) . ';');
-        return $actions;
-    }
-
-    /**
-     * Odczytuje zawartość katalogu i zwraca tablicę jego zawartości, gdzie:
-     * - pliki (wyłącznie z rozszerzeniem .php, niezaczynające się od kropki "."):
-     *   reprezentowane są bez rozszerzenia, pod kolejnym indeksem numerycznym
-     * - katalogi (niezaczynające się od kropki "."):
-     *   reprezentowane są w kluczu, gdzie wartość jest rekurencyjną zawartością katalogu
-     * @param string $dirPath ścieżka do katalogu
-     * @return array
-     */
-    protected static function readActionsDir($dirPath) {
-        $dir = dir($dirPath);
-        $actions = [];
-        while ($item = $dir->read()) {
-            $path = $dirPath . DIRECTORY_SEPARATOR . $item;
-            if ($item[0] == '.') {
-                continue;
-            }
-
-            if (is_dir($path)) {
-                $actions[$item] = self::readActionsDir($path);
-                continue;
-            }
-
-            if (substr($item, -4) == '.php') {
-                $actions[] = substr($item, 0, -4);
-            }
-        }
-        return $actions;
     }
 
 }

@@ -2,16 +2,14 @@
 
 namespace Skinny\Data;
 
+use Skinny\DataObject\Store;
+
 /**
  * Wywołanie nieistniejącej metody:
  * - jeżeli jest to metoda o nazwie "class" - nastapi ustawienie/pobranie
  *   atrybutu "class" przy pomocy metody __cls
- * - jeżeli jest to dowolna nieistniejąca metoda, znajdująca się w tablicy
- *   dostępnych magicznych metod ustawiających atrybuty 
- *   (__availableMagicAttributes) - nastąpi automatyczne ustawienie/pobranie 
- *   atrybutu o nazwie metody
  */
-class Form extends Validate {
+class Form extends Validate implements \JsonSerializable {
 
     /**
      * Konfiguracja modułu
@@ -63,42 +61,50 @@ class Form extends Validate {
      * @var array
      */
     protected $_classes = [];
-
+    
     /**
-     * Zmienna przechowująca informacje o tym jakie metody mogą obsługiwać
-     * atrubuty pól formularza - metody nie są zdefiniowane, będą wywoływane
-     * magicznie i ustawiały atrybut o nazwie wywoływanej nieistniejącej metody.
-     * 
-     * Atrybut "class" jest obsługiwany inaczej dlatego się tutaj nie znajduje.
-     * 
+     * Przechowuje dane ustawione za pomocą magicznych wywołań.
      * @var array
      */
-    private $__availableMagicAttributes = [
-        'method',
-        'action',
-        'placeholder',
-        'selected',
-        'checked'
-    ];
+    protected $_customData = [];
 
     public function __construct() {
-        parent::__construct();
+        $this
+                ->type(self::$_config->default->form->control) // domyślna kontrolka formularza
+                ->method(self::$_config->default->form->method) // domyślna metoda - atrybut
+                ->action(self::$_config->default->form->action) // domyślna akcja  - atrybut
+                ->attributesType(self::$_config->default->form->attributesControl) // domyślna kontrolka atrybutów dla formularza
+        ;
+    }
 
-        if (!$this->hasParent()) {
-            $this
-                    ->type('standard') // domyślna kontrolka formularza
-                    ->method('POST') // domyślna metoda
-                    ->action('') // domyślna akcja
-                    ;
+    /**
+     * Dodatkowo ustawia domyślne wartości dla tworzonego pola na podstawie configa.
+     * 
+     * @param string $name
+     * @return Form
+     */
+    public function &__get($name) {
+        $new = !isset($this->_items[$name]);
+
+        // domyślna konstrukcja
+        $item = parent::__get($name);
+
+        // jeżeli obiekt jest na nowo tworzony należy przypisać mu standardową konfigurację
+        if ($new) {
+            $item
+                    ->type(self::$_config->default->field->control) // domyślna kontrolka dla pól formularza
+                    ->attributesType(self::$_config->default->field->attributesControl) // domyślna kontrolka atrybutów dla pól formularza
+            ;
         }
-        $this->attributesType('standard');
+
+        return $item;
     }
 
     /**
      * Ustawienie konfiguracji modułu
-     * @param \Skinny\Store $config
+     * @param Store $config
      */
-    public static function setConfig(\Skinny\Store $config) {
+    public static function setConfig(Store $config) {
         self::$_config = $config;
     }
 
@@ -126,16 +132,18 @@ class Form extends Validate {
                 return $this->_type;
             }
         } else {
-            if ($this->_name) {
-                // Jeżeli ma nazwę to znaczy że mamy do czynienia z polem formularza
-                $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, 'control', $type . '.tpl'));
+            if (!$this->isRoot()) {
+                // Mamy do czynienia z polem
+                $path = \Skinny\Path::combine(self::$_config->templatesPath, 'control', $type . '.tpl');
+                $controlPath = realpath($path);
             } else {
-                // W przypadku braku nazwy mamy do czynienia z obiektem formularza - więc szablonem
-                $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, 'template', $type . '.tpl'));
+                // Mamy do czynienia z obiektem głównym - więc szablonem
+                $path = \Skinny\Path::combine(self::$_config->templatesPath, 'template', $type . '.tpl');
+                $controlPath = realpath($path);
             }
 
             if (!file_exists($controlPath)) {
-                throw new Form\Exception("Control $controlPath does not exist");
+                throw new Exception("Control \"$path\" does not exist");
             }
 
             $this->_type = $type;
@@ -169,10 +177,11 @@ class Form extends Validate {
                 return $this->_attributesType;
             }
         } else {
-            $controlPath = realpath(\Skinny\Path::combine(self::$_config->templatesPath, 'attribute', $type . '.tpl'));
+            $path = \Skinny\Path::combine(self::$_config->templatesPath, 'attribute', $type . '.tpl');
+            $controlPath = realpath($path);
 
             if (!file_exists($controlPath)) {
-                throw new Form\Exception("Attributes control $controlPath does not exist");
+                throw new Exception("Attributes control \"$path\" does not exist");
             }
 
             $this->_attributesType = $type;
@@ -184,7 +193,7 @@ class Form extends Validate {
 
     /**
      * Zwraca obiekt konfiguracyjny
-     * @return \Skinny\Store
+     * @return Store
      */
     public function getConfig() {
         return self::$_config;
@@ -211,8 +220,8 @@ class Form extends Validate {
      * @throws Form\Exception
      */
     public function getAttributesControlPath() {
-        if ($this->_controlPath === null) {
-            throw new Form\Exception("No control is set. Yo have to setup 'type' first");
+        if ($this->_attributesControlPath === null) {
+            throw new Form\Exception("No control is set. Yo have to setup 'attributesType' first");
         }
 
         return $this->_attributesControlPath;
@@ -221,17 +230,17 @@ class Form extends Validate {
     /**
      * Ustawia wartość dla wybranego atrybutu (nadpisuje poprzednią)
      * 
-     * @param string $key klucz atrybutu
+     * @param string $name nazwa atrybutu
      * @param mixed $value
      * @return \Skinny\Data\Form
      */
-    public function setAttribute($key, $value) {
-        $this->_attributes[$key] = $value;
+    public function setAttribute($name, $value) {
+        $this->_attributes[$name] = $value;
         return $this;
     }
 
     /**
-     * Ustawia wiele atrybutów nadpisując ustawione wartości
+     * Ustawia wiele atrybutów nadpisując ustawione wartości.
      * 
      * @param array $attributes
      * @return \Skinny\Data\Form
@@ -244,11 +253,21 @@ class Form extends Validate {
     /**
      * Pobiera wartość wybranego atrybutu
      * 
-     * @param string $key klucz atrybutu
+     * @param string $name nazwa atrybutu
      * @return mixed
      */
-    public function getAttribute($key) {
-        return @$this->_attributes[$key];
+    public function getAttribute($name) {
+        return @$this->_attributes[$name];
+    }
+    
+    /**
+     * Sprawdza czy jest ustawiony atrybut o podanej nazwie.
+     * 
+     * @param string $name
+     * @return boolean
+     */
+    public function hasAttribute($name) {
+        return isset($this->_attributes[$name]);
     }
 
     /**
@@ -263,27 +282,35 @@ class Form extends Validate {
     /**
      * Magiczny call po to aby móc używać m.in. metody o nazwie "class".
      * 
-     * Dodatkowo umożliwia ustawianie atrybutów poprzez wywołanie metod
-     * o nazwie atrybutu znajdującego się w tablicy dozwolonych atrybutów 
-     * magicznych __availableMagicAttributes.
+     * Każda inna nieistniejąca metoda wykona pobranie lub ustawienie 
+     * customowej zmiennej (np. icon).
      * 
      * @return mixed Metoda w zależności od sytuacji może zwracać inną wartość
      */
     public function __call($name, $arguments) {
         if ($name === 'class') {
-            return call_user_method_array('__cls', $this, $arguments);
-        } elseif (in_array($name, $this->__availableMagicAttributes)) {
-            if($arguments[0] === null) {
-                // pobranie ustawionej wartości
-                return @$this->_attributes[$name];
-            } else {
-                // ustawienie odpowiedniego atrybutu
-                $this->setAttribute($name, $arguments[0]);
-                return $this;
-            }
+            return call_user_func_array([$this, '__cls'], $arguments);
         } else {
-            throw new Form\Exception("No method \"$name\"");
+            return $this->_setData($name, isset($arguments[0]) ? $arguments[0] : null, isset($arguments[1]) ? $arguments[1] : null);
         }
+    }
+    
+    /**
+     * Ustawia dodatkową daną - ustawiane przy pomocy magicznych wywołań.
+     * 
+     * @param string $name
+     * @param mixed $value
+     * @return type
+     */
+    protected function _setData($name, $value = null) {
+        if($value === null) {
+            // pobranie wartości
+            return @$this->_customData[$name];
+        } else {
+            $this->_customData[$name] = $value;
+        }
+        
+        return $this;
     }
 
     /**
@@ -312,9 +339,57 @@ class Form extends Validate {
     }
 
     /**
+     * Pobiera lub ustawia wybrany atrybut w zależności od tego czy $value jest nullem.
+     * 
+     * @param string $attribute
+     * @param mixed $value
+     * @return \Skinny\Data\Form|string
+     */
+    private function __getOrSetAttribute($attribute, $value = null) {
+        if ($value === null) {
+            // pobranie ustawionego atrybutu
+            return $this->getAttribute($attribute);
+        } else {
+            // ustawienie atrybutu
+            return $this->setAttribute($attribute, $value);
+        }
+    }
+
+    /**
+     * Alias do ustawienia atrybutu o nazwie metody.
+     * 
+     * @param mixed $value
+     * @return \Skinny\Data\Form|string
+     */
+    public function method($value = null) {
+        return $this->__getOrSetAttribute('method', $value);
+    }
+
+    /**
+     * Alias do ustawienia atrybutu o nazwie metody.
+     * 
+     * @param mixed $value
+     * @return \Skinny\Data\Form|string
+     */
+    public function action($value = null) {
+        return $this->__getOrSetAttribute('action', $value);
+    }
+
+    /**
+     * Alias do ustawienia atrybutu o nazwie metody.
+     * 
+     * @param mixed $value
+     * @return \Skinny\Data\Form|string
+     */
+    public function placeholder($value = null) {
+        return $this->__getOrSetAttribute('placeholder', $value);
+    }
+
+    /**
      * Dodaje klasę/klasy do istniejących
      * 
      * @param string $class
+     * @return \Skinny\Data\Form
      */
     public function addClass($class) {
         if (empty($class) || !is_string($class)) {
@@ -349,6 +424,31 @@ class Form extends Validate {
 
         return $this;
     }
+    
+    /**
+     * Sprawdza czy jest ustawiona klasa o podanej nazwie.
+     * 
+     * @param string $class
+     * @return boolean
+     * @throws Form\Exception
+     */
+    public function hasClass($class) {
+        if (empty($class) || !is_string($class)) {
+            throw new Form\Exception('Invalid class name');
+        }
+        
+        return in_array($class, $this->_classes);
+    }
+    
+    /**
+     * Ustawia lub pobiera atrybut "id" formularza.
+     * 
+     * @param string $id
+     * @return \Skinny\Data\Form
+     */
+    public function id($id = null) {
+        return $this->__getOrSetAttribute('id', $id);
+    }
 
     /**
      * Alias metody add
@@ -358,14 +458,37 @@ class Form extends Validate {
     }
 
     /**
-     * Sprawdza czy formularzy był już walidowany i zawiera błędy
+     * Ustawienie serializacji obiektu do JSON.
+     * Wynikiem jest tablica indeksowana nazwami pól.
+     * Jeżeli pole zawiera jakieś podelementy będzie zawierało klucz "items" - dalej rekurencyjnie.
+     * Jeżeli pole jest liściem w polu "value" przyjmnie bieżąco ustawioną wartość.
+     * Jeżeli pole zawiera błędy - np. po walidacji - w polu "errors" będzie zawierało tablicę błędów.
      * 
-     * @return boolean
+     * @return array
      */
-    public function hasErrors() {
-        return $this->validated() && !$this->isValid();
+    public function jsonSerialize() {
+        $json = [];
+
+        foreach ($this->_items as $name => $item) {
+            $json[$name] = [];
+
+            if (!empty($item->_items)) {
+                // Przypisanie ewentualnych podelementów jeśli istnieją (rekurencyjnie)
+                $json[$name]['items'] = $item;
+            } else {
+                // Przypisanie ustawionej wartości dla bieżącego pola jeżeli jest liściem
+                $json[$name]['value'] = $item->value();
+                $json[$name]['keysFromRoot'] = $item->_keysFromRoot;
+            }
+
+            // Przypisanie błędów po walidacji pola - jeśli istnieją
+            $errors = $item->getErrors();
+            if (!empty($errors)) {
+                $json[$name]['errors'] = $errors;
+            }
+        }
+
+        return $json;
     }
-    
-    
 
 }

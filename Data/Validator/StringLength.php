@@ -7,22 +7,22 @@ class StringLength extends IsString {
     /**
      * Minimalna ilość znaków dla stringa
      */
-    const OPT_MIN = 'min';
+    const OPT_MIN = 'optMin';
 
     /**
      * Maksymalna ilość znaków dla stringa
      */
-    const OPT_MAX = 'max';
+    const OPT_MAX = 'optMax';
 
     /**
      * String jest zbyt krótki
      */
-    const MSG_TOO_SHORT = 'tooShort';
+    const MSG_TOO_SHORT = 'msgTooShort';
 
     /**
      * String jest zbyt długi
      */
-    const MSG_TOO_LONG = 'tooLong';
+    const MSG_TOO_LONG = 'msgTooLong';
 
     /**
      * Parametr min (komunikaty)
@@ -33,7 +33,7 @@ class StringLength extends IsString {
      * Parametr max (komunikaty)
      */
     const PRM_MAX = '%max%';
-    
+
     /**
      * Parametr bieżącej długości łańcucha znaków (komunikaty)
      */
@@ -46,18 +46,6 @@ class StringLength extends IsString {
     protected $_currentLength = null;
 
     /**
-     * Minimalna długość stringa
-     * @var int
-     */
-    protected $_min = null;
-
-    /**
-     * Maksymalna długość stringa
-     * @var int
-     */
-    protected $_max = null;
-
-    /**
      * Walidator długości łańcucha znaków.
      * 
      * @param array $options
@@ -66,47 +54,46 @@ class StringLength extends IsString {
     public function __construct(array $options) {
         parent::__construct($options);
 
-        $this->_setMessagesTemplates([
-            self::MSG_TOO_SHORT => "Tekst jest za krótki. Minimalna ilość znaków: %min%",
-            self::MSG_TOO_LONG => "String jest za długi. Maksymalna ilość znaków: %max%"
-        ]);
-
         if (key_exists(self::OPT_MIN, $this->_options)) {
             if (!is_int($this->_options[self::OPT_MIN])) {
-                throw new exception("'min' option has to be an integer");
+                throw new exception("Invalid option: '" . self::OPT_MIN . "'. Integer expected.");
             }
-            $this->_min = $this->_options[self::OPT_MIN];
-            $this->setMessagesParams([self::OPT_MIN => $this->_min]);
+            $this->setMessagesParams([
+                self::PRM_MIN => $this->_options[self::OPT_MIN]
+            ]);
         }
         if (key_exists(self::OPT_MAX, $this->_options)) {
             if (!is_int($this->_options[self::OPT_MAX])) {
-                throw new exception("'max' option has to be an integer");
+                throw new exception("Invalid option: '" . self::OPT_MAX . "'. Integer expected.");
             }
-            $this->_max = $this->_options[self::OPT_MAX];
-            $this->setMessagesParams([self::OPT_MAX => $this->_max]);
+            $this->setMessagesParams([
+                self::PRM_MAX => $this->_options[self::OPT_MAX]
+            ]);
         }
 
-        if (!isset($this->_min) && !isset($this->_max)) {
-            throw new exception("Invalid options");
+        if (!isset($this->_options[self::OPT_MIN]) && !isset($this->_options[self::OPT_MAX])) {
+            throw new exception("At least one option has to be set.");
         }
+
+        // Ustawienie komunikatów
+        $this->_setMessagesTemplates([
+            self::MSG_TOO_SHORT => "Tekst jest za krótki. Minimalna ilość znaków: " . self::PRM_MIN,
+            self::MSG_TOO_LONG => "String jest za długi. Maksymalna ilość znaków: " . self::PRM_MAX
+        ]);
     }
 
     public function isValid($value) {
         if (!parent::isValid($value)) {
             return false;
         }
-        
-        if($value === '') {
-            return true;
-        }
 
         $this->_currentLength = strlen($value); // Ustawienie bieżącej długości stringa
         $this->setMessagesParams(['currentLength' => $this->_currentLength]); // Ustawienie bieżącej długości stringa
-
-        /**
-         * Sprawdzenie minimalnej długości stringa
-         */
-        if (isset($this->_min) && $this->_currentLength < $this->_min) {
+        // Sprawdzenie minimalnej długości stringa
+        if (
+                isset($this->_options[self::OPT_MIN]) &&
+                $this->_currentLength < $this->_options[self::OPT_MIN]
+        ) {
             $this->error(self::MSG_TOO_SHORT);
 
             if ($this->_options[self::OPT_BREAK_ON_ERROR]) {
@@ -114,10 +101,11 @@ class StringLength extends IsString {
             }
         }
 
-        /**
-         * Sprawdzenie maksymalnej długości stringa
-         */
-        if (isset($this->_max) && $this->_currentLength > $this->_max) {
+        // Sprawdzenie maksymalnej długości stringa
+        if (
+                isset($this->_options[self::OPT_MAX]) &&
+                $this->_currentLength > $this->_options[self::OPT_MAX]
+        ) {
             $this->error(self::MSG_TOO_LONG);
 
             if ($this->_options[self::OPT_BREAK_ON_ERROR]) {

@@ -7,6 +7,9 @@ namespace Skinny\Data\Validator;
  */
 class IsEmail extends ValidatorBase {
 
+    /**
+     * Komunikat zwracany w przypadku niepoprawnego adresu e-mail
+     */
     const MSG_NOT_EMAIL = 'notEmail';
 
     public function __construct($options = null) {
