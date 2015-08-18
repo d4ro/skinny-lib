@@ -51,6 +51,10 @@ abstract class ObjectModelBase implements \IteratorAggregate {
         return new \ArrayIterator($this->_items);
     }
 
+//    public function __construct() {
+//        $this->_root = $this;
+//    }
+
     /**
      * Odczyt nieistniejącej właściwości tworzy nowy obiekt tej lub innej klasy
      * zgodnie z dokumentacją metody _createObject.
@@ -59,10 +63,11 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      * @return mixed
      */
     public function &__get($name) {
+        if ($this->_root === null) {
+            $this->_root = $this;
+        }
         if (!isset($this->_items[$name])) {
-            $this->_items[$name] = $this->_createObject();
-            $this->_items[$name]->_name = $name;
-            $this->_items[$name]->_parent = $this;
+            $this->_items[$name] = $this->_createObject($name);
         }
         return $this->_items[$name];
     }
@@ -79,10 +84,15 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      */
     public function __set($name, $value) {
         $this->_items[$name] = $value;
-        if ($value instanceof static) {
-            $this->_items[$name]->_name = $name;
-            $this->_items[$name]->_parent = $this;
-        }
+//        
+//        if ($value instanceof self) {
+//            if($this->_root === null) {
+//                $this->_root = $this;
+//            }
+//            
+//            $this->_items[$name]->_name = $name;
+//            $this->_items[$name]->_parent = $this;
+//        }
     }
 
     /**
@@ -108,14 +118,18 @@ abstract class ObjectModelBase implements \IteratorAggregate {
     }
 
     /**
-     * Tworzy nowy obiekt. Metoda może być nadpisana tak, aby nowo tworzone obiekty
-     * w tablicy items mogły być np. self lub dowolnej klasy dziedziczącej po
-     * tej klasie bazowej.
+     * Tworzy nowy obiekt w taki sposób aby miał wskaźnik na swojego rodzica oraz
+     * roota.
      * 
-     * @return static
+     * @param string $name Nazwa podobiektu
+     * @return \static
      */
-    protected function _createObject() {
-        return new static();
+    protected function _createObject($name) {
+        $item = new static();
+        $item->_name = $name;
+        $item->_parent = $this;
+        $item->_root = $this->_root;
+        return $item;
     }
 
     /**
@@ -268,12 +282,8 @@ abstract class ObjectModelBase implements \IteratorAggregate {
  * @return static
  */
 public function root() {
-    if ($this->_root === null) {
-        if (!$this->isRoot()) {
-            $this->_root = $this->parent()->root();
-        } else {
-            $this->_root = $this;
-        }
+    if (!$this->_root) {
+        $this->_root = $this;
     }
 
     return $this->_root;
