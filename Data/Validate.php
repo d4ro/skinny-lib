@@ -147,14 +147,14 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         return $item;
     }
 
-    /**
-     * Domyślnie generowany nowy obiekt
-     * 
-     * @return \self
-     */
-    protected function _createObject() {
-        return new self();
-    }
+//    /**
+//     * Domyślnie generowany nowy obiekt
+//     * 
+//     * @return \self
+//     */
+//    protected function _createObject() {
+//        return new self();
+//    }
 
     /**
      * Zapis do nieistniejącej właściwości
