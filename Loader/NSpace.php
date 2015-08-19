@@ -29,13 +29,15 @@ class NSpace extends LoaderBase {
 
             if (is_readable($path)) {
                 require $path;
-                return class_exists($className);
+//                return class_exists($className);
+                return true;
             }
 
             break;
         }
 
-        return class_exists($className);
+//        return class_exists($className);
+        return false;
     }
 
 }
