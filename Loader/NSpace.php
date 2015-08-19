@@ -13,13 +13,8 @@ class NSpace extends LoaderBase {
 
     public function load($className) {
         $className = trim($className, '\\');
-
-//echo getcwd();
-
+        
         foreach ($this->_config->toArray() as $namespace => $path) {
-
-//            var_dump($path);
-//            die();
             if (strpos($className, $namespace) !== 0) {
                 continue;
             }
