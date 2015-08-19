@@ -44,7 +44,7 @@ class View extends DataObject\ArrayWrapper {
     private $__renderer = null;
 
     public function __construct($config) {
-//        parent::__construct();
+        $this->_data = [];
 
         $this->setConfig($config);
 

@@ -117,7 +117,7 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
 
     /**
      * Ustawia config.
-     * @param \Skinny\Store $config
+     * @param \Skinny\DataObject\Store $config
      */
     public static function setConfig(\Skinny\DataObject\Store $config) {
         self::$_config = $config;
@@ -208,7 +208,7 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
 
     /**
      * Zwraca obiekt konfiguracyjny.
-     * @return \Skinny\Store
+     * @return \Skinny\DataObject\Store
      */
     public function getConfig() {
         return self::$_config;
