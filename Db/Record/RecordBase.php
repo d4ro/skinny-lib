@@ -202,9 +202,12 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * - isIdAutoincrement: czy jednokolumnowy klucz główny ma być traktowany jako auto ID, domyślnie true
      * - isAutoRefreshForbidden: czy ma być wyłączone automatyczne pobieranie rekordu z bazy po inserach oraz update'ach, domyślnie false
      */
-    public function __construct($mainTable, $idColumns = 'id', $data = array(), $options = null) {
-        \Skinny\Exception::throwIf(self::$db === null, new \Skinny\Db\DbException('Database adaptor used by record is not set'));
-        \Skinny\Exception::throwIf($options !== null && !($options instanceof Store), new \InvalidArgumentException('Param $options is not instance of Store'));
+    public function __construct($mainTable, $idColumns = 'id', $data = array(),
+            $options = null) {
+        \Skinny\Exception::throwIf(self::$db === null,
+                new \Skinny\Db\DbException('Database adaptor used by record is not set'));
+        \Skinny\Exception::throwIf($options !== null && !($options instanceof Store),
+                new \InvalidArgumentException('Param $options is not instance of Store'));
 
         if (null === $options) {
             $options = new Store();
@@ -260,7 +263,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
                     $this->_recordColumns[$name]['value'] = null;
                     $this->_recordColumns[$name]['hasValue'] = true;
 //                    $identifier = $this->_validateIdentifier($identifier);
-                    $this->_recordColumns[$name]['value'] = call_user_func(array($this->_recordColumns[$name]['recordClassName'], 'get'), $identifier);
+                    $this->_recordColumns[$name]['value'] = call_user_func(array($this->_recordColumns[$name]['recordClassName'], 'get'),
+                            $identifier);
                 } catch (Exception $ex) {
                     // niepowodzenie pobrania danych
                 }
@@ -271,7 +275,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
 
         if (array_key_exists($name, $this->_jsonColumns)) {
             if (!$this->_jsonColumns[$name]['hasValue']) {
-                $this->_jsonColumns[$name]['value'] = json_decode($this->_data[$name], true);
+                $this->_jsonColumns[$name]['value'] = json_decode($this->_data[$name],
+                        true);
                 $this->_jsonColumns[$name]['hasValue'] = true;
             }
 
@@ -332,7 +337,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             }
         }
 
-        return get_class() . ': ' . $this->_tableName . ' (' . substr($primary, 0, -2) . ')';
+        return get_class() . ': ' . $this->_tableName . ' (' . substr($primary,
+                        0, -2) . ')';
     }
 
     /**
@@ -398,7 +404,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
 
         // pobranie rekordów
         /* @var $records RecordCollection */
-        $records = call_user_func([$recordClassName, 'find'], $where, $this->_collectionVirtualColumns[$name]['order'], $this->_collectionVirtualColumns[$name]['limit'], $this->_collectionVirtualColumns[$name]['offset']);
+        $records = call_user_func([$recordClassName, 'find'], $where,
+                $this->_collectionVirtualColumns[$name]['order'],
+                $this->_collectionVirtualColumns[$name]['limit'],
+                $this->_collectionVirtualColumns[$name]['offset']);
 
         // przypisanie rekordów
         if ($customCollectionClass) {
@@ -487,7 +496,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @param string $recordClassName nazwa klasy rekordu obsługującego dane pole
      * @param array $identifier identyfikator zdalnego rekordu na podstawie danych bieżącego rekordu w formacie priKey1 => col1, priKey2 => col2
      */
-    protected function _setRecordColumn($columnName, $recordClassName, array $identifier) {
+    protected function _setRecordColumn($columnName, $recordClassName,
+            array $identifier) {
         $this->_recordColumns[$columnName] = ['value' => null, 'hasValue' => false, 'recordClassName' => $recordClassName, 'identifier' => $identifier];
     }
 
@@ -510,7 +520,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @param string $limit opcjonalny limit ilości wyników
      * @param string $offset opcjonalne przesunięcie wyników
      */
-    protected function _setCollectionVirtualColumn($columnName, array $where, $recordClassName = null, $collectionClassName = null, $order = null, $limit = null, $offset = null) {
+    protected function _setCollectionVirtualColumn($columnName, array $where,
+            $recordClassName = null, $collectionClassName = null, $order = null,
+            $limit = null, $offset = null) {
         if (null === $recordClassName && null === $collectionClassName) {
             throw new \Skinny\Db\DbException('Invalid arguments while declaring collection virtual column "' . $columnName . '". Arguments $recordClassName and/or $collectionClassName must be set.');
         }
@@ -538,7 +550,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         if (null === $this->_columns) {
             $structure = $this->_getTableStructure($this->_tableName);
             $this->_columns = $columns = array_keys($structure);
-            user_error('Performance issue: Record columns have not been specified. Had to describe table.', E_NOTICE);
+            user_error('Performance issue: Record columns have not been specified. Had to describe table.',
+                    E_NOTICE);
         }
 
         if ($everything) {
@@ -753,7 +766,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      */
     public function insert($refreshData = true) {
         $data = $this->exportData();
-        return $this->_insert($data, $refreshData && !$this->_config->isAutoRefreshForbidden(false, true));
+        return $this->_insert($data,
+                        $refreshData && !$this->_config->isAutoRefreshForbidden(false,
+                                true));
     }
 
     /**
@@ -813,7 +828,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         }
 
         $data = $this->exportData();
-        return $this->_update($data, $refreshData && !$this->_config->isAutoRefreshForbidden(false, true));
+        return $this->_update($data,
+                        $refreshData && !$this->_config->isAutoRefreshForbidden(false,
+                                true));
     }
 
     /**
@@ -832,7 +849,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         $this->_idValue = $this->_validateIdentifier($this->_idValue);
         $this->_isSaving = true;
 
-        $success = self::$db->update($this->_tableName, $data, $this->_getWhere());
+        $success = self::$db->update($this->_tableName, $data,
+                $this->_getWhere());
 
         if ($success === 0) {
             $this->_exists = false;
@@ -1001,7 +1019,11 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
 //        }
 
         $obj = new static();
-        $id = $obj->_validateIdentifier($id);
+        try {
+            $id = $obj->_validateIdentifier($id);
+        } catch (\Skinny\Db\Record\RecordException $ex) {
+            return null;
+        }
 
         if ($obj->_load($id)) {
             return $obj;
@@ -1063,7 +1085,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @param int $offset część zapytania OFFSET
      * @return array tablica obiektów rekordów będących rezultatem zapytania
      */
-    public static function findArray($where = null, $order = null, $limit = null, $offset = null) {
+    public static function findArray($where = null, $order = null,
+            $limit = null, $offset = null) {
         $obj = new static();
 
         // select
@@ -1087,7 +1110,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @param int $offset część zapytania OFFSET
      * @return RecordCollection kolekcja rekordów będących rezultatem zapytania
      */
-    public static function find($where = null, $order = null, $limit = null, $offset = null) {
+    public static function find($where = null, $order = null, $limit = null,
+            $offset = null) {
         $records = static::findArray($where, $order, $limit, $offset);
 
         $collection = new RecordCollection($records);
@@ -1118,7 +1142,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @return integer
      */
     public static function count($where = null) {
-        $select = self::$db->select()->from(['t' => static::getTableName()], ['COUNT(1)']);
+        $select = self::$db->select()->from(['t' => static::getTableName()],
+                ['COUNT(1)']);
 
         self::_addWhereToSelect($select, $where);
 
