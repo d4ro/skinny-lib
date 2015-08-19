@@ -456,6 +456,7 @@ class Application {
         } catch (Action\ForwardException $ex) {
             
         }
+        $this->_request->proceed();
         $this->run();
         return true;
 //        }
