@@ -995,17 +995,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * @return record
      */
     public static function get($id) {
-//        if (!is_array($id) && func_num_args() > 1) {
-//            $obj = new static();
-//            $id = array_combine($obj->_idColumns, func_get_args());
-//        }
-
         $obj = new static();
-        $id = $obj->_validateIdentifier($id);
-
-        if ($obj->_load($id)) {
-            return $obj;
-        } else {
+        try {
+            $id = $obj->_validateIdentifier($id);
+        } catch (\Skinny\Db\Record\RecordException $ex) {
             return null;
         }
     }
