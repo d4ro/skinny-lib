@@ -20,10 +20,15 @@ class MySQL extends AdapterBase {
         $this->_db = $db;
     }
 
+    public function setSessionConfig($config) {
+        parent::setSessionConfig($config);
+
+        $this->_lifetime = $this->_config->lifetime(get_cfg_var("session.gc_maxlifetime"), true);
+    }
+
     function open($savePath, $sessionName) {
         $this->_sessionName = $sessionName;
         $this->_savePath = $savePath;
-        $this->_lifetime = $this->_config->lifetime(get_cfg_var("session.gc_maxlifetime"), true);
 
         return true;
     }
@@ -49,17 +54,22 @@ class MySQL extends AdapterBase {
     }
 
     protected function getData($id) {
+        $select = $this->getSelect($id);
+        $row = $this->_db->fetchRow($select);
+        if (empty($row)) {
+            return false;
+        }
+        return $row;
+    }
+
+    protected function getSelect($id) {
         $select = $this->_db->select();
         $select->from($this->_config->table->name('session', true), array(
             $this->_config->table->data('data', true),
             new \Zend_Db_Expr('IF (' . $this->_db->quoteIdentifier($this->_config->table->expires('expires', true)) . ' > now(), 1, 0) as "valid"')
         ));
         $select->where($this->_db->quoteIdentifier($this->_config->table->id('id', true)) . ' = ?', $id);
-        $row = $this->_db->fetchRow($select);
-        if (empty($row)) {
-            return false;
-        }
-        return $row;
+        return $select;
     }
 
     function write($id, $data) {

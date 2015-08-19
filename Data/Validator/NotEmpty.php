@@ -2,7 +2,7 @@
 
 namespace Skinny\Data\Validator;
 
-class notEmpty extends ValidatorBase {
+class NotEmpty extends ValidatorBase {
 
     const IS_EMPTY = 'isEmpty';
 
@@ -15,7 +15,11 @@ class notEmpty extends ValidatorBase {
     }
 
     public function isValid($value) {
-    if (($value === null || strlen($value) == 0)) {
+        if (
+                $value === null ||
+                (is_string($value) && strlen($value) === 0) ||
+                (is_array($value) && count($value) === 0)
+        ) {
             $this->error(self::IS_EMPTY);
             return false;
         }

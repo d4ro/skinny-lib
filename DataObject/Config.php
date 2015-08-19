@@ -1,6 +1,6 @@
 <?php
 
-namespace Skinny;
+namespace Skinny\DataObject;
 
 /**
  * Description of Config

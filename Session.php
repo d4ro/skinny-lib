@@ -2,6 +2,8 @@
 
 namespace Skinny;
 
+use Skinny\DataObject\Store;
+
 if (!defined('PHP_VERSION_ID')) {
     $version = explode('.', PHP_VERSION);
 
@@ -14,7 +16,7 @@ if (!defined('PHP_VERSION_ID')) {
  *
  * @author Daro
  */
-class Session extends ArrayWrapper {
+class Session extends DataObject\ArrayWrapper {
 
     /**
      * Session configuration object
@@ -31,6 +33,7 @@ class Session extends ArrayWrapper {
     public function __construct($config, $adapter) {
         $this->_config = $config;
         $this->_adapter = $adapter;
+//        $this->_adapter->setSessionConfig($this->_config);
 
         // zaślepka, ponieważ $_SESSION jeszcze nie istnieje
         $sessionData = array();
@@ -52,7 +55,6 @@ class Session extends ArrayWrapper {
             return false;
         }
 
-        $this->_adapter->setSessionConfig($this->_config);
         $this->registerCallbacks();
         $defaulName = session_name();
         session_name($this->_config->name($defaulName));

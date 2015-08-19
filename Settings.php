@@ -2,6 +2,8 @@
 
 namespace Skinny;
 
+use Skinny\DataObject\Store;
+
 /**
  * Description of Settings
  *
