@@ -204,6 +204,11 @@ class View extends DataObject\ArrayWrapper {
         return json_encode($this->_jsVars);
     }
 
+    /**
+     * Reneruje ustawiony layout i wyświetla go na stronie.
+     * 
+     * @throws View\Exception
+     */
     public function display() {
         if(($renderer = $this->getRenderer()) === null) {
             throw new View\Exception("Renderer has not been set");
