@@ -291,26 +291,36 @@ class Form extends Validate implements \JsonSerializable {
         if ($name === 'class') {
             return call_user_func_array([$this, '__cls'], $arguments);
         } else {
-            return $this->_setData($name, isset($arguments[0]) ? $arguments[0] : null, isset($arguments[1]) ? $arguments[1] : null);
+            if(empty($arguments)) {
+                // get
+                return $this->_getData($name);
+            } else {
+                // set
+                return $this->_setData($name, $arguments[0]);
+            }
         }
     }
     
     /**
-     * Ustawia dodatkową daną - ustawiane przy pomocy magicznych wywołań.
+     * Ustawia dodatkową daną obiektu w kontenerze _customData.
      * 
-     * @param string $name
-     * @param mixed $value
-     * @return type
+     * @param string $name Nazwa zmiennej do ustawienia
+     * @param mixed $value Wartość do ustawienia
+     * @return \Skinny\Data\Form
      */
-    protected function _setData($name, $value = null) {
-        if($value === null) {
-            // pobranie wartości
-            return @$this->_customData[$name];
-        } else {
-            $this->_customData[$name] = $value;
-        }
-        
+    protected function _setData($name, $value) {
+        $this->_customData[$name] = $value;
         return $this;
+    }
+    
+    /**
+     * Pobiera ustawioną wartość lub zwraca null jeśli nie ustawiona.
+     * 
+     * @param string $name Nazwa zmiennej do pobrania
+     * @return mixed
+     */
+    protected function _getData($name) {
+        return @$this->_customData[$name];
     }
 
     /**

@@ -1019,6 +1019,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         } catch (\Skinny\Db\Record\RecordException $ex) {
             return null;
         }
+        
+        if ($obj->_load($id)) {
+            return $obj;
+        } else {
             return null;
         }
     }
