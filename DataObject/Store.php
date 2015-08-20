@@ -153,11 +153,11 @@ class Store extends ObjectModelBase implements \JsonSerializable {
      * @param type $value
      */
     public function __set($name, $value) {
-        if (is_array($value)) {
-            parent::__set($name, $this->_createObject()->merge($value));
-        } else {
+//        if (is_array($value)) {
+//            parent::__set($name, $this->_createObject()->merge($value));
+//        } else {
             parent::__set($name, $value);
-        }
+//        }
     }
 
     /**

@@ -103,9 +103,15 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      * @return boolean
      */
     public function __isset($name) {
-        return
-                isset($this->_items[$name]) &&
-                (!($this->isSelf($this->_items[$name])) || ($this->isSelf($this->_items[$name])) && !$this->_items[$name]->isEmpty());
+        if (!isset($this->_items[$name])) {
+            return false;
+        }
+
+        if (!($this->isSelf($this->_items[$name]))) {
+            return true;
+        }
+
+        return !$this->_items[$name]->isEmpty();
     }
 
     /**
@@ -160,12 +166,6 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      * @return boolean
      */
     public function isEmpty() {
-        foreach ($this->_items as $item) {
-            if (!$this->isSelf($item)) {
-                return false;
-            }
-        }
-
         return $this->length() == 0;
     }
 
