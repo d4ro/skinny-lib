@@ -407,9 +407,10 @@ class Application {
         switch ($lastError['type']) {
             // notice
             case E_NOTICE:
+            case E_USER_NOTICE:
             case E_DEPRECATED:
-            case E_STRICT:
             case E_USER_DEPRECATED:
+            case E_STRICT:
                 // ignorowanie
                 return;
                 break;
