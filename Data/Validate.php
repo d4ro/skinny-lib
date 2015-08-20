@@ -434,7 +434,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @return \Skinny\Data\Validate|string
      */
     public function label($label = null) {
-        if ($label === null) {
+        if(func_num_args() === 0) {
             // pobranie wartości
             return ($l = @$this->_options[self::OPTION_MESSAGES_PARAMS]['label']) !== null ? $l : "";
         } else {
@@ -444,7 +444,6 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
                 ]
             ]);
         }
-
         return $this;
     }
 
@@ -625,7 +624,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @return mixed
      */
     public function value($value = null) {
-        if ($value === null) {
+        if(func_num_args() === 0) {
             if ($this->_name) {
                 $val = @$val[$this->_name]; // zwraca wartość konkretnego pola
 
@@ -757,8 +756,14 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     public function setData($data = null) {
         if ($data !== null) {
             if (is_array($data) && $this->isRoot()) {
-                foreach ($data as $k => $v) {
-                    $this->{$k}->__setAllDataLevelValue($v);
+//                foreach ($data as $k => $v) {
+//                    $this->{$k}->__setAllDataLevelValue($v);
+//                }
+                foreach($this->_items as $name => $item) {
+                    /* @var $item Validate */
+                    if(isset($data[$name])) {
+                        $item->__setAllDataLevelValue($data[$name]);
+                    }
                 }
             } else {
                 $this->__setAllDataLevelValue($data);
