@@ -19,6 +19,10 @@ class ComponentsAware {
         return self::$_components->getComponent($name);
     }
 
+    public function getConfig($key = null) {
+        return self::$_components->getConfig($key);
+    }
+
     /**
      * Nieistniejąca właściwość - pobranie komponentu aplikacji
      * np. $this->view->... odwołuje się do komponentu "view".

@@ -67,15 +67,6 @@ abstract class Action extends Application\Components\ComponentsAware {
     /* uzytkowe */
 
     /**
-     * Pobiera konfigurację aplikacji
-     * @param string $key
-     * @return mixed
-     */
-    public function getConfig($key = null) {
-        return $this->getApplication()->getConfig($key);
-    }
-
-    /**
      * Pobiera ilość argumentów żądania
      * @return integer
      */
