@@ -214,11 +214,17 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @param int $offset część zapytania OFFSET
      * @return int ilość dodanych do kolekcji rekordów
      */
-    public function find($where = null, $order = null, $limit = null, $offset = null) {
+    public function findAndAdd($where = null, $order = null, $limit = null, $offset = null) {
         \Skinny\Exception::throwIf(empty($this->_recordClassName), new RecordException('Record class name has not been set for this record collection so find() cannot operate.'));
         $records = call_user_func([$this->_recordClassName, 'findArray'], $where, $order, $limit, $offset);
         $this->addRecords($records);
         return count($records);
+    }
+
+    public static function find($where = null, $order = null, $limit = null, $offset = null) {
+        $collection = new static();
+        $collection->findAndAdd($where, $order, $limit, $offset);
+        return $collection;
     }
 
     public function offsetExists($offset) {
