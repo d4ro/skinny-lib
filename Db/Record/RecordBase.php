@@ -138,6 +138,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
 
             // i przypisujemy ich wartości do obiektu
             $obj->_setData($row);
+            $obj->_exists = true;
+            $obj->_isModified = false;
+            $obj->_isSaving = false;
 
             $result[] = $obj;
         }
@@ -1147,7 +1150,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
      * 
      * @param string $where część zapytania WHERE
      * @param string $order część zapytania ORDER BY
-     * @return record|null pierwszy rekord spełniający warunki lub null
+     * @return static pierwszy rekord spełniający warunki lub null
      */
     public static function findOne($where = null, $order = null, $offset = null) {
         $result = self::findArray($where, $order, 1, $offset);
