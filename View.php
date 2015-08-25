@@ -228,5 +228,22 @@ class View extends DataObject\ArrayWrapper {
         $this->jsHead->clear();
         $this->_jsVars = [];
     }
+    
+    /**
+     * Ustawia w odpowiednim kontenerze przetłumaczoną już zmienną językową o 
+     * podanym kluczu.
+     * 
+     * @param string $text   Tekst do przetłumaczenia i ustawienia w JS
+     * @param array  $params Opcjonalne parametry do langa
+     * @return \Skinny\View
+     */
+    public function jsLang($text, $params = null) {
+        if(!isset($this->_jsVars['lang'])) {
+            $this->_jsVars['lang'] = [];
+        }
+        $this->_jsVars['lang'][$text] = lang($text, $params);
+        
+        return $this;
+    }
 
 }
