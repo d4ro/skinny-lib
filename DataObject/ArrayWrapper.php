@@ -197,4 +197,10 @@ class ArrayWrapper extends DataBase implements \JsonSerializable, \ArrayAccess, 
         return $arr1;
     }
 
+    public static function arrayValuesEqual(array $arr1, array $arr2) {
+        sort($arr1);
+        sort($arr2);
+        return ($arr1 == $arr2);
+    }
+
 }
