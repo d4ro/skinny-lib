@@ -248,10 +248,6 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             return $this->_collectionVirtualColumns[$name]['value'];
         }
 
-        if (!array_key_exists($name, $this->_data)) {
-            return null;
-        }
-
         if (array_key_exists($name, $this->_recordColumns)) {
             if (!$this->_recordColumns[$name]['hasValue']) {
                 // $identifier ma odpowiedniki tam => tu [on1 => ja1, on2 => ja2]
@@ -275,6 +271,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             }
 
             return $this->_recordColumns[$name]['value'];
+        }
+
+        if (!array_key_exists($name, $this->_data)) {
+            return null;
         }
 
         if (array_key_exists($name, $this->_jsonColumns)) {
