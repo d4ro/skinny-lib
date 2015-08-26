@@ -301,10 +301,6 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             $setData = false;
         }
 
-        if (array_key_exists($name, $this->_jsonColumns)) {
-            $this->_jsonColumns[$name]['hasValue'] = false; //json_decode($value, true);
-        }
-
         if (array_key_exists($name, $this->_recordColumns)) {
             if ($value instanceof self) {
                 $this->_recordColumns[$name]['value'] = $value;
@@ -320,6 +316,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
             } else {
                 $this->_recordColumns[$name]['hasValue'] = false;
             }
+        }
+
+        if (array_key_exists($name, $this->_jsonColumns)) {
+            $this->_jsonColumns[$name]['hasValue'] = false; //json_decode($value, true);
         }
 
         if ($setData) {
@@ -439,6 +439,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
                 if (null === $value || $value instanceof RecordCollection) {
                     $this->_collectionVirtualColumns[$key]['value'] = $value;
                 }
+
                 continue;
             }
 
@@ -464,13 +465,11 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
                 $this->_jsonColumns[$key]['hasValue'] = false;
             }
 
-            if (key_exists($key, $data)) {
-                if ($useFiltering && key_exists($key, $this->_filteredColumns) && isset($this->_filteredColumns[$key]['setter']) && $this->_filteredColumns[$key]['setter'] instanceof \Closure) {
-                    $value = $this->_filteredColumns[$key]['setter']($value);
-                }
-
-                $this->_data[$key] = $value;
+            if ($useFiltering && key_exists($key, $this->_filteredColumns) && isset($this->_filteredColumns[$key]['setter']) && $this->_filteredColumns[$key]['setter'] instanceof \Closure) {
+                $value = $this->_filteredColumns[$key]['setter']($value);
             }
+
+            $this->_data[$key] = $value;
         }
     }
 
