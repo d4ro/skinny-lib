@@ -1116,7 +1116,22 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         $obj = new static();
 
         // select
-        $select = $obj->_getSelectWhere(null, $where);
+        $select = $obj->prepareSelect($where, $order, $limit, $offset);
+        
+        return static::_select($select);
+    }
+    
+    /**
+     * Przygotowuje selecta na podstawie podanych argumentów.
+     * 
+     * @param string $where część zapytania WHERE
+     * @param string $order część zapytania ORDER BY
+     * @param int $limit część zapytania LIMIT
+     * @param int $offset część zapytania OFFSET
+     * @return \Zend_Db_Select
+     */
+    public function prepareSelect($where = null, $order = null, $limit = null, $offset = null) {
+        $select = $this->_getSelectWhere(null, $where);
         if (null !== $order) {
             $select->order($order);
         }
@@ -1124,7 +1139,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         if (null !== $limit || null !== $offset) {
             $select->limit($limit, $offset);
         }
-        return static::_select($select);
+        
+        return $select;
     }
 
     /**
