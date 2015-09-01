@@ -9,7 +9,7 @@ use Skinny\DataObject\Store;
  *
  * @author Daro
  */
-abstract class RecordBase extends \Skinny\DataObject\DataBase {
+abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSerializable/* , \ArrayAccess */ {
 
     /**
      * Połączenie do bazy danych
@@ -1117,10 +1117,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
 
         // select
         $select = $obj->prepareSelect($where, $order, $limit, $offset);
-        
+
         return static::_select($select);
     }
-    
+
     /**
      * Przygotowuje selecta na podstawie podanych argumentów.
      * 
@@ -1139,7 +1139,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         if (null !== $limit || null !== $offset) {
             $select->limit($limit, $offset);
         }
-        
+
         return $select;
     }
 
@@ -1379,6 +1379,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase {
         return
                 $this->_tableName == $record->_tableName &&
                 $this->getFullId() == $record->getFullId();
+    }
+
+    public function jsonSerialize() {
+        return $this->_data;
     }
 
 }
