@@ -4,12 +4,7 @@ namespace Skinny\Db\Record;
 
 use Skinny\DataObject\Store;
 
-/**
- * Description of RecordBase
- *
- * @author Daro
- */
-abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSerializable/* , \ArrayAccess */ {
+abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSerializable, \ArrayAccess {
 
     /**
      * Połączenie do bazy danych
@@ -73,10 +68,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     protected $_recordColumns = [];
 
     /**
-     * Określa wirtualne kolumny będące kolekcją rekordów
+     * Określa kolumny będące kolekcją rekordów
      * @var array
      */
-    protected $_collectionVirtualColumns = [];
+    protected $_collectionColumns = [];
 
     /**
      * Określa kolumny, które mają być filtrowane w specyficzny sposób
@@ -240,12 +235,12 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
     public function &__get($name) {
         /* @var $collection RecordCollection */
-        if (array_key_exists($name, $this->_collectionVirtualColumns)) {
-            if (!$this->_collectionVirtualColumns[$name]['hasValue']) {
-                $this->_buildCollectionVirtualColumn($name);
+        if (array_key_exists($name, $this->_collectionColumns)) {
+            if (!$this->_collectionColumns[$name]['hasValue']) {
+                $this->_buildCollectionColumn($name);
             }
 
-            return $this->_collectionVirtualColumns[$name]['value'];
+            return $this->_collectionColumns[$name]['value'];
         }
 
         if (array_key_exists($name, $this->_recordColumns)) {
@@ -297,7 +292,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $this->_isModified = true;
         $setData = true;
 
-        if (array_key_exists($name, $this->_collectionVirtualColumns)) {
+        if (array_key_exists($name, $this->_collectionColumns)) {
             $setData = false;
         }
 
@@ -398,33 +393,33 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * 
      * @param string $name nazwa wirtualnej kolumny
      */
-    private function _buildCollectionVirtualColumn($name) {
-        $recordClassName = $this->_collectionVirtualColumns[$name]['recordClassName'];
-        $customCollectionClass = !empty($this->_collectionVirtualColumns[$name]['collectionClassName']);
+    private function _buildCollectionColumn($name) {
+        $recordClassName = $this->_collectionColumns[$name]['recordClassName'];
+        $customCollectionClass = !empty($this->_collectionColumns[$name]['collectionClassName']);
 
         // instancjowanie kolekcji rekordów
         if ($customCollectionClass) {
             // TODO instancjowanie konkretnej kolekcji
-            $collection = new $this->_collectionVirtualColumns[$name]['collectionClassName']();
+            $collection = new $this->_collectionColumns[$name]['collectionClassName']();
             $recordClassName = $collection->getRecordClassName();
         }
 
         // budowanie zapytania
-        $where = $this->_buildWhere($this->_collectionVirtualColumns[$name]['where']);
+        $where = $this->_buildWhere($this->_collectionColumns[$name]['where']);
 
         // pobranie rekordów
         // przypisanie rekordów
         if ($customCollectionClass) {
             /* @var $records RecordCollection */
-            $records = call_user_func([$recordClassName, 'findArray'], $where, $this->_collectionVirtualColumns[$name]['order'], $this->_collectionVirtualColumns[$name]['limit'], $this->_collectionVirtualColumns[$name]['offset']);
+            $records = call_user_func([$recordClassName, 'findArray'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset']);
             $collection->addRecords($records);
         } else {
             /* @var $records RecordCollection */
-            $collection = call_user_func([$recordClassName, 'find'], $where, $this->_collectionVirtualColumns[$name]['order'], $this->_collectionVirtualColumns[$name]['limit'], $this->_collectionVirtualColumns[$name]['offset']);
+            $collection = call_user_func([$recordClassName, 'find'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset']);
         }
 
-        $this->_collectionVirtualColumns[$name]['value'] = $collection;
-        $this->_collectionVirtualColumns[$name]['hasValue'] = true;
+        $this->_collectionColumns[$name]['value'] = $collection;
+        $this->_collectionColumns[$name]['hasValue'] = true;
     }
 
     /**
@@ -435,9 +430,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     protected function _setData(array $data, $useFiltering = false) {
         foreach ($data as $key => $value) {
-            if (key_exists($key, $this->_collectionVirtualColumns)) {
+            if (key_exists($key, $this->_collectionColumns)) {
                 if (null === $value || $value instanceof RecordCollection) {
-                    $this->_collectionVirtualColumns[$key]['value'] = $value;
+                    $this->_collectionColumns[$key]['value'] = $value;
                 }
 
                 continue;
@@ -531,12 +526,12 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $limit opcjonalny limit ilości wyników
      * @param string $offset opcjonalne przesunięcie wyników
      */
-    protected function _setCollectionVirtualColumn($columnName, array $where, $recordClassName = null, $collectionClassName = null, $order = null, $limit = null, $offset = null) {
+    protected function _setCollectionColumn($columnName, array $where, $recordClassName = null, $collectionClassName = null, $order = null, $limit = null, $offset = null) {
         if (null === $recordClassName && null === $collectionClassName) {
             throw new \Skinny\Db\DbException('Invalid arguments while declaring collection virtual column "' . $columnName . '". Arguments $recordClassName and/or $collectionClassName must be set.');
         }
 
-        $this->_collectionVirtualColumns[$columnName] = [
+        $this->_collectionColumns[$columnName] = [
             'value' => null,
             'hasValue' => false,
             'recordClassName' => $recordClassName,
@@ -1268,21 +1263,25 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         }
 
         $array = [];
-        if (!empty($records)) {
-            foreach ($records as $record) {
-                if ($record instanceof self) {
-                    if (in_array($col, $record->_idColumns)) {
-                        $id = $record->getId();
-                        if (is_array($id)) {
-                            $id = @$id[$col];
-                        }
-                        if (!empty($id)) {
-                            $array[] = $id;
-                        }
-                    } elseif (!empty($record->$col)) {
-                        $array[] = $record->$col;
-                    }
+        if (empty($records)) {
+            return $array;
+        }
+
+        foreach ($records as $record) {
+            if (!($record instanceof self)) {
+                continue;
+            }
+
+            if (in_array($col, $record->_idColumns)) {
+                $id = $record->getId();
+                if (is_array($id)) {
+                    $id = @$id[$col];
                 }
+                if (!empty($id)) {
+                    $array[] = $id;
+                }
+            } elseif (!empty($record->$col)) {
+                $array[] = $record->$col;
             }
         }
 
@@ -1381,8 +1380,54 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                 $this->getFullId() == $record->getFullId();
     }
 
+    /**
+     * Metoda używana do serializacji obiektu do JSONa
+     * @return array
+     */
     public function jsonSerialize() {
         return $this->_data;
+    }
+
+    /**
+     * Metoda używana przy isset($this[$offset])
+     * @param mixed $offset
+     * @return boolean
+     */
+    public function offsetExists($offset) {
+        return
+                key_exists($offset, $this->_data) ||
+                key_exists($offset, $this->_idValue) ||
+                key_exists($offset, $this->_collectionColumns) ||
+                key_exists($offset, $this->_jsonColumns) ||
+                key_exists($offset, $this->_recordColumns)
+        ;
+    }
+
+    /**
+     * Metoda używana przy return $this[$offset]
+     * @param mixed $offset
+     * @return mixed
+     */
+    public function offsetGet($offset) {
+        return $this->$offset;
+    }
+
+    /**
+     * Metoda używana przy $this[$offset] = $value
+     * @param mixed $offset
+     * @param mixed $value
+     */
+    public function offsetSet($offset, $value) {
+        $this->$offset = $value;
+    }
+
+    /**
+     * Metoda używana przy unset($this[$offset])
+     * @param mixed $offset
+     * @return boolean
+     */
+    public function offsetUnset($offset) {
+        unset($this->$offset);
     }
 
 }
