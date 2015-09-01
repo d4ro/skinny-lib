@@ -269,7 +269,8 @@ class Application {
                 Exception::throwIf(!($action instanceof Action), new Action\ActionException("Action's '{$this->_request->current()->getRequestUrl()}' object is not an instance of the Skinny\\Action base class."));
 
                 $action->onInit();
-                $permission = $action->onPermissionCheck();
+                $action->onPrepare();
+                $permission = (bool) $action->onPermissionCheck();
 
                 if (true !== $permission) {
                     $accessDeniedAction = $this->_config->actions->accessDenied('/accessDenied');
@@ -293,7 +294,6 @@ class Application {
                     }
                 }
 
-                $action->onPrepare();
                 $action->onAction();
                 $action->onComplete();
             } catch (\Skinny\Action\ForwardException $e) {
