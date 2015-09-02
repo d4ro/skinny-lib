@@ -18,7 +18,7 @@ class View extends DataObject\ArrayWrapper {
      * @var \Skinny\View\Files
      */
     public $js;
-    
+
     /**
      * Pliki js dołączane na końcu "head".
      * @var \Skinny\View\Files
@@ -30,7 +30,7 @@ class View extends DataObject\ArrayWrapper {
      * @var \Skinny\View\Files
      */
     public $css;
-    
+
     /**
      * Kontener zmiennych JavaScript.
      * @var array
@@ -52,7 +52,7 @@ class View extends DataObject\ArrayWrapper {
         $this->jsHead = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->jsPath, $this->_config->jsExtension);
         $this->css = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->cssPath, $this->_config->cssExtension);
     }
-    
+
     /**
      * Ustawienie bieżącego renderera.
      * 
@@ -63,7 +63,7 @@ class View extends DataObject\ArrayWrapper {
         $this->__renderer = $renderer;
         return $this;
     }
-    
+
     /**
      * Pobranie bieżącego renderera.
      * 
@@ -174,7 +174,7 @@ class View extends DataObject\ArrayWrapper {
 
         return realpath($file . $this->_config->templatesExtension);
     }
-    
+
     /**
      * Ustawia zmienną JavaScript do przekazania do widoku.
      * Jeżeli $key jest tablicą, wszystkie wartości dla podanych kluczy tej tablicy zostaną ustawione.
@@ -186,7 +186,7 @@ class View extends DataObject\ArrayWrapper {
         if (!isset($this->_jsVars)) {
             $this->_jsVars = [];
         }
-        
+
         if (!empty($key)) {
             if (is_array($key)) {
                 $this->_jsVars = array_merge($this->_jsVars, $key);
@@ -195,7 +195,7 @@ class View extends DataObject\ArrayWrapper {
             }
         }
     }
-    
+
     /**
      * Zwraca ustawione zmienne JavaScript zakodowane w JSON.
      * @return string JSON
@@ -210,25 +210,25 @@ class View extends DataObject\ArrayWrapper {
      * @throws View\Exception
      */
     public function display() {
-        if(($renderer = $this->getRenderer()) === null) {
+        if (($renderer = $this->getRenderer()) === null) {
             throw new View\Exception("Renderer has not been set");
         }
-        if(!is_readable(($currentLayoutPath = $this->getCurrentLayoutPath()))) {
+        if (!is_readable(($currentLayoutPath = $this->getCurrentLayoutPath()))) {
             throw new View\Exception("Layout file is not readable");
         }
-                
+
         echo $renderer->fetch($currentLayoutPath, ['this' => $this]);
     }
-    
+
     public function clear() {
         parent::clear();
-        
+
         $this->js->clear();
         $this->css->clear();
         $this->jsHead->clear();
         $this->_jsVars = [];
     }
-    
+
     /**
      * Ustawia w odpowiednim kontenerze przetłumaczoną już zmienną językową o 
      * podanym kluczu.
@@ -236,13 +236,14 @@ class View extends DataObject\ArrayWrapper {
      * @param string $text   Tekst do przetłumaczenia i ustawienia w JS
      * @param array  $params Opcjonalne parametry do langa
      * @return \Skinny\View
+     * @todo Custom feature - do przeniesienia do aplikacji
      */
     public function jsLang($text, $params = null) {
-        if(!isset($this->_jsVars['lang'])) {
+        if (!isset($this->_jsVars['lang'])) {
             $this->_jsVars['lang'] = [];
         }
         $this->_jsVars['lang'][$text] = lang($text, $params);
-        
+
         return $this;
     }
 
