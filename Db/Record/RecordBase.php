@@ -176,19 +176,6 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Pobiera wszystkie rekordy będące rezultatem zapytania SELECT.
-     * Ważne jest, aby zapytanie wybierało faktycznie rekordy tyczące się tego obiektu oraz wszelkie dodatkowe użyte kolumny były zawarte w _disallowedColumns.
-     * W przeciwnym wypadku funckje zapisujące rekord się nie powiodą.
-     * UWAGA! To sprawa programisty, czy select wybiera właściwe kolumny z właściwych tabel. Nie ma co do tego żadnej walidacji!
-     * 
-     * @param string|Zend_Db_Select $select zapytanie SELECT do bazy
-     * @return array tablica obiektów rekordów będących rezultatem zapytania
-     */
-    public static function select($select) {
-        return static::_select($select);
-    }
-
-    /**
      * Konstruktor rekordu
      * Klasa rozszerzająca musi podać rozszerzając nazwę tabeli głównej, w której znajduje się rekord.
      * Klasa rozszerzająca musi udostępnić bezargumentowy konstruktor o dostępności public.
@@ -1099,24 +1086,6 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Pobiera wszystkie rekordy spełniające podane warunki w odpowiedniej kolejności.
-     * 
-     * @param string $where część zapytania WHERE
-     * @param string $order część zapytania ORDER BY
-     * @param int $limit część zapytania LIMIT
-     * @param int $offset część zapytania OFFSET
-     * @return array tablica obiektów rekordów będących rezultatem zapytania
-     */
-    public static function findArray($where = null, $order = null, $limit = null, $offset = null) {
-        $obj = new static();
-
-        // select
-        $select = $obj->prepareSelect($where, $order, $limit, $offset);
-
-        return static::_select($select);
-    }
-
-    /**
      * Przygotowuje selecta na podstawie podanych argumentów.
      * 
      * @param string $where część zapytania WHERE
@@ -1139,7 +1108,116 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Pobiera kolekcję wszystkich rekordów spełniających podane warunki w odpowiedniej kolejności.
+     * Pobiera wszystkie rekordy będące rezultatem zapytania SELECT.
+     * Ważne jest, aby zapytanie wybierało faktycznie rekordy tyczące się tego obiektu oraz wszelkie dodatkowe użyte kolumny były zawarte w _disallowedColumns.
+     * W przeciwnym wypadku funckje zapisujące rekord się nie powiodą.
+     * UWAGA! To sprawa programisty, czy select wybiera właściwe kolumny z właściwych tabel. Nie ma co do tego żadnej walidacji!
+     * 
+     * @param string|Zend_Db_Select $select zapytanie SELECT do bazy
+     * @return RecordCollection kolekcja obiektów rekordów będących rezultatem zapytania
+     * @todo Sprawdzenie typu $collectionType
+     */
+    public static function select($select, $collectionType = null) {
+        $records = static::_select($select);
+
+        if (null === $collectionType) {
+            $collection = new RecordCollection($records);
+        } else {
+            $collection = new $collectionType($records);
+        }
+
+        return $collection;
+    }
+
+    /**
+     * Pobiera wszystkie rekordy będące rezultatem zapytania SELECT.
+     * Ważne jest, aby zapytanie wybierało faktycznie rekordy tyczące się tego obiektu oraz wszelkie dodatkowe użyte kolumny były zawarte w _disallowedColumns.
+     * W przeciwnym wypadku funckje zapisujące rekord się nie powiodą.
+     * UWAGA! To sprawa programisty, czy select wybiera właściwe kolumny z właściwych tabel. Nie ma co do tego żadnej walidacji!
+     * 
+     * @param string|Zend_Db_Select $select zapytanie SELECT do bazy
+     * @return array tablica obiektów rekordów będących rezultatem zapytania
+     */
+    public static function selectArray($select) {
+        return static::_select($select);
+    }
+
+    /**
+     * Pobiera tablicę wszystkich rekordów spełniających podane warunki.
+     * 
+     * @param array $join warunki złączenia JOIN
+     * @param string $where część zapytania WHERE
+     * @param string $order część zapytania ORDER BY
+     * @param int $limit część zapytania LIMIT
+     * @param int $offset część zapytania OFFSET
+     * @return array tablica rekordów będących rezultatem zapytania
+     */
+    protected static function _find(array $join, $where, $order, $limit, $offset) {
+        $obj = new static();
+
+        // select
+        $select = $obj->prepareSelect($where, $order, $limit, $offset);
+
+        if (!empty($join)) {
+            foreach ($join as $value) {
+                if (!is_array($value)) {
+                    throw new RecordException('Invalid join format');
+                }
+
+                // typ złączenia
+                $joinType = 'join';
+                if (isset($value[0]) && is_string($value[0])) {
+                    switch ($value[0]) {
+                        case 'join':
+                        case 'joinLeft':
+                        case 'joinRight':
+                            $joinType = $value[0];
+                            break;
+                    }
+                }
+
+                // tabela łączona
+                if (!isset($value[1]) || !is_string($value[1]) && !is_array($value[1])) {
+                    throw new RecordException('Invalid joined table');
+                }
+
+                $table = $value[1];
+
+                // warunek złączonia
+                if (!isset($value[2]) || !is_string($value[2])) {
+                    throw new RecordException('Invalid join ON clause');
+                }
+
+                $joinOn = $value[2];
+
+                // kolumny dołączane
+                $cols = '';
+                if (isset($value[3]) && (is_string($value[3]) || is_array($value[3]))) {
+                    $cols = $value[3];
+                }
+
+                $select->$joinType($table, $joinOn, $cols);
+            }
+        }
+
+        return static::_select($select);
+    }
+
+    /**
+     * Pobiera wszystkie rekordy spełniające podane warunki.
+     * 
+     * @param string $where część zapytania WHERE
+     * @param string $order część zapytania ORDER BY
+     * @param int $limit część zapytania LIMIT
+     * @param int $offset część zapytania OFFSET
+     * @return array tablica obiektów rekordów będących rezultatem zapytania
+     */
+    public static function findArray($where = null, $order = null, $limit = null, $offset = null) {
+        return static::_find([], $where, $order, $limit, $offset);
+    }
+
+    /**
+     * Pobiera kolekcję wszystkich rekordów spełniających podane warunki.
      * 
      * @param string $where część zapytania WHERE
      * @param string $order część zapytania ORDER BY
@@ -1148,7 +1226,51 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return RecordCollection kolekcja rekordów będących rezultatem zapytania
      */
     public static function find($where = null, $order = null, $limit = null, $offset = null) {
-        $records = static::findArray($where, $order, $limit, $offset);
+        $records = static::_find([], $where, $order, $limit, $offset);
+
+        $collection = new RecordCollection($records);
+
+        return $collection;
+    }
+
+    /**
+     * Pobiera wszystkie rekordy spełniające podane warunki z uwzględnieniem złączeń.
+     * Złączenia $join są tablicą tablic zawierających definicje złączeń.
+     * Wewnętrzna tablica powinna zawierać 3 lub 4 elementy (ostatni jest opcjonalny):
+     * - typ złączenia: "join", "joinLeft"
+     * - tablicę łączoną: analogicznie jak przy złączeniu w Zend_Db_Select
+     * - warunek złączenia: analogicznie jak przy złączeniu w Zend_Db_Select
+     * - dołączone kolumny: analogicznie jak przy złączeniu w Zend_Db_Select, z tym, że, gdy nie podano, nie dołącza żadnych
+     * 
+     * @param array $join warunki złączenia JOIN
+     * @param string $where część zapytania WHERE
+     * @param string $order część zapytania ORDER BY
+     * @param int $limit część zapytania LIMIT
+     * @param int $offset część zapytania OFFSET
+     * @return array tablica obiektów rekordów będących rezultatem zapytania
+     */
+    public static function findArrayJoin(array $join, $where = null, $order = null, $limit = null, $offset = null) {
+        return static::_find($join, $where, $order, $limit, $offset);
+    }
+
+    /**
+     * Pobiera wszystkie rekordy spełniające podane warunki z uwzględnieniem złączeń.
+     * Złączenia $join są tablicą tablic zawierających definicje złączeń.
+     * Wewnętrzna tablica powinna zawierać 3 lub 4 elementy (ostatni jest opcjonalny):
+     * - typ złączenia: "join", "joinLeft"
+     * - tablicę łączoną: analogicznie jak przy złączeniu w Zend_Db_Select
+     * - warunek złączenia: analogicznie jak przy złączeniu w Zend_Db_Select
+     * - dołączone kolumny: analogicznie jak przy złączeniu w Zend_Db_Select, z tym, że, gdy nie podano, nie dołącza żadnych
+     * 
+     * @param array $join warunki złączenia JOIN
+     * @param string $where część zapytania WHERE
+     * @param string $order część zapytania ORDER BY
+     * @param int $limit część zapytania LIMIT
+     * @param int $offset część zapytania OFFSET
+     * @return RecordCollection kolekcja obiektów rekordów będących rezultatem zapytania
+     */
+    public static function findJoin(array $join, $where = null, $order = null, $limit = null, $offset = null) {
+        $records = static::_find($join, $where, $order, $limit, $offset);
 
         $collection = new RecordCollection($records);
 
@@ -1163,7 +1285,23 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return static pierwszy rekord spełniający warunki lub null
      */
     public static function findOne($where = null, $order = null, $offset = null) {
-        $result = self::findArray($where, $order, 1, $offset);
+        $result = static::findArray($where, $order, 1, $offset);
+        if (!empty($result)) {
+            return $result[0];
+        }
+
+        return null;
+    }
+
+    /**
+     * Pobiera pierwszy rekord spełniający podane warunki.
+     * 
+     * @param string $where część zapytania WHERE
+     * @param string $order część zapytania ORDER BY
+     * @return static pierwszy rekord spełniający warunki lub null
+     */
+    public static function findOneJoin(array $join, $where = null, $order = null, $offset = null) {
+        $result = static::findArrayJoin($join, $where, $order, 1, $offset);
         if (!empty($result)) {
             return $result[0];
         }
@@ -1178,7 +1316,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return integer
      */
     public static function count($where = null) {
-        $select = self::$db->select()->from(['t' => static::getTableName()], ['COUNT(1)']);
+        $select = static::$db->select()->from(['t' => static::getTableName()], ['COUNT(1)']);
 
         self::_addWhereToSelect($select, $where);
 
