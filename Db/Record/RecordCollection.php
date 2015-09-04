@@ -143,9 +143,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     }
 
     public function delete() {
-        $ids = $this->getIds();
-
-        self::$db->delete($ids, $where);
+        return $this->call('delete');
     }
 
     public function apply($property, $value) {
