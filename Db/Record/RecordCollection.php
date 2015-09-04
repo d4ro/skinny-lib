@@ -45,7 +45,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         self::$db = $db;
     }
 
-    public function __construct(array $collection = array(), $strictTypeCheck = true) {
+    public function __construct(array $collection = array(),
+            $strictTypeCheck = true) {
         $this->_isStrictTypeCheck = $strictTypeCheck;
         $this->_checkArrayType($collection, $strictTypeCheck, true);
         parent::__construct($collection);
@@ -62,7 +63,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @param boolean $throw
      * @return boolean
      */
-    protected function _checkArrayType(array &$collection, $strict = true, $throw = false) {
+    protected function _checkArrayType(array &$collection, $strict = true,
+            $throw = false) {
         $exception = new InvalidRecordException('Record Collection contains elements of invalid type');
         $error = false;
         $result = [];
@@ -95,7 +97,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $result[$element->getIdAsString()] = $element;
         }
 
-        \Skinny\Exception::throwIf($error === true && $throw === true, $exception);
+        \Skinny\Exception::throwIf($error === true && $throw === true,
+                $exception);
         $collection = $result;
         return !$error;
     }
@@ -113,7 +116,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     }
 
     public function setRecordClassName($className) {
-        \Skinny\Exception::throwIf(isset($this->_recordClassName), new \Skinny\Db\DbException('Record type has been already set for this collection'));
+        \Skinny\Exception::throwIf(isset($this->_recordClassName),
+                new \Skinny\Db\DbException('Record type has been already set for this collection'));
 
         $this->_recordClassName = $className;
     }
@@ -155,13 +159,43 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     public function forEachRecord($callback) {
         $result = array();
         if ($callback instanceof \Closure) {
-            foreach ($this->_data as $record) {
+            foreach ($this->_data as $key => $record) {
                 $result[$key] = $callback($record);
             }
         } else {
             throw new \BadFunctionCallException('Callback is not a function.');
         }
         return $result;
+    }
+
+    /**
+     * Usuwa z wszystkich rekordów kolekcji kolumny o podanej nazwie.
+     * 
+     * @param array $columnsToRemove Kolumny, które mają zostać usunięte 
+     *                               z każdego rekordu kolekcji
+     */
+    public function removeColumns(array $columnsToRemove = []) {
+        $this->forEachRecord(function($record) use ($columnsToRemove) {
+            foreach($columnsToRemove as $column) {
+                unset($record->{$column});
+            }
+        });
+    }
+
+    /**
+     * Usuwa z wszystkich rekordów kolekcji wszystkie kolumny, oprócz tych 
+     * podanych jako argument tej metody.
+     * 
+     * @param array $columnsToLeave Kolumny, które mają zostać w rekordzie
+     */
+    public function removeColumnsExcept(array $columnsToLeave = []) {
+        $this->forEachRecord(function($record) use ($columnsToLeave) {
+            foreach($record as $key => $value) {
+                if(!in_array($key, $columnsToLeave)) {
+                    unset($record->{$key});
+                }
+            }
+        });
     }
 
     public function filter($callback) {
@@ -212,14 +246,18 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @param int $offset część zapytania OFFSET
      * @return int ilość dodanych do kolekcji rekordów
      */
-    public function findAndAdd($where = null, $order = null, $limit = null, $offset = null) {
-        \Skinny\Exception::throwIf(empty($this->_recordClassName), new RecordException('Record class name has not been set for this record collection so find() cannot operate.'));
-        $records = call_user_func([$this->_recordClassName, 'findArray'], $where, $order, $limit, $offset);
+    public function findAndAdd($where = null, $order = null, $limit = null,
+            $offset = null) {
+        \Skinny\Exception::throwIf(empty($this->_recordClassName),
+                new RecordException('Record class name has not been set for this record collection so find() cannot operate.'));
+        $records = call_user_func([$this->_recordClassName, 'findArray'],
+                $where, $order, $limit, $offset);
         $this->addRecords($records);
         return count($records);
     }
 
-    public static function find($where = null, $order = null, $limit = null, $offset = null) {
+    public static function find($where = null, $order = null, $limit = null,
+            $offset = null) {
         $collection = new static();
         $collection->findAndAdd($where, $order, $limit, $offset);
         return $collection;
