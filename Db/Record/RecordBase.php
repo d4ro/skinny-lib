@@ -106,7 +106,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     public function getIterator() {
         return new \ArrayIterator($this->exportData());
     }
-    
+
     /**
      * Pomocnicza funkcja pobierająca wszystkie rekordy spełniające warunki selecta.
      * 
@@ -934,12 +934,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * 
      * @return boolean informacja o powodzeniu
      */
-    public function delete() {
+    public function remove() {
         if (null === $this->_idValue) {
             return false;
         }
 
         self::$db->delete($this->_tableName, $this->_getWhere());
+        $this->_exists = false;
         return true;
     }
 
@@ -949,7 +950,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param array tablica warunków WHERE do zapytania do bazy danych
      * @return int liczba usuniętych rekordów
      */
-    public static function findAndDelete($where) {
+    public static function delete($where) {
         $obj = new static();
 
         if (empty($where)) {
