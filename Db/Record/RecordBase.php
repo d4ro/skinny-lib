@@ -4,7 +4,7 @@ namespace Skinny\Db\Record;
 
 use Skinny\DataObject\Store;
 
-abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSerializable, \ArrayAccess {
+abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSerializable, \ArrayAccess, \IteratorAggregate {
 
     /**
      * Połączenie do bazy danych
@@ -103,6 +103,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     protected $_isSaving;
 
+    public function getIterator() {
+        return new \ArrayIterator($this->exportData());
+    }
+    
     /**
      * Pomocnicza funkcja pobierająca wszystkie rekordy spełniające warunki selecta.
      * 
