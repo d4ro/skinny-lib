@@ -24,8 +24,9 @@ class File {
             $this->_descriptor = $f;
             $this->_mode = $mode;
             return true;
-        } else
+        } else {
             return false;
+        }
     }
 
     public function close() {
@@ -51,7 +52,10 @@ class File {
             throw new IOException('Could not open file "' . $this->_path . '" to write.');
         }
 
-        fwrite($this->_descriptor, $content);
+        if ($this->lock(LOCK_EX)) {
+            fwrite($this->_descriptor, $content);
+            $this->unlock();
+        }
 
         if ($close) {
             $this->close();
@@ -74,8 +78,28 @@ class File {
         touch($this->_path);
     }
 
-    public function append() {
-        // TODO
+    public function append($content) {
+        $close = !$this->isOpened();
+        if ($close && !$this->open('ab')) {
+            throw new IOException('Could not open file "' . $this->_path . '" to append.');
+        }
+
+        if ($this->lock(LOCK_EX)) {
+            fwrite($this->_descriptor, $content);
+            $this->unlock();
+        }
+
+        if ($close) {
+            $this->close();
+        }
+    }
+
+    public function lock($mode) {
+        return flock($this->_descriptor, $mode);
+    }
+
+    public function unlock() {
+        return $this->lock(LOCK_UN);
     }
 
     public function isReadable() {

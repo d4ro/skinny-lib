@@ -49,13 +49,21 @@ class Request {
         $this->_stepCount = 0;
         $this->_current = -1;
         $this->_router = $router;
+//        $this->log('Konstruktor');
     }
+
+//    private function log($tring) {
+//        $file = new \Skinny\File('kupa.txt');
+//        $file->append(PHP_EOL .
+//                '----- ' . date('y-m-d  H:i:s') . ' -----' . PHP_EOL . $tring . PHP_EOL . count($this->_steps) . " stepów, teraz {$this->_current}" . PHP_EOL);
+//    }
 
     /**
      * Pobiera aktualny krok żądania.
      * @return Request\Step
      */
     public function current() {
+//        $this->log('current()');
         if ($this->_current < 0 || $this->_stepCount <= $this->_current) {
             return null;
         }
@@ -67,6 +75,7 @@ class Request {
      * @return Request\Step
      */
     public function last() {
+//        $this->log('last()');
         return $this->_steps[$this->_stepCount - 1];
     }
 
@@ -75,6 +84,7 @@ class Request {
      * @return Request\Step
      */
     public function first() {
+//        $this->log('first()');
         if ($this->_stepCount < 1) {
             return null;
         }
@@ -87,6 +97,7 @@ class Request {
      * @return Request\Step
      */
     public function previous() {
+//        $this->log('previous()');
         if ($this->_current < 1) {
             return null;
         }
@@ -101,13 +112,16 @@ class Request {
      * @return Request\Step
      */
     public function next($step = null) {
+//        $this->log('next() ' . ($step ? 'z' : 'bez'));
         // TODO: możliwy błąd, gdy ktoś forwaduje kilka razy pod rząd - wtedy po kolei wszystkie żądania będą wykonywane
         // TODO: z drugiej strony to może być celowe działanie
         if (null === $step || $this->_current < $this->_stepCount - 1) {
             if ($this->_current < $this->_stepCount - 1) {
+//                $this->log('po next() ' . ($step ? 'z' : 'bez'));
                 return $this->_steps[$this->_current + 1];
             }
 
+//            $this->log('po next() ' . ($step ? 'z' : 'bez'));
             return null;
         }
 
@@ -123,6 +137,7 @@ class Request {
         } else {
             ++$this->_current;
         }
+//        $this->log('po next() ' . ($step ? 'z' : 'bez'));
         return $step;
     }
 
@@ -133,6 +148,7 @@ class Request {
      * @return array
      */
     public function forceNext($step) {
+//        $this->log('forceNext() ' . ($step ? 'z' : 'bez'));
         $discarded = [];
         if ($this->_stepCount > $this->_current + 1) {
             for ($i = $this->_current + 1; $i < $this->_stepCount; $i++) {
@@ -142,6 +158,7 @@ class Request {
             $this->_stepCount = $this->_current + 1;
         }
         $this->next($step);
+//        $this->log('po forceNext() ' . ($step ? 'z' : 'bez'));
         return $discarded;
     }
 
@@ -150,21 +167,26 @@ class Request {
      * Oznacza aktualny krok jako zakończony i ustawia następny jako aktualny.
      */
     public function proceed() {
+//        $this->log('proceed()');
         $current = $this->current();
         if (null != $current) {
             $current->setProcessed(true);
         }
 
         ++$this->_current;
+//        $this->log('po proceed()');
     }
 
     /**
      * Stwierdza, czy wszystkie kroki żądania zostały przetworzone.
      * @return boolean
      */
-    public function isProcessed() {
+    public function isStepToProceed() {
+//        $this->log('isStepToProceed()');
         $current = $this->current();
-        return(null === $current || $current->isProcessed() && null === $current->next());
+        $result = (null !== $current && !$current->isProcessed() || (null !== $current && null !== $current->next() && $this->proceed()));
+//        $this->log('result isStepToProceed() == ' . ($result ? 'true' : 'false'));
+        return $result;
     }
 
     /**
@@ -172,6 +194,7 @@ class Request {
      * @return type
      */
     public function isResolved() {
+//        $this->log('isResolved()');
         $current = $this->current();
         //if(null === $current && ($current = $this->next()))
         return(null === $current || $current->isResolved());
@@ -183,6 +206,7 @@ class Request {
      * @return type
      */
     public function resolve() {
+//        $this->log('resolve()');
         $current = $this->current();
         if (null === $current) {
             return;
