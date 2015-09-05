@@ -561,7 +561,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         if (null === $this->_columns) {
             $structure = $this->_getTableStructure($this->_tableName);
             $this->_columns = $columns = array_keys($structure);
-            user_error('Performance issue: Record columns have not been specified. Had to describe table.', E_NOTICE);
+            user_error('Performance issue: Record columns have not been specified. Had to describe table.', E_USER_NOTICE);
         }
 
         if ($everything) {

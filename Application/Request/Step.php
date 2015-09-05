@@ -55,8 +55,9 @@ class Step extends Router\Container\ContainerBase {
     }
 
     public function next(Step $step = null) {
-        if (null !== $step)
+        if (null !== $step) {
             $this->_next = $step;
+        }
         return $this->_next;
     }
 
@@ -71,8 +72,9 @@ class Step extends Router\Container\ContainerBase {
     public function first() {
         if (null == $this->_first) {
             $first = $previous = $this;
-            while ($previous = $previous->previous())
+            while ($previous = $previous->previous()) {
                 $first = $previous;
+            }
             $this->_first = $first;
         }
         return $this->_first;
@@ -81,8 +83,9 @@ class Step extends Router\Container\ContainerBase {
     public function resolve(Router\RouterInterface $router) {
         $router->getRoute($this->_requestUrl, $this);
         $this->_resolved = true;
-        if (null !== $this->first() && $this->_actionUrl !== $this->first()->_actionUrl)
+        if (null !== $this->first() && $this->_actionUrl !== $this->first()->_actionUrl) {
             $this->_actionMatch = false;
+        }
     }
 
     public function isResolved() {
@@ -98,8 +101,9 @@ class Step extends Router\Container\ContainerBase {
     }
 
     public function getParam($name, $default = null) {
-        if (isset($this->_params[$name]))
+        if (isset($this->_params[$name])) {
             return $this->_params[$name];
+        }
         return $default;
     }
     
@@ -108,8 +112,9 @@ class Step extends Router\Container\ContainerBase {
     }
 
     public function getArg($index, $default = null) {
-        if (isset($this->_args[$index]))
+        if (isset($this->_args[$index])) {
             return $this->_args[$index];
+        }
         return $default;
     }
 

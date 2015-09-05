@@ -64,7 +64,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @param array $arguments argumenty metody
      * @return array tablica rezultatów metody
      */
-    public function __call($name, $arguments) {
+    public function &__call($name, $arguments) {
         return $this->call($name, $arguments);
     }
 
@@ -328,12 +328,21 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @param string $name właściwość do pobrania
      * @return array
      */
-    public function __get($name) {
+    public function &__get($name) {
         $result = array();
         foreach ($this->_data as $key => $record) {
             $result[$key] = $record->$name;
         }
         return $result;
+    }
+
+    /**
+     * Dodaje pojedynczy rekord do kolekcji.
+     * 
+     * @param RecordBase $record
+     */
+    public function add(RecordBase $record) {
+        $this->addRecords([$record]);
     }
 
     /**
@@ -346,7 +355,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @param int $offset część zapytania OFFSET
      * @return int ilość dodanych do kolekcji rekordów
      */
-    public function AddFind($where = null, $order = null, $limit = null, $offset = null) {
+    public function addFind($where = null, $order = null, $limit = null, $offset = null) {
         \Skinny\Exception::throwIf(empty($this->_recordClassName), new RecordException('Record class name has not been set for this record collection so find() cannot operate.'));
         $records = call_user_func([$this->_recordClassName, 'findArray'], $where, $order, $limit, $offset);
         $this->addRecords($records);
@@ -365,7 +374,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      */
     public static function find($where = null, $order = null, $limit = null, $offset = null) {
         $collection = new static();
-        $collection->AddFind($where, $order, $limit, $offset);
+        $collection->addFind($where, $order, $limit, $offset);
         return $collection;
     }
 

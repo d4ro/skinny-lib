@@ -241,7 +241,7 @@ class Application {
         }
 
         $counter = $maxForwardCount = $this->_config->skinny->maxNumActionsForwarded(10);
-        while (!$this->_request->isProcessed()) {
+        while ($this->_request->isStepToProceed()) {
             try {
                 --$counter;
 
@@ -342,13 +342,13 @@ class Application {
      * Jeżeli posiada, aktualny jest kończony.
      * @return boolean
      */
-    protected function isRequestForwarded() {
-        $forwarded = null !== $this->_request->next();
-        if ($forwarded) {
-            $this->_request->proceed();
-        }
-        return $forwarded;
-    }
+//    protected function isRequestForwarded() {
+//        $forwarded = null !== $this->_request->next();
+//        if ($forwarded) {
+//            $this->_request->proceed();
+//        }
+//        return $forwarded;
+//    }
 
     protected function forwardError($params, $errorAction = null) {
         // TODO: przemyśleć nazwę metody
@@ -361,6 +361,7 @@ class Application {
         $discarded = $this->_request->forceNext(new Request\Step($errorAction, $params));
         $this->_request->next()->setParams(['@discardedSteps' => $discarded]);
 //        $this->_request->proceed();
+
         throw new Action\ForwardException();
     }
 
@@ -392,7 +393,7 @@ class Application {
             return;
         }
 
-        //try {
+//        try {
         $this->handleLastError($lastError);
 //        } catch (\Skinny\Exception $e) {
 //            return false;
@@ -457,11 +458,12 @@ class Application {
         } catch (Action\ForwardException $ex) {
             
         }
+
         $this->_request->proceed();
         $this->run();
-        return true;
+//        return true;
 //        }
-//        return false;
+        return false;
     }
 
     protected function getLastError() {
