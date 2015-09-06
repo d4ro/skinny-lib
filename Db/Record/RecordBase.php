@@ -729,13 +729,18 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     /**
      * Pobiera identyfikator wiersza w postaci unikalnego dla typu rekordu stringa.
      * 
+     * @param boolean $includeTable czy ma dodać nazwę tabeli do klucza
      * @return string stringowa reprezentacja id
      */
-    public function getIdAsString() {
+    public function getIdAsString($includeTable = false, $randomHashAsNull = false) {
         $fullId = $this->getFullId();
-        $result = '';
+        $result = $includeTable ? '"' . $this->_tableName . '":' : '';
         foreach ($fullId as $val) {
-            $result .= '"' . htmlspecialchars($val) . '",';
+            if (null === $val) {
+                $result .= ($randomHashAsNull ? $this->createRandomHash() : 'null') . ',';
+            } else {
+                $result .= '"' . htmlspecialchars($val) . '",';
+            }
         }
         return substr($result, 0, strlen($result) - 1);
     }
@@ -777,6 +782,17 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         }
         return $array;
 //        return $this->exportData(true);
+    }
+
+    public function createRandomHash() {
+        $length = 10;
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $charactersLength = strlen($characters);
+        $randomString = '';
+        for ($i = 0; $i < $length; $i++) {
+            $randomString .= $characters[rand(0, $charactersLength - 1)];
+        }
+        return $randomString;
     }
 
     /**
