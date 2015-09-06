@@ -8,6 +8,11 @@ namespace Skinny\Db\Record;
  */
 class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
+    const IDX_PLAIN = 0;
+    const IDX_ID = 1;
+    const IDX_TBL_ID = 2;
+    const IDX_HASH = 3;
+
     /**
      * Połączenie do bazy danych
      * @var \Zend_Db_Adapter_Pdo_Mysql
@@ -25,7 +30,19 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * Czy typy rekordów mają być dokładnie sprawdzane
      * @var boolean
      */
-    protected $_isStrictTypeCheck;
+    protected $_isStrictTypeCheckEnabled;
+
+    /**
+     * Aktualnie używany indeks domyślny
+     * @var int
+     */
+    protected $_useIndex;
+
+    /**
+     * Indeksy danych
+     * @var array
+     */
+    protected $_idx;
 
     /**
      * Pobiera połączenie do bazy danych.
@@ -52,8 +69,17 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @param boolean $strictTypeCheck czy kolekcja wejściowa ma być sprawdzona pod kątem homogeniczności typu
      */
     public function __construct(array $collection = array(), $strictTypeCheck = true) {
-        $this->_isStrictTypeCheck = $strictTypeCheck;
-        $this->_checkArrayType($collection, $strictTypeCheck, true);
+        $this->_idx = [
+            self::IDX_PLAIN => [],
+            self::IDX_ID => [],
+            self::IDX_TBL_ID => [],
+            self::IDX_HASH => [],
+        ];
+        $this->useIndex(self::IDX_PLAIN);
+
+        $this->_isStrictTypeCheckEnabled = $strictTypeCheck;
+        $this->addRecords($collection, true);
+
         parent::__construct($collection);
     }
 
@@ -68,6 +94,10 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         return $this->call($name, $arguments);
     }
 
+    public function useIndex($index) {
+        $this->_useIndex = $index;
+    }
+
     /**
      * Sprawdza, czy array zawiera prawidłowe obiekty rekordów.
      * 
@@ -76,10 +106,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @param boolean $throw
      * @return boolean
      */
-    protected function _checkArrayType(array &$collection, $strict = true, $throw = false) {
+    protected function _checkArrayType(array $collection, $strict = true, $throw = false) {
         $exception = new InvalidRecordException('Record Collection contains elements of invalid type');
         $error = false;
-        $result = [];
 
         if (!empty($collection)) {
             $first = $collection[key($collection)];
@@ -104,23 +133,19 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
                 $error = true;
                 break;
             }
-
-            // przepisujemy rekord do nowego arraya z odpowiednim kluczem
-            $result[$element->getIdAsString()] = $element;
         }
 
         \Skinny\Exception::throwIf($error === true && $throw === true, $exception);
-        $collection = $result;
         return !$error;
     }
 
     /**
      * Ustawia restrykcyjność homogeniczności typu rekordów.
      * 
-     * @param boolean $isStrict czy homogeniczność ma zostać zachowana
+     * @param boolean $value czy homogeniczność ma zostać zachowana
      */
-    public function setStrictTypeCheck($isStrict) {
-        $this->_isStrictTypeCheck = $isStrict;
+    public function setStrictTypeCheck($value) {
+        $this->_isStrictTypeCheckEnabled = $value;
     }
 
     /**
@@ -129,7 +154,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @return boolean
      */
     public function getStrictTypeCheck() {
-        return $this->_isStrictTypeCheck;
+        return $this->_isStrictTypeCheckEnabled;
     }
 
     /**
@@ -156,15 +181,26 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * Dodaje rekordy do kolekcji.
      * 
      * @param array|RecordCollection $records
+     * @param boolean $throwOnBadType czy ma wyrzucić wyjątek, gdy typ rekordu nie zgadza się z typem kolekcji
      */
-    public function addRecords($records) {
+    public function addRecords($records, $throwOnBadType = false) {
         if ($records instanceof RecordCollection) {
             $records = $records->_data;
         }
 
-        $this->_checkArrayType($records, $this->_isStrictTypeCheck);
-        foreach ($records as $key => $value) {
-            $this->_data[$key] = $value;
+        $this->_checkArrayType($records, $this->_isStrictTypeCheckEnabled, $throwOnBadType);
+        $this->_addToIndex($records);
+    }
+
+    protected function _addToIndex(array $records) {
+        foreach ($records as $record) {
+            /* @var $record RecordBase */
+            $this->_data[] = $record;
+            $key = \Skinny\DataObject\ArrayWrapper::lastInsertKey($this->_data);
+            $this->_idx[self::IDX_PLAIN][$key] = $key;
+            $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $key;
+            $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $key;
+            $this->_idx[self::IDX_HASH][$record->createRandomHash()] = $key;
         }
     }
 
@@ -175,7 +211,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @param array $data
      * @return RecordBase stworzony rekord
      */
-    public function create(array $data = null) {
+    public function create(array $data = []) {
         \Skinny\Exception::throwIf(null === $this->_recordClassName, new RecordException('Record class name is not defined'));
 
         $record = new $this->_recordClassName($data);
@@ -234,7 +270,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     public function forEachRecord($callback) {
         $result = array();
         if ($callback instanceof \Closure) {
-            foreach ($this->_data as $key => $record) {
+            foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
+                $record = $this->_data[$recordNum];
                 $result[$key] = $callback($record);
             }
         } else {
@@ -288,7 +325,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
                 }
             }
             $collection = new static();
-            $collection->_isStrictTypeCheck = $this->_isStrictTypeCheck;
+            $collection->_isStrictTypeCheckEnabled = $this->_isStrictTypeCheckEnabled;
             $collection->_recordClassName = $this->_recordClassName;
             $collection->_data = $result;
         } else {
@@ -306,7 +343,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      */
     public function call($method, array $params = array()) {
         $result = array();
-        foreach ($this->_data as $key => $record) {
+        foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
+            $record = $this->_data[$recordNum];
             $result[$key] = call_user_func_array([$record, $method], $params);
         }
         return $result;
@@ -330,7 +368,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      */
     public function &__get($name) {
         $result = array();
-        foreach ($this->_data as $key => $record) {
+        foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
+            $record = $this->_data[$recordNum];
             $result[$key] = $record->$name;
         }
         return $result;
@@ -343,6 +382,33 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      */
     public function add(RecordBase $record) {
         $this->addRecords([$record]);
+    }
+
+    public function insertRecord(RecordBase $record, $offset) {
+        if (key_exists($offset, $this->_data)) {
+            foreach ($this->_idx[self::IDX_ID] as $key => $value) {
+                if ($value == $offset) {
+                    unset($this->_idx[self::IDX_ID][$key]);
+                }
+            }
+            foreach ($this->_idx[self::IDX_TBL_ID] as $key => $value) {
+                if ($value == $offset) {
+                    unset($this->_idx[self::IDX_TBL_ID][$key]);
+                }
+            }
+            foreach ($this->_idx[self::IDX_HASH] as $key => $value) {
+                if ($value == $offset) {
+                    unset($this->_idx[self::IDX_HASH][$key]);
+                }
+            }
+        }
+
+        $this->_data[$offset] = $record;
+
+        $this->_idx[self::IDX_PLAIN][$offset] = $offset;
+        $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $offset;
+        $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $offset;
+        $this->_idx[self::IDX_HASH][$record->createRandomHash()] = $offset;
     }
 
     /**
@@ -384,36 +450,34 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @return boolean
      */
     public function offsetExists($offset) {
-        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
-            return null !== $this->getAt($offset);
-        } else {
-            return parent::offsetExists($offset);
-        }
+        return key_exists($offset, $this->_idx[$this->_useIndex]);
     }
 
-    /**
-     * Metoda używana przy return $this[$offset]
-     * @param mixed $offset
-     * @return mixed
-     */
-    public function offsetGet($offset) {
-        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
-            return $this->getAt($offset);
-        } else {
-            return parent::offsetGet($offset);
+    public function &get($name, $default = null) {
+        if (key_exists($name, $this->_idx[$this->_useIndex])) {
+            return $this->_data[$this->_idx[$this->_useIndex][$name]];
         }
+
+        return $default;
     }
 
-    /**
-     * Metoda używana przy $this[$offset] = $value
-     * @param mixed $offset
-     * @param mixed $value
-     */
-    public function offsetSet($offset, $value) {
-        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
-            return $this->setAt($offset, $value);
+    public function set($name, $value) {
+        if (!($value instanceof RecordBase)) {
+            throw new InvalidRecordException('Value is not a record');
+        }
+
+        if (key_exists($name, $this->_idx[$this->_useIndex])) {
+            $key = $this->_idx[$this->_useIndex][$name];
+            $this->_data[$key] = $value;
+
+            $this->_idx[self::IDX_PLAIN][$key] = $key;
+            $this->_idx[self::IDX_ID][$value->getIdAsString(false, true)] = $key;
+            $this->_idx[self::IDX_TBL_ID][$value->getIdAsString(true, true)] = $key;
+            $this->_idx[self::IDX_HASH][$value->createRandomHash()] = $key;
+        } elseif ($this->_useIndex === self::IDX_PLAIN) {
+            $this->insertRecord($value, $name);
         } else {
-            return parent::offsetSet($offset, $value);
+            throw new RecordException("Index '$name' has not been found and not in plain index mode. Cannot create and insert this record.");
         }
     }
 
@@ -423,10 +487,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @return boolean
      */
     public function offsetUnset($offset) {
-        if (is_numeric($offset) && ($offset = (int) $offset) >= 0) {
-            return $this->unsetAt($offset);
-        } else {
-            return parent::offsetUnset($offset);
+        if (key_exists($offset, $this->_idx[$this->_useIndex])) {
+            $key = $this->_idx[$this->_useIndex][$offset];
+            $this->unsetAt($key);
         }
     }
 
@@ -436,23 +499,16 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @return RecordBase
      */
     public function getAt($offset) {
-        $keys = array_keys($this->_data);
-        if (!isset($keys[$offset])) {
-            return null;
-        }
-        return $this->_data[$keys[$offset]];
+        return (key_exists($offset, $this->_data) ? $this->_data[$offset] : null);
     }
 
     /**
-     * Ustawia rekord na podanej pozycji. Pozycja musi być już zajmowana przez rekord.
+     * Ustawia rekord na podanej pozycji.
      * @param int $offset
      * @param RecordBase $value
      */
     public function setAt($offset, RecordBase $value) {
-        $keys = array_keys($this->_data);
-        if (isset($keys[$offset])) {
-            $this->_data[$keys[$offset]] = $value;
-        }
+        $this->insertRecord($value, $offset);
     }
 
     /**
@@ -460,9 +516,25 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @param int $offset
      */
     public function unsetAt($offset) {
-        $keys = array_keys($this->_data);
-        if (isset($keys[$offset])) {
-            unset($this->_data[$keys[$offset]]);
+        if (key_exists($offset, $this->_data)) {
+            unset($this->_data[$offset]);
+            unset($this->_idx[self::IDX_PLAIN][$offset]);
+
+            foreach ($this->_idx[self::IDX_ID] as $key => $value) {
+                if ($value == $offset) {
+                    unset($this->_idx[self::IDX_ID][$key]);
+                }
+            }
+            foreach ($this->_idx[self::IDX_TBL_ID] as $key => $value) {
+                if ($value == $offset) {
+                    unset($this->_idx[self::IDX_TBL_ID][$key]);
+                }
+            }
+            foreach ($this->_idx[self::IDX_HASH] as $key => $value) {
+                if ($value == $offset) {
+                    unset($this->_idx[self::IDX_HASH][$key]);
+                }
+            }
         }
     }
 

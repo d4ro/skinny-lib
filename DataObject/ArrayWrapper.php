@@ -145,7 +145,7 @@ class ArrayWrapper extends DataBase implements \JsonSerializable, \ArrayAccess, 
     }
 
     public function offsetSet($offset, $value) {
-        $this->_data[$offset] = $value;
+        $this->set($offset, $value);
     }
 
     public function offsetUnset($offset) {
@@ -199,6 +199,12 @@ class ArrayWrapper extends DataBase implements \JsonSerializable, \ArrayAccess, 
         sort($arr1);
         sort($arr2);
         return ($arr1 == $arr2);
+    }
+
+    public static function lastInsertKey(array $array) {
+        end($array);
+        $last_key = key($array);
+        return $last_key;
     }
 
 }
