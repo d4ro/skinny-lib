@@ -462,6 +462,7 @@ class Application {
 
         $this->_request->proceed();
         $this->run();
+//        ob_flush();
         die();
 //        return true;
 //        }
