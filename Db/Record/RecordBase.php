@@ -766,11 +766,17 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
     /**
      * Pobiera dane rekordu w postaci tablicy.
+     * Uwzględnia ustawione kolumny powiązane.
      * 
      * @return array dane
      */
     public function toArray() {
-        return $this->exportData(true);
+        $array = [];
+        foreach($this as $key => $value) {
+            $array[$key] = $this->{$key};
+        }
+        return $array;
+//        return $this->exportData(true);
     }
 
     /**
