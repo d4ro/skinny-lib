@@ -382,6 +382,7 @@ class Application {
         }
 
         $lastError = ['type' => $errno, 'message' => $errstr, 'file' => $errfile, 'line' => $errline];
+        $this->_lastError = $lastError;
 
         return $this->handleLastError($lastError);
     }
@@ -461,6 +462,7 @@ class Application {
 
         $this->_request->proceed();
         $this->run();
+        die();
 //        return true;
 //        }
         return false;
