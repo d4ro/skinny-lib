@@ -182,14 +182,19 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * 
      * @param array|RecordCollection $records
      * @param boolean $throwOnBadType czy ma wyrzucić wyjątek, gdy typ rekordu nie zgadza się z typem kolekcji
+     * @return boolean czy udało sie dodać rekordy do kolekcji
      */
     public function addRecords($records, $throwOnBadType = false) {
         if ($records instanceof RecordCollection) {
             $records = $records->_data;
         }
 
-        $this->_checkArrayType($records, $this->_isStrictTypeCheckEnabled, $throwOnBadType);
-        $this->_addToIndex($records);
+        if ($this->_checkArrayType($records, $this->_isStrictTypeCheckEnabled, $throwOnBadType)) {
+            $this->_addToIndex($records);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     protected function _addToIndex(array $records) {
