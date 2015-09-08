@@ -38,6 +38,12 @@ class View extends DataObject\ArrayWrapper {
     protected $_jsVars = [];
 
     /**
+     * Nazwa pliku szablonu do wyrenderowania
+     * @var string
+     */
+//    protected $_contentFile;
+
+    /**
      * Obiekt renderera ustawionego dla tego widoku.
      * @var \app\module\smartyRenderer
      */
@@ -245,6 +251,14 @@ class View extends DataObject\ArrayWrapper {
         $this->_jsVars['lang'][$text] = lang($text, $params);
 
         return $this;
+    }
+
+    public function getTemplate() {
+        return $this->_contentFile;
+    }
+
+    public function setTemplate($tplFilename) {
+        $this->_contentFile = $tplFilename;
     }
 
 }
