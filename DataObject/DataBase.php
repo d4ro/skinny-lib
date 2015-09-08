@@ -30,8 +30,8 @@ class DataBase {
         if (array_key_exists($name, $this->_data)) {
             return $this->_data[$name];
         }
-
-        return $null = null;
+        $null = null;
+        return $null;
     }
 
     /**
