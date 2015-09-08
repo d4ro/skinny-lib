@@ -884,10 +884,11 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $success = self::$db->update($this->_tableName, $data, $this->_getWhere());
 
-        if ($success === 0) {
-            $this->_exists = false;
-            return false;
-        }
+        // bug: update może zwrócić 0, gdy wiersz w tabeli się nie zmienił
+//        if ($success === 0) {
+//            $this->_exists = false;
+//            return false;
+//        }
 
         if ($success > 1) {
             throw new \Skinny\Db\DbException('Record identified by its primary key is ambiguous in table "' . $this->_tableName . '". Rows updated: ' . $success);
