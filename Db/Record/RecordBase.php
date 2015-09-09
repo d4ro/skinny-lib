@@ -104,7 +104,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     protected $_isSaving;
 
     public function getIterator() {
-        return new \ArrayIterator($this->exportData());
+        return new \ArrayIterator($this->exportData(true, true));
     }
 
     /**
