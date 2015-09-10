@@ -154,16 +154,13 @@ class Router extends Router\RouterBase {
             $actionParts = array_slice($args, 0, $actionLength);
             $container->setActionParts($actionParts);
             $actionClassName = '\\content\\' . implode('\\', $actionParts);
-            try {
-                if (!class_exists($actionClassName, false)) {
-                    $actionFile = Path::combine($this->_contentPath, $actionParts) . '.php';
-                    include $actionFile;
-                }
-                \Skinny\Exception::throwIf(!class_exists($actionClassName, false), new ActionException("Action '$actionClassName' is defined but its class is not found."));
-                $container->setAction(new $actionClassName());
-            } catch (Exception $e) {
-                
+
+            if (!class_exists($actionClassName, false)) {
+                $actionFile = Path::combine($this->_contentPath, $actionParts) . '.php';
+                include $actionFile;
             }
+            \Skinny\Exception::throwIf(!class_exists($actionClassName, false), new ActionException("Action '$actionClassName' is defined but its class is not found."));
+            $container->setAction(new $actionClassName());
         }
 
         if (!$this->_raiseEvent('onActionCreated', [$requestUrl, $container, &$args, $actionLength])) {
