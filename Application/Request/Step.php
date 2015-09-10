@@ -106,7 +106,7 @@ class Step extends Router\Container\ContainerBase {
         }
         return $default;
     }
-    
+
     public function hasParam($name) {
         return isset($this->_params[$name]);
     }

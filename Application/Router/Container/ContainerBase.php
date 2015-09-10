@@ -10,6 +10,12 @@ namespace Skinny\Application\Router\Container;
 abstract class ContainerBase implements ContainerInterface {
 
     /**
+     * Base URL path of request
+     * @var string
+     */
+    protected $_baseUrl;
+
+    /**
      * URL path of request
      * @var string
      */
@@ -84,6 +90,10 @@ abstract class ContainerBase implements ContainerInterface {
         $this->_paramCount = 0;
     }
 
+    public function getBaseUrl() {
+        return $this->_baseUrl;
+    }
+
     public function getRequestUrl() {
         return $this->_requestUrl;
     }
@@ -155,6 +165,10 @@ abstract class ContainerBase implements ContainerInterface {
      */
     public function getParamCount() {
         return $this->_paramCount;
+    }
+
+    public function setBaseUrl($baseUrl) {
+        $this->_baseUrl = $baseUrl;
     }
 
     /**
