@@ -1263,6 +1263,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                         case 'joinRight':
                             $joinType = $value[0];
                             break;
+                        default :
+                            throw new RecordException('Unknown join type: "' . $value[0] . '"');
                     }
                 }
 
