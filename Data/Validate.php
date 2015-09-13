@@ -291,8 +291,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             // jeżeli ustawiono walidatory dla wszystkich podelementów to należy je najpierw przygotować
             foreach ($data as $k => $v) {
                 foreach ($this->_eachValidators as $vData) {
-                    $this->$k->__prepend($vData['validator'],
-                            $vData['errorMsg'], $vData['options']);
+                    $this->$k->__prepend($vData['validator'], $vData['errorMsg'], $vData['options']);
                     $this->$k->mergeOptions($vData['options']); // TODO czy to na pewno tak ma być = opcje nadpisywane na poziomie każdego walidatora z osobna...
                 }
             }
@@ -351,8 +350,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     public function mergeOptions($options) {
         if (!empty($options) && is_array($options)) {
 //            $this->_options = array_merge($this->_options, $options);
-            $this->_options = \Skinny\DataObject\ArrayWrapper::deepMerge($this->_options,
-                            $options);
+            $this->_options = \Skinny\DataObject\ArrayWrapper::deepMerge($this->_options, $options);
         }
     }
 
@@ -434,7 +432,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @return \Skinny\Data\Validate|string
      */
     public function label($label = null) {
-        if(func_num_args() === 0) {
+        if (func_num_args() === 0) {
             // pobranie wartości
             return ($l = @$this->_options[self::OPTION_MESSAGES_PARAMS]['label']) !== null ? $l : "";
         } else {
@@ -472,8 +470,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @param string|array                  $errorMsg   Parametr opisany przy metodzie validate::add()
      * @param array                         $options    Parametr opisany przy metodzie validate::add()
      */
-    public function addMultiple($names, $validator, $errorMsg = null,
-            $options = null) {
+    public function addMultiple($names, $validator, $errorMsg = null, $options = null) {
         if (empty($names) || !is_array($names)) {
             throw new Validate\Exception('Argument "$names" has to be an array');
         }
@@ -485,6 +482,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
                 $this->$value->add(clone $validator, $errorMsg, $options);
             }
         }
+
+        return $this;
     }
 
     /**
@@ -624,7 +623,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @return mixed
      */
     public function value($value = null) {
-        if(func_num_args() === 0) {
+        if (func_num_args() === 0) {
             if ($this->_name) {
                 $val = @$val[$this->_name]; // zwraca wartość konkretnego pola
 
@@ -759,9 +758,9 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
 //                foreach ($data as $k => $v) {
 //                    $this->{$k}->__setAllDataLevelValue($v);
 //                }
-                foreach($this->_items as $name => $item) {
+                foreach ($this->_items as $name => $item) {
                     /* @var $item Validate */
-                    if(isset($data[$name])) {
+                    if (isset($data[$name])) {
                         $item->__setAllDataLevelValue($data[$name]);
                     }
                 }
