@@ -340,6 +340,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         return get_class() . ': ' . $this->_tableName . ' (' . substr($primary, 0, -2) . ')';
     }
 
+    public function toString() {
+        return $this->__toString();
+    }
+
     /**
      * Generuje tablicę parametrów Where dla rekordów obcych na podstawie definicji. Definicja jest tablica, gdzie:
      * - kluczem jest zapytaniem WHERE dla bazy danych, gdzie wartość kolumny jest zastąpiona znakiem zapytania
