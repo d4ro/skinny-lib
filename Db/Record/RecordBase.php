@@ -341,7 +341,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             }
         }
 
-        return get_class() . ': ' . $this->_tableName . ' (' . substr($primary, 0, -2) . ')';
+        return static::class . ': ' . $this->_tableName . ' (' . substr($primary, 0, -2) . ')';
     }
 
     public function toString() {
@@ -1273,7 +1273,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         if (!empty($join)) {
             self::_addJoinToSelect($select, $join);
         }
-//        die($select);
+//        die($select);     
         return static::_select($select);
     }
 
