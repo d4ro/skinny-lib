@@ -6,6 +6,10 @@ use Skinny\DataObject\Store;
 
 abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSerializable, \ArrayAccess, \IteratorAggregate {
 
+    const FIND_JOIN = 'join';
+    const FIND_JOINLEFT = 'joinLeft';
+    const FIND_JOINRIGHT = 'joinRight';
+
     /**
      * Połączenie do bazy danych
      * @var \Zend_Db_Adapter_Pdo_Mysql
@@ -409,11 +413,11 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         // przypisanie rekordów
         if ($customCollectionClass) {
             /* @var $records RecordCollection */
-            $records = call_user_func([$recordClassName, 'findArray'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset']);
+            $records = call_user_func([$recordClassName, 'findArray'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset'], $this->_collectionColumns[$name]['groupby'], $this->_collectionColumns[$name]['having']);
             $collection->addRecords($records);
         } else {
             /* @var $records RecordCollection */
-            $collection = call_user_func([$recordClassName, 'find'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset']);
+            $collection = call_user_func([$recordClassName, 'find'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset'], $this->_collectionColumns[$name]['groupby'], $this->_collectionColumns[$name]['having']);
         }
 
         $this->_collectionColumns[$name]['value'] = $collection;
@@ -523,8 +527,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $order opcjonalna kolejność wyników
      * @param string $limit opcjonalny limit ilości wyników
      * @param string $offset opcjonalne przesunięcie wyników
+     * @param string $groupby opcjonalna część zapytania GROUP BY
+     * @param string $having opcjonalna część zapytania HAVING
      */
-    protected function _setCollectionColumn($columnName, array $where, $recordClassName = null, $collectionClassName = null, $order = null, $limit = null, $offset = null) {
+    protected function _setCollectionColumn($columnName, array $where, $recordClassName = null, $collectionClassName = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
         if (null === $recordClassName && null === $collectionClassName) {
             throw new \Skinny\Db\DbException('Invalid arguments while declaring collection virtual column "' . $columnName . '". Arguments $recordClassName and/or $collectionClassName must be set.');
         }
@@ -537,7 +543,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             'collectionClassName' => $collectionClassName,
             'order' => $order,
             'limit' => $limit,
-            'offset' => $offset
+            'offset' => $offset,
+            'groupby' => $groupby,
+            'having' => $having
         ];
     }
 
@@ -1188,7 +1196,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param int $offset część zapytania OFFSET
      * @return \Zend_Db_Select
      */
-    public function prepareSelect($where = null, $order = null, $limit = null, $offset = null) {
+    public function prepareSelect($where = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
         $select = $this->_getSelectWhere(null, $where);
         if (null !== $order) {
             $select->order($order);
@@ -1196,6 +1204,14 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         if (null !== $limit || null !== $offset) {
             $select->limit($limit, $offset);
+        }
+
+        if (null !== $groupby) {
+            $select->group($groupby);
+        }
+
+        if (null !== $having) {
+            $select->having($having);
         }
 
         return $select;
@@ -1244,58 +1260,20 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
+     * @param string $groupby część zapytania GROUP BY
+     * @param string $having część zapytania HAVING
      * @return array tablica rekordów będących rezultatem zapytania
      */
-    protected static function _find(array $join, $where, $order, $limit, $offset) {
+    protected static function _find(array $join, $where, $order, $limit, $offset, $groupby, $having) {
         $obj = new static();
 
         // select
-        $select = $obj->prepareSelect($where, $order, $limit, $offset);
+        $select = $obj->prepareSelect($where, $order, $limit, $offset, $groupby, $having);
 
         if (!empty($join)) {
-            foreach ($join as $value) {
-                if (!is_array($value)) {
-                    throw new RecordException('Invalid join format');
-                }
-
-                // typ złączenia
-                $joinType = 'join';
-                if (isset($value[0]) && is_string($value[0])) {
-                    switch ($value[0]) {
-                        case 'join':
-                        case 'joinLeft':
-                        case 'joinRight':
-                            $joinType = $value[0];
-                            break;
-                        default :
-                            throw new RecordException('Unknown join type: "' . $value[0] . '"');
-                    }
-                }
-
-                // tabela łączona
-                if (!isset($value[1]) || !is_string($value[1]) && !is_array($value[1])) {
-                    throw new RecordException('Invalid joined table');
-                }
-
-                $table = $value[1];
-
-                // warunek złączonia
-                if (!isset($value[2]) || !is_string($value[2])) {
-                    throw new RecordException('Invalid join ON clause');
-                }
-
-                $joinOn = $value[2];
-
-                // kolumny dołączane
-                $cols = '';
-                if (isset($value[3]) && (is_string($value[3]) || is_array($value[3]))) {
-                    $cols = $value[3];
-                }
-
-                $select->$joinType($table, $joinOn, $cols);
-            }
+            self::_addJoinToSelect($select, $join);
         }
-
+//        die($select);
         return static::_select($select);
     }
 
@@ -1306,10 +1284,12 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
+     * @param string $groupby część zapytania GROUP BY
+     * @param string $having część zapytania HAVING
      * @return array tablica obiektów rekordów będących rezultatem zapytania
      */
-    public static function findArray($where = null, $order = null, $limit = null, $offset = null) {
-        return static::_find([], $where, $order, $limit, $offset);
+    public static function findArray($where = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
+        return static::_find([], $where, $order, $limit, $offset, $groupby, $having);
     }
 
     /**
@@ -1319,11 +1299,12 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
+     * @param string $groupby część zapytania GROUP BY
+     * @param string $having część zapytania HAVING
      * @return RecordCollection kolekcja rekordów będących rezultatem zapytania
      */
-    public static function find($where = null, $order = null, $limit = null, $offset = null) {
-        $records = static::_find([], $where, $order, $limit, $offset);
-
+    public static function find($where = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
+        $records = static::_find([], $where, $order, $limit, $offset, $groupby, $having);
         $collection = new RecordCollection($records);
 
         return $collection;
@@ -1343,10 +1324,12 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
+     * @param string $groupby część zapytania GROUP BY
+     * @param string $having część zapytania HAVING
      * @return array tablica obiektów rekordów będących rezultatem zapytania
      */
-    public static function findArrayJoin(array $join, $where = null, $order = null, $limit = null, $offset = null) {
-        return static::_find($join, $where, $order, $limit, $offset);
+    public static function findArrayJoin(array $join, $where = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
+        return static::_find($join, $where, $order, $limit, $offset, $groupby, $having);
     }
 
     /**
@@ -1363,11 +1346,12 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
+     * @param string $groupby część zapytania GROUP BY
+     * @param string $having część zapytania HAVING
      * @return RecordCollection kolekcja obiektów rekordów będących rezultatem zapytania
      */
-    public static function findJoin(array $join, $where = null, $order = null, $limit = null, $offset = null) {
-        $records = static::_find($join, $where, $order, $limit, $offset);
-
+    public static function findJoin(array $join, $where = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
+        $records = static::_find($join, $where, $order, $limit, $offset, $groupby, $having);
         $collection = new RecordCollection($records);
 
         return $collection;
@@ -1378,10 +1362,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * 
      * @param string $where część zapytania WHERE
      * @param string $order część zapytania ORDER BY
+     * @param int $offset część zapytania OFFSET
+     * @param string $groupby część zapytania GROUP BY
+     * @param string $having część zapytania HAVING
      * @return static pierwszy rekord spełniający warunki lub null
      */
-    public static function findOne($where = null, $order = null, $offset = null) {
-        $result = static::findArray($where, $order, 1, $offset);
+    public static function findOne($where = null, $order = null, $offset = null, $groupby = null, $having = null) {
+        $result = static::findArray($where, $order, 1, $offset, $groupby, $having);
         if (!empty($result)) {
             return $result[0];
         }
@@ -1392,12 +1379,16 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     /**
      * Pobiera pierwszy rekord spełniający podane warunki.
      * 
+     * @param array $join warunki złączenia JOIN
      * @param string $where część zapytania WHERE
      * @param string $order część zapytania ORDER BY
+     * @param int $offset część zapytania OFFSET
+     * @param string $groupby część zapytania GROUP BY
+     * @param string $having część zapytania HAVING
      * @return static pierwszy rekord spełniający warunki lub null
      */
-    public static function findOneJoin(array $join, $where = null, $order = null, $offset = null) {
-        $result = static::findArrayJoin($join, $where, $order, 1, $offset);
+    public static function findOneJoin(array $join, $where = null, $order = null, $offset = null, $groupby = null, $having = null) {
+        $result = static::findArrayJoin($join, $where, $order, 1, $offset, $groupby, $having);
         if (!empty($result)) {
             return $result[0];
         }
@@ -1438,6 +1429,56 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             } else {
                 $select->where($where);
             }
+        }
+    }
+
+    /**
+     * Dodaje do zapytania SELECT podane złączenia JOIN.
+     * 
+     * @param \Zend_Db_Select $select zapytanie do modyfikacji
+     * @param array $join złączenia JOIN zapytania
+     */
+    public static function _addJoinToSelect(\Zend_Db_Select $select, array $join) {
+        foreach ($join as $value) {
+            if (!is_array($value)) {
+                throw new RecordException('Invalid join format');
+            }
+
+            // typ złączenia
+            $joinType = 'join';
+            if (isset($value[0]) && is_string($value[0])) {
+                switch ($value[0]) {
+                    case 'join':
+                    case 'joinLeft':
+                    case 'joinRight':
+                        $joinType = $value[0];
+                        break;
+                    default :
+                        throw new RecordException('Unknown join type: "' . $value[0] . '"');
+                }
+            }
+
+            // tabela łączona
+            if (!isset($value[1]) || !is_string($value[1]) && !is_array($value[1])) {
+                throw new RecordException('Invalid joined table');
+            }
+
+            $table = $value[1];
+
+            // warunek złączonia
+            if (!isset($value[2]) || !is_string($value[2])) {
+                throw new RecordException('Invalid join ON clause');
+            }
+
+            $joinOn = $value[2];
+
+            // kolumny dołączane
+            $cols = '';
+            if (isset($value[3]) && (is_string($value[3]) || is_array($value[3]))) {
+                $cols = $value[3];
+            }
+
+            $select->$joinType($table, $joinOn, $cols);
         }
     }
 
@@ -1616,6 +1657,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
     /**
      * Metoda używana do serializacji obiektu do JSONa
+     * 
      * @return array
      */
     public function jsonSerialize() {
@@ -1624,6 +1666,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
     /**
      * Metoda używana przy isset($this[$offset])
+     * 
      * @param mixed $offset
      * @return boolean
      */
@@ -1639,6 +1682,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
     /**
      * Metoda używana przy return $this[$offset]
+     * 
      * @param mixed $offset
      * @return mixed
      */
@@ -1648,6 +1692,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
     /**
      * Metoda używana przy $this[$offset] = $value
+     * 
      * @param mixed $offset
      * @param mixed $value
      */
@@ -1657,6 +1702,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
     /**
      * Metoda używana przy unset($this[$offset])
+     * 
      * @param mixed $offset
      * @return boolean
      */
