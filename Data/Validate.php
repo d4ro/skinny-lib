@@ -369,9 +369,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * 
      * @param   Validator\ValidatorBase||\Closure $validator 
      *          Parametr może być walidatorem klasy Validator\ValidatorBase lub funkcją (Closure), zwracającą wynik walidacji. <br/>
-     *          Jeżeli walidator jest funkcją, przy jej wywołaniu zostanie automatycznie stworzony walidator Validator\Simple obsługujący ten typ walidacji. 
-     *          Wewnątrz funkcji można uzywać zmiennej $this, która wskazuje na validator klasy Validator\Simple. <br/>
-     *          Wewnątrz funkcji do walidowanej wartości można się odwołać za pomocą <b>$this->value</b>
+     *          Jeżeli walidator jest funkcją, przy jej wywołaniu zostanie automatycznie stworzony walidator Validator\Simple obsługujący ten typ walidacji.
      * 
      * @param   string|array $errorMsg 
      *          Parametr opisany przy metodzie Validator\ValidatorBase::setUserMessages().

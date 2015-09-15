@@ -76,9 +76,8 @@ class Simple extends ValidatorBase {
             $this->item->getName() => $value
         ];
         $this->value = $value;
-        $this->customValidator = $this->customValidator->bindTo($this);
 
-        $result = (false !== call_user_func($this->customValidator)); // Wywołanie customowego walidatora
+        $result = (false !== call_user_func($this->customValidator, $this->value, $this)); // Wywołanie customowego walidatora
         // jeżeli zwrócono wynik funkcji (false) a nie wystąpiły żadne błędy (nie dodano ich przy użyciu funkcji error) to należy dodać błąd domyślny
         if (!$result && empty($this->_errors)) {
             $this->error();
@@ -90,10 +89,11 @@ class Simple extends ValidatorBase {
     /**
      * Alias do metody value z obiektu $this->item
      * @param mixed $value
-     * @return \Skinny\Data\Validate
+     * @return Simple
      */
     public function value($value = null) {
-        return $this->item->value($value);
+        $this->item->value($value);
+        return $this;
     }
 
     /**
