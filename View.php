@@ -63,7 +63,7 @@ class View extends DataObject\ArrayWrapper {
     /**
      * Ustawienie bieżącego renderera.
      * 
-     * @param \app\module\smartyRenderer $renderer
+     * @param View\RendererInterface $renderer
      * @return \Skinny\View
      */
     public function setRenderer(View\RendererInterface $renderer) {
