@@ -107,10 +107,10 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     private $__allData = [];
 
     /**
-     * Przechowuje dane walidacji tylko dla bieżącego poziomu
-     * @var array
+     * Przechowuje wartość pola
+     * @var mixed
      */
-//    public $data = null; czy potrzebne??
+    protected $_value;
 
     /**
      * Przechowuje wynik walidacji
@@ -623,21 +623,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     public function value($value = null) {
         if (func_num_args() === 0) {
             if ($this->_name) {
-                $val = @$val[$this->_name]; // zwraca wartość konkretnego pola
-
-                $data = $this->root()->__allData;
-                // Odnalezienie ścieżki danych, które zawsze są aktualne w __allData
-                // i zwrócenie odpowiedniego klucza - lub null jeżeli brak wartości
-                foreach ($this->_keysFromRoot as $key) {
-                    if (!isset($data[$key])) {
-                        $data = null;
-                        break;
-                    } else {
-                        $data = $data[$key];
-                    }
-                }
-
-                return $data;
+                $val = $this->_value;
             } else {
                 $val = $this->root()->__allData; // zwraca całość danych ustawionych lokalnie
             }
@@ -646,6 +632,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             // Ustawienie wartości dla pola
             // Przy ustawieniu automatycznie merdżujemy __allData
             if ($this->_name) {
+                $this->_value = $value;
+                
                 $this->__setAllDataLevelValue($value);
 
                 // resetuje statusy walidacji
@@ -759,6 +747,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
                 foreach ($this->_items as $name => $item) {
                     /* @var $item Validate */
                     if (isset($data[$name])) {
+                        $item->_value = $data[$name];
                         $item->__setAllDataLevelValue($data[$name]);
                     }
                 }
