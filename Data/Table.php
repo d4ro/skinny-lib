@@ -33,12 +33,6 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
     protected $_searchType = null;
 
     /**
-     * Przechowuje wartość pola.
-     * @var string
-     */
-    protected $_searchValue = null;
-
-    /**
      * Tablica atrybutów elementu.
      * @var array
      */
