@@ -50,7 +50,8 @@ class View extends DataObject\ArrayWrapper {
     private $__renderer = null;
 
     public function __construct($config) {
-        $this->_data = [];
+        $data = [];
+        parent::__construct($data);
 
         $this->setConfig($config);
 
@@ -65,7 +66,7 @@ class View extends DataObject\ArrayWrapper {
      * @param \app\module\smartyRenderer $renderer
      * @return \Skinny\View
      */
-    public function setRenderer(View\Renderer $renderer) {
+    public function setRenderer(View\RendererInterface $renderer) {
         $this->__renderer = $renderer;
         return $this;
     }
@@ -73,7 +74,7 @@ class View extends DataObject\ArrayWrapper {
     /**
      * Pobranie bieżącego renderera.
      * 
-     * @return View\Renderer
+     * @return View\RendererInterface
      */
     public function getRenderer() {
         return $this->__renderer;
@@ -233,24 +234,6 @@ class View extends DataObject\ArrayWrapper {
         $this->css->clear();
         $this->jsHead->clear();
         $this->_jsVars = [];
-    }
-
-    /**
-     * Ustawia w odpowiednim kontenerze przetłumaczoną już zmienną językową o 
-     * podanym kluczu.
-     * 
-     * @param string $text   Tekst do przetłumaczenia i ustawienia w JS
-     * @param array  $params Opcjonalne parametry do langa
-     * @return \Skinny\View
-     * @todo Custom feature - do przeniesienia do aplikacji
-     */
-    public function jsLang($text, $params = null) {
-        if (!isset($this->_jsVars['lang'])) {
-            $this->_jsVars['lang'] = [];
-        }
-        $this->_jsVars['lang'][$text] = lang($text, $params);
-
-        return $this;
     }
 
     public function getTemplate() {

@@ -2,7 +2,7 @@
 
 namespace Skinny\View;
 
-interface Renderer {
+interface RendererInterface {
     
     /**
      * Renderowanie widoku do html'a.
