@@ -624,6 +624,21 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         if (func_num_args() === 0) {
             if ($this->_name) {
                 $val = $this->_value;
+//                $val = @$val[$this->_name]; // zwraca wartość konkretnego pola
+//
+//                $data = $this->root()->__allData;
+//                // Odnalezienie ścieżki danych, które zawsze są aktualne w __allData
+//                // i zwrócenie odpowiedniego klucza - lub null jeżeli brak wartości
+//                foreach ($this->_keysFromRoot as $key) {
+//                    if (!isset($data[$key])) {
+//                        $data = null;
+//                        break;
+//                    } else {
+//                        $data = $data[$key];
+//                    }
+//                }
+//
+//                return $data;
             } else {
                 $val = $this->root()->__allData; // zwraca całość danych ustawionych lokalnie
             }
