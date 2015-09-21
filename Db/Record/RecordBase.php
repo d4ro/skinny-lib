@@ -413,11 +413,11 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         // przypisanie rekordów
         if ($customCollectionClass) {
             /* @var $records RecordCollection */
-            $records = call_user_func([$recordClassName, 'findArray'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset'], $this->_collectionColumns[$name]['groupby'], $this->_collectionColumns[$name]['having']);
+            $records = call_user_func([$recordClassName, 'findArrayJoin'], $this->_collectionColumns[$name]['join'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset'], $this->_collectionColumns[$name]['groupby'], $this->_collectionColumns[$name]['having']);
             $collection->addRecords($records);
         } else {
             /* @var $records RecordCollection */
-            $collection = call_user_func([$recordClassName, 'find'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset'], $this->_collectionColumns[$name]['groupby'], $this->_collectionColumns[$name]['having']);
+            $collection = call_user_func([$recordClassName, 'findJoin'], $this->_collectionColumns[$name]['join'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset'], $this->_collectionColumns[$name]['groupby'], $this->_collectionColumns[$name]['having']);
         }
 
         $this->_collectionColumns[$name]['value'] = $collection;
@@ -524,13 +524,39 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param array $where warunek zapytania dla pobrania rekordów kolekcji
      * @param string $recordClassName nazwa klasy rekordów kolekcji (musi zostać być podana, jeżeli nazwa klasy kolekcji nie została)
      * @param string $collectionClassName nazwa specyficznej klasy kolekcji rekordów (musi zostać być podana, jeżeli nazwa klasy rekordów nie została)
-     * @param string $order opcjonalna kolejność wyników
+     * @param string|array $order opcjonalna kolejność wyników
      * @param string $limit opcjonalny limit ilości wyników
      * @param string $offset opcjonalne przesunięcie wyników
      * @param string $groupby opcjonalna część zapytania GROUP BY
      * @param string $having opcjonalna część zapytania HAVING
      */
     protected function _setCollectionColumn($columnName, array $where, $recordClassName = null, $collectionClassName = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
+        return $this->_setCollectionColumnJoin($columnName, [], $where, $recordClassName, $collectionClassName, $order, $limit, $offset, $groupby, $having);
+    }
+
+    /**
+     * Ustawia podane wirtualne pole rekordu jako kolekcję rekordów na podstawie podanego warunku where i typu rekordu lub kolekcji.
+     * Warunek zapytania jest tablicą, gdzie:
+     * - kluczem jest zapytaniem WHERE dla bazy danych, gdzie wartość kolumny jest zastąpiona znakiem zapytania
+     * - wartością może być:
+     *   - int - traktowany jest jako ostateczna wartość wstawiona do zapytania
+     *   - array - traktowany jest jako tablica ostatecznych wartości wtawionych do zapytania
+     *   - string rozpoczynający się od ' - traktowany jest jako ostateczna wartość wstawiona do zapytania, a pierwszy znak jest usuwany
+     *   - każdy pozostały string - traktowany jest nazwa kolumny z bieżącego rekordu, do zapytania wstawiana jest jego aktualna wartość w momencie pobierania kolekcji
+     *   - Closure - uruchamiany jest w momencie pobierania kolekcji, a wartość, którą zwróci wstawiana jest do zapytania
+     * 
+     * @param string $columnName nazwa nieistniejącego (wirtualnego) pola rekordu, które ma być obsługiwane jako kolekcja rekordów
+     * @param array $join warunki złączenia JOIN
+     * @param array $where warunek zapytania dla pobrania rekordów kolekcji
+     * @param string $recordClassName nazwa klasy rekordów kolekcji (musi zostać być podana, jeżeli nazwa klasy kolekcji nie została)
+     * @param string $collectionClassName nazwa specyficznej klasy kolekcji rekordów (musi zostać być podana, jeżeli nazwa klasy rekordów nie została)
+     * @param string|array $order opcjonalna kolejność wyników
+     * @param string $limit opcjonalny limit ilości wyników
+     * @param string $offset opcjonalne przesunięcie wyników
+     * @param string $groupby opcjonalna część zapytania GROUP BY
+     * @param string $having opcjonalna część zapytania HAVING
+     */
+    protected function _setCollectionColumnJoin($columnName, array $join, array $where, $recordClassName = null, $collectionClassName = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
         if (null === $recordClassName && null === $collectionClassName) {
             throw new \Skinny\Db\DbException('Invalid arguments while declaring collection virtual column "' . $columnName . '". Arguments $recordClassName and/or $collectionClassName must be set.');
         }
@@ -539,6 +565,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             'value' => null,
             'hasValue' => false,
             'recordClassName' => $recordClassName,
+            'join' => $join,
             'where' => $where,
             'collectionClassName' => $collectionClassName,
             'order' => $order,
@@ -1073,9 +1100,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $where = [];
         foreach ($this->_idColumns as $col) {
             if (!isset($id[$col])) {
-                $where[] = self::$db->quoteIdentifier($col) . ' is null';
+                $where[] = self::$db->quoteIdentifier($this->_tableName) . '.' . self::$db->quoteIdentifier($col) . ' is null';
             } else {
-                $where[self::$db->quoteIdentifier($col) . ' = ?'] = $id[$col];
+                $where[self::$db->quoteIdentifier($this->_tableName) . '.' . self::$db->quoteIdentifier($col) . ' = ?'] = $id[$col];
             }
         }
         return $where;
@@ -1191,7 +1218,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * Przygotowuje selecta na podstawie podanych argumentów.
      * 
      * @param string $where część zapytania WHERE
-     * @param string $order część zapytania ORDER BY
+     * @param string|array $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
      * @return \Zend_Db_Select
@@ -1257,7 +1284,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * 
      * @param array $join warunki złączenia JOIN
      * @param string $where część zapytania WHERE
-     * @param string $order część zapytania ORDER BY
+     * @param string|array $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
      * @param string $groupby część zapytania GROUP BY
@@ -1281,7 +1308,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * Pobiera wszystkie rekordy spełniające podane warunki.
      * 
      * @param string $where część zapytania WHERE
-     * @param string $order część zapytania ORDER BY
+     * @param string|array $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
      * @param string $groupby część zapytania GROUP BY
@@ -1296,7 +1323,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * Pobiera kolekcję wszystkich rekordów spełniających podane warunki.
      * 
      * @param string $where część zapytania WHERE
-     * @param string $order część zapytania ORDER BY
+     * @param string|array $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
      * @param string $groupby część zapytania GROUP BY
@@ -1321,7 +1348,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * 
      * @param array $join warunki złączenia JOIN
      * @param string $where część zapytania WHERE
-     * @param string $order część zapytania ORDER BY
+     * @param string|array $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
      * @param string $groupby część zapytania GROUP BY
@@ -1343,7 +1370,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * 
      * @param array $join warunki złączenia JOIN
      * @param string $where część zapytania WHERE
-     * @param string $order część zapytania ORDER BY
+     * @param string|array $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
      * @param string $groupby część zapytania GROUP BY
@@ -1361,7 +1388,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * Pobiera pierwszy rekord spełniający podane warunki.
      * 
      * @param string $where część zapytania WHERE
-     * @param string $order część zapytania ORDER BY
+     * @param string|array $order część zapytania ORDER BY
      * @param int $offset część zapytania OFFSET
      * @param string $groupby część zapytania GROUP BY
      * @param string $having część zapytania HAVING
@@ -1381,7 +1408,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * 
      * @param array $join warunki złączenia JOIN
      * @param string $where część zapytania WHERE
-     * @param string $order część zapytania ORDER BY
+     * @param string|array $order część zapytania ORDER BY
      * @param int $offset część zapytania OFFSET
      * @param string $groupby część zapytania GROUP BY
      * @param string $having część zapytania HAVING
