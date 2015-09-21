@@ -14,6 +14,7 @@ namespace Skinny\Data;
  *       Należałoby ogarnąć to tak żeby dziedziczone wartości wskazywały na opcję
  *       z obiektu po którym dziedziczą a wartości nadpisywane nie nadpisują wskaźnika
  *       ale go zmieniają jeśli w obiekcie wyżej jest taka wartość...
+ * @todo Walidowanie danych NIE TABLICOWYCH - dowolnych
  */
 class Validate extends \Skinny\DataObject\ObjectModelBase {
 
@@ -311,11 +312,12 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     protected function _validateItem($item, $value) {
         $item->_result = true;
 
-        // Jeżeli nie jest ustawiony walidator Required a wartość jest pusta
-        // nie musimy przeprowadzać walidacji
+        // Jeżeli nie jest ustawiony walidator MustExist a klucz nie istnieje,
+        // nie trzeba przeprowadzać walidacji
         if (
-                !$this->hasValidator(new Validator\Required()) &&
-                false === (new Validator\NotEmpty())->isValid($value)
+                $value instanceof KeyNotExist &&
+                !$item->hasValidator(Validator\MustExist::class) &&
+                !$item->hasValidator(Validator\Required::class)
         ) {
             return true;
         }
@@ -582,25 +584,21 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
 
     /**
      * Sprawdza czy istnieje dla tego poziomu walidator/y podanego typu.
-     * Sprawdza instanceof element. W przypadku tablicy obiektów wszystkie
-     * walidatory muszą istnieć żeby spełnić warunek.
      * 
-     * @param Validator|Array[Validator] $validator Obiekt klasy Validator lub tablica obiektów
+     * @param string|array[string] $validators Nazwa klasy walidatora lub tablica nazw
      * @return boolean
      */
-    public function hasValidator($validator) {
-        $validators = $validator;
-        if (!is_array($validator)) {
-            $validators = [$validator];
+    public function hasValidator($validators) {
+        if (!is_array($validators)) {
+            $validators = [$validators];
         }
+
         $toFind = count($validators);
         $found = 0;
-
         if (!empty($this->_validators)) {
             foreach ($validators as $validatorToFind) {
                 foreach ($this->_validators as $v) {
-                    $className = get_class($validatorToFind);
-                    if ($v instanceof $className) {
+                    if (is_a($v, $validatorToFind)) {
                         if (++$found >= $toFind) {
                             return true;
                         }
@@ -648,7 +646,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             // Przy ustawieniu automatycznie merdżujemy __allData
             if ($this->_name) {
                 $this->_value = $value;
-                
+
                 $this->__setAllDataLevelValue($value);
 
                 // resetuje statusy walidacji
@@ -764,6 +762,11 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
                     if (isset($data[$name])) {
                         $item->_value = $data[$name];
                         $item->__setAllDataLevelValue($data[$name]);
+                    }
+                }
+                foreach ($data as $name => $value) {
+                    if (!isset($this->__allData[$name])) {
+                        $this->__allData[$name] = $value;
                     }
                 }
             } else {
