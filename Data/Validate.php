@@ -325,7 +325,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         foreach ($item->_validators as $validator) {
             // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
             $params = array_merge(
-                    [Validator\ValidatorBase::PRM_NAME => $item->_name, Validator\ValidatorBase::PRM_VALUE => $value]
+                    [Validator\ValidatorBase::PRM_NAME => $item->_name/*, Validator\ValidatorBase::PRM_VALUE => $value*/]
                     , $item->_options[self::OPTION_MESSAGES_PARAMS]);
 
             $validator->setMessagesParams($params);

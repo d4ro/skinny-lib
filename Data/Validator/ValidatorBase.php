@@ -13,11 +13,17 @@ abstract class ValidatorBase {
      * Flaga określająca czy walidacja dla tego walidatora ma zostać przerwana 
      * w momencie wystąpienia pierwszego błędu czy też ma kontynuować i zwrócić całą listę błędów
      */
-    const OPT_BREAK_ON_ERROR = 'breakOnError';
+    const OPT_BREAK_ON_ERROR = 'optBreakOnError';
     
-    const OPT_MSG_PARAMS = 'messagesParams';
+    /**
+     * Parametry do komunikatów (zmienne)
+     */
+    const OPT_MSG_PARAMS = 'optMessagesParams';
 
-    const MSG_INVALID = 'invalid';
+    /**
+     * Komunikat w przypadku wystąpienia błędu w polu
+     */
+    const MSG_INVALID = 'msgInvalid';
     
     /**
      * Klucz parametru do komunikatów o błędach
@@ -189,10 +195,19 @@ abstract class ValidatorBase {
      * @param mixed $value
      */
     public function isValid($value) {
-        $this->setMessagesParams([
-            'value' => $value
-        ]);
+        $this->setValueParam($value);
         return true;
+    }
+    
+    /**
+     * Ustawia wartość jako parametr do komunikatów.
+     * 
+     * @param mixed $value
+     */
+    public function setValueParam($value) {
+        $this->setMessagesParams([
+            self::PRM_VALUE => $value
+        ]);
     }
 
     /**

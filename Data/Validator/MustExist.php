@@ -17,7 +17,7 @@ class MustExist extends ValidatorBase {
         parent::__construct($options);
         
         $this->_setMessagesTemplates([
-            self::MSG_MUST_EXIST => 'Klucz %name% nie istnieje'
+            self::MSG_MUST_EXIST => 'Klucz nie istnieje'
         ]);
     }
 

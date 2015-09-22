@@ -10,19 +10,33 @@ class GreaterThan extends ValidatorBase {
     /**
      * Komunikat o błędzie w przypadku gdy wartość nie jest numeryczna
      */
-    const MSG_IS_NOT_NUMERIC = 'isNotNumeric';
+    const MSG_IS_NOT_NUMERIC = 'msgIsNotNumeric';
 
     /**
      * Komunikat o błędzie w przypadku gdy wartość nie jest większa niż walidowana
      */
-    const MSG_NOT_GREATER_THEN = 'notGreaterThan';
+    const MSG_NOT_GREATER_THEN = 'msgNotGreaterThan';
 
     /**
      * Parametr ustawiający wartość od której wartość walidowana ma być większa
      */
-    const OPT_GREATER_THAN = 'greaterThan';
+    const OPT_GREATER_THAN = 'optGreaterThan';
 
     public function __construct($options = null) {
+        if (!parent::isValid($value)) {
+            return false;
+        }
+        
+        /**
+         * BUG!
+         * Zostawione die i niezabezpieczone dane, wygląda jakby to było nieskończone
+         * 
+         * DO POPRAWIENIA
+         * TODO 
+         */
+        
+        throw new Exception('Walidator błędnie skonstruowany - do poprawy');
+        
         parent::__construct($options);
 
         $this->_options = $options;

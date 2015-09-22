@@ -2,12 +2,9 @@
 
 namespace Skinny\Data\Validator;
 
-/**
- * @todo obsługa możliwości podania obecnego typu do komunikatu np.
- */
 class IsString extends ValidatorBase {
     
-    const MSG_NOT_STRING = 'notString';
+    const MSG_NOT_STRING = 'msgNotString';
     
     public function __construct($options = null) {
         parent::__construct($options);
@@ -18,6 +15,10 @@ class IsString extends ValidatorBase {
     }
 
     public function isValid($value) {
+        if (!parent::isValid($value)) {
+            return false;
+        }
+        
         if (!is_string($value)) {
             $this->error(self::MSG_NOT_STRING);
             return false;

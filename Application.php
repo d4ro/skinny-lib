@@ -414,7 +414,7 @@ class Application {
             case E_USER_DEPRECATED:
             case E_STRICT:
                 // ignorowanie
-                return;
+                return false;
                 break;
 
             // warning
@@ -424,7 +424,7 @@ class Application {
             case E_WARNING:
                 // logowanie, ale idziemy dalej
                 // TODO: logowanie warninga
-                return;
+                return false;
                 break;
 
             // error
