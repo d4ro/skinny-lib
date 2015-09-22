@@ -75,9 +75,9 @@ class Application {
 
     /**
      * Konstruktor obiektu aplikacji Skinny.
-     * @param string $config_path ścieżka do katalogu z konfiguracją względem miejsca, w którym tworzona jest instancja
+     * @param string $configPath ścieżka do katalogu z konfiguracją względem miejsca, w którym tworzona jest instancja
      */
-    public function __construct($config_path = 'config') {
+    public function __construct($configPath = 'config') {
         $this->_appCwd = getcwd();
 
         // config
@@ -88,21 +88,23 @@ class Application {
         // TODO: sprawdzenie, czy nazwa env nie jest pusta i czy nie zawiera nieprawidłowych znaków
         $env = $_SERVER['APPLICATION_ENV'];
 
-        if (!is_file($config_path . '/global.conf.php')) {
-            die("Application global config has not been found. File '$config_path/global.conf.php' does not exist. Application cannot be run.");
+        $this->_env = $env;
+        $this->_configPath = $configPath;
+
+        if (!is_file($configPath . '/global.conf.php')) {
+            die("Application global config has not been found. File '$configPath/global.conf.php' does not exist. Application cannot be run.");
         }
 
-        $local_config = $config_path . '/' . $env . '.conf.php';
+        $local_config = $configPath . '/' . $env . '.conf.php';
         if (!is_file($local_config)) {
             die("Application environment config has not been found. File '$local_config' does not exist. Application cannot be run.");
         }
 
-        $config = new Store(include $config_path . '/global.conf.php');
+        $config = new Store(include $configPath . '/global.conf.php');
         if (file_exists($local_config)) {
             $config->merge(include $local_config);
         }
 
-        $this->_env = $env;
         $this->_config = $config;
 
         // internal include-driven loader
@@ -111,7 +113,7 @@ class Application {
         // settings: only if enabled
         if ($config->settings->enabled(false)) {
             require_once 'Skinny/Settings.php';
-            $this->_settings = new Settings($config_path);
+            $this->_settings = new Settings($configPath);
         }
 
         // loader
