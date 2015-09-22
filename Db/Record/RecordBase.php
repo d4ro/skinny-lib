@@ -266,7 +266,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         // nie mamy wartości w polu, return null
         if (!key_exists($column, $this->_data)) {
-            return null;
+            $r = null;
+            return $r;
         }
 
         // pobranie wartośći z kolumny jsonowej
