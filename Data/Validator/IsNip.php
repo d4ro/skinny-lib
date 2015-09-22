@@ -27,7 +27,7 @@ class IsNip extends ValidatorBase {
 
         /**
          * BUG! TODO:
-         * Walidator isNUmeric po którym ten będzie dziedziczył! 
+         * Np. Walidator isNUmeric po którym ten będzie dziedziczył! 
          * Wartość przecież może być czymkolwiek, np. tablicą i wtedy strlen, preg_match
          * zrzuci warning.
          * 

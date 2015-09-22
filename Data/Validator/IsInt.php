@@ -22,11 +22,6 @@ class IsInt extends ValidatorBase {
             return false;
         }
 
-        /**
-         * BUG!
-         * Jeżeli wartość nie jest intem ani stringiem preg_match zrzuci Warning...
-         * Poprawione
-         */
         if (
                 !is_int($value) &&
                 (!is_string($value) || !preg_match('/^-?[0-9]{1,}$/', $value))
