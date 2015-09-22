@@ -5,12 +5,12 @@ namespace Skinny\Data\Validator;
 /**
  * Walidator sprawdzający czy wartość jest emailem na podatawie metody filter_var
  */
-class IsEmail extends ValidatorBase {
+class IsEmail extends IsString {
 
     /**
      * Komunikat zwracany w przypadku niepoprawnego adresu e-mail
      */
-    const MSG_NOT_EMAIL = 'notEmail';
+    const MSG_NOT_EMAIL = 'msgNotEmail';
 
     public function __construct($options = null) {
         parent::__construct($options);
@@ -21,9 +21,12 @@ class IsEmail extends ValidatorBase {
     }
 
     public function isValid($value) {
-        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-            $this->error(self::MSG_NOT_EMAIL);
+        if (!parent::isValid($value)) {
             return false;
+        }
+        
+        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            return $this->error(self::MSG_NOT_EMAIL);
         }
         return true;
     }

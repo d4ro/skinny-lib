@@ -7,21 +7,31 @@ namespace Skinny\Data\Validator;
  */
 class IsInt extends ValidatorBase {
 
-    const MSG_NOT_INT = 'notInt';
+    const MSG_NOT_INT = 'msgNotInt';
 
     public function __construct($options = null) {
         parent::__construct($options);
 
         $this->_setMessagesTemplates([
-            self::MSG_NOT_INT => "Wartość nie jest liczbą",
+            self::MSG_NOT_INT => "Wartość nie jest liczbą całkowitą",
         ]);
     }
 
     public function isValid($value) {
-        
-        if (!preg_match('/^-?[0-9]{1,}$/', $value)) {
-            $this->error(self::MSG_NOT_INT);
+        if (!parent::isValid($value)) {
             return false;
+        }
+
+        /**
+         * BUG!
+         * Jeżeli wartość nie jest intem ani stringiem preg_match zrzuci Warning...
+         * Poprawione
+         */
+        if (
+                !is_int($value) &&
+                (!is_string($value) || !preg_match('/^-?[0-9]{1,}$/', $value))
+        ) {
+            return $this->error(self::MSG_NOT_INT);
         }
 
         return true;

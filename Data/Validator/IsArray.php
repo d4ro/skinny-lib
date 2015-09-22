@@ -7,7 +7,7 @@ namespace Skinny\Data\Validator;
  */
 class IsArray extends ValidatorBase {
 
-    const MSG_NOT_ARRAY = 'notArray';
+    const MSG_NOT_ARRAY = 'msgNotArray';
 
     public function __construct($options = null) {
         parent::__construct($options);
@@ -18,11 +18,12 @@ class IsArray extends ValidatorBase {
     }
 
     public function isValid($value) {
-        parent::isValid($value);
+        if (!parent::isValid($value)) {
+            return false;
+        }
         
         if (!is_array($value)) {
-            $this->error(self::MSG_NOT_ARRAY);
-            return false;
+            return $this->error(self::MSG_NOT_ARRAY);
         }
         return true;
     }

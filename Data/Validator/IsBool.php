@@ -28,9 +28,19 @@ namespace Skinny\Data\Validator;
  */
 class IsBool extends ValidatorBase {
 
-    const MSG_NOT_BOOL = 'notBool';
+    /**
+     * Ustawienie tej opcji na "true" powoduje sprawdzenie czy wartość jest dokładnie
+     * true, false, 1, 0. <br/>
+     * Domyślnie "false".
+     */
+    const OPT_STRICT = 'optStrict';
+    const MSG_NOT_BOOL = 'msgNotBool';
 
     public function __construct($options = null) {
+        if (empty($options) || !isset($options[self::OPT_STRICT])) {
+            $options[self::OPT_STRICT] = false;
+        }
+
         parent::__construct($options);
 
         $this->_setMessagesTemplates([
@@ -39,26 +49,35 @@ class IsBool extends ValidatorBase {
     }
 
     public function isValid($value) {
-        parent::isValid($value);
-        
+        if (!parent::isValid($value)) {
+            return false;
+        }
+
         if (
                 $value !== true &&
                 $value !== false &&
                 $value !== 1 &&
-                $value !== 0 &&
-                ($lower = strtolower($value)) !== 'true' &&
-                $lower !== 'false' &&
-                $lower !== 'yes' &&
-                $lower !== 'no' &&
-                $lower !== 'on' &&
-                $lower !== 'y' &&
-                $lower !== 'n' &&
-                $lower !== 'tak' &&
-                $lower !== 'nie' &&
-                $lower !== 't'
+                $value !== 0
         ) {
-            $this->error(self::MSG_NOT_BOOL);
-            return false;
+            if (
+                    $this->_options[self::OPT_STRICT] === false &&
+                    is_string($value) && (
+                        ($lower = strtolower($value)) === 'true' ||
+                        $lower === 'false' ||
+                        $lower === 'yes' ||
+                        $lower === 'no' ||
+                        $lower === 'on' ||
+                        $lower === 'y' ||
+                        $lower === 'n' ||
+                        $lower === 'tak' ||
+                        $lower === 'nie' ||
+                        $lower === 't'
+                    )
+            ) {
+                return true;
+            }
+            
+            return $this->error(self::MSG_NOT_BOOL);
         }
         return true;
     }

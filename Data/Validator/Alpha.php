@@ -10,27 +10,27 @@ namespace Skinny\Data\Validator;
  */
 class Alpha extends IsString {
 
-    const MSG_IS_EMPTY = 'isEmpty';
-    const MSG_NOT_ALPHA = 'notAlpha';
-    const PRM_ALLOW_WHITESPACE = 'allowWhiteSpace';
+    const MSG_NOT_ALPHA = 'msgNotAlpha';
+    const OPT_ALLOW_WHITESPACE = 'optAllowWhiteSpace';
 
     /**
      * Klasa sprawdzająca czy wartość jest niepustym łańcuchem znaków 
      * zawierającym tylko znaki dla aktualnego "locale".
      * 
-     * Możliwość ustawienia ignorowania białych znaków w konstruktorze.
+     * Możliwość ustawienia ignorowania białych znaków opcjach.
      * 
-     * @param boolean $allowWhiteSpace Pozwalaj na białe znaki w tekście - domyślnie "false"
+     * @param boolean $options Tablica opcji dla tego walidatora
      */
-    public function __construct($allowWhiteSpace = false) {
-        $options = [
-            self::PRM_ALLOW_WHITESPACE => $allowWhiteSpace
-        ];
+    public function __construct($options = null) {
+        // ustawienie domyślnej opcji jeśli nie przekazano
+        if(empty($options) || !isset($options[self::OPT_ALLOW_WHITESPACE])) {
+            $options[self::OPT_ALLOW_WHITESPACE] = false;
+        }
 
         parent::__construct($options);
 
         $this->_setMessagesTemplates([
-            self::MSG_IS_EMPTY => 'Łańcuch znaków jest pusty'
+            self::MSG_NOT_ALPHA => 'Łańcuch zawiera nieprawidłowe znaki'
         ]);
     }
 
@@ -39,11 +39,7 @@ class Alpha extends IsString {
             return false;
         }
 
-        if (empty($value)) {
-            return $this->error(self::MSG_IS_EMPTY);
-        }
-
-        if ($this->_options[self::PRM_ALLOW_WHITESPACE] === true) {
+        if ($this->_options[self::OPT_ALLOW_WHITESPACE] === true) {
             // Jeżeli zezwalamy na białe znaki to rozbieramy z nich stringa przed walidacją ctype
             $value = preg_replace('/\s+/', '', $value);
         }

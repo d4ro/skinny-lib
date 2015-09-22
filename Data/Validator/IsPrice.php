@@ -10,8 +10,8 @@ class IsPrice extends ValidatorBase {
     /**
      * Komunikat zwracany w przypadku niepoprawnego formatu ceny
      */
-    const MSG_NOT_PRICE = 'notPrice';
-    
+    const MSG_NOT_PRICE = 'msgNotPrice';
+
     /**
      * Opcja określająca jaki znak jest separatorem miejsc dziesiętnych
      */
@@ -23,21 +23,31 @@ class IsPrice extends ValidatorBase {
         $this->_setMessagesTemplates([
             self::MSG_NOT_PRICE => "Niepoprawna kwota"
         ]);
+        
         if (key_exists(self::OPT_SEPARATOR, $this->_options)) {
-            if ($this->_options[self::OPT_SEPARATOR]!="," && $this->_options[self::OPT_SEPARATOR]!=".") {
+            if ($this->_options[self::OPT_SEPARATOR] != "," && $this->_options[self::OPT_SEPARATOR] != ".") {
                 throw new exception("Podano zły separator");
             }
-        }else{
-            $this->_options[self::OPT_SEPARATOR]=".";
+        } else {
+            $this->_options[self::OPT_SEPARATOR] = ".";
         }
     }
 
     public function isValid($value) {
-        $this->_options[self::OPT_SEPARATOR] = ($this->_options[self::OPT_SEPARATOR] == '.' ? '\.' : $this->_options[self::OPT_SEPARATOR]);
-        $pattern = '/^(?:0|[1-9]\d*)(?:' . $this->_options[self::OPT_SEPARATOR] . '\d{2})?$/';
-        if (!preg_match($pattern,$value)) {
-            $this->error(self::MSG_NOT_PRICE);
+        if (!parent::isValid($value)) {
             return false;
+        }
+        
+        /**
+         * BUG!
+         * TODO DO POPRAWIENIA
+         * Warning w przypadku gdy value nie jest string
+         */
+
+        $separator = ($this->_options[self::OPT_SEPARATOR] == '.' ? '\.' : $this->_options[self::OPT_SEPARATOR]);
+        $pattern = '/^(?:0|[1-9]\d*)(?:' . $separator . '\d{2})?$/';
+        if (!preg_match($pattern, $value)) {
+            return $this->error(self::MSG_NOT_PRICE);
         }
         return true;
     }

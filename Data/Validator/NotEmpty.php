@@ -15,6 +15,10 @@ class NotEmpty extends ValidatorBase {
     }
 
     public function isValid($value) {
+        if (!parent::isValid($value)) {
+            return false;
+        }
+        
         if (
                 $value === null ||
                 (is_string($value) && strlen($value) === 0) ||

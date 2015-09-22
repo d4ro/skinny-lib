@@ -16,11 +16,15 @@ class Required extends ValidatorBase {
         parent::__construct($options);
 
         $this->_setMessagesTemplates([
-            self::MSG_REQUIRED => 'Pole "%name%" jest wymagane'
+            self::MSG_REQUIRED => 'Pole jest wymagane'
         ]);
     }
 
     public function isValid($value) {
+        if (!parent::isValid($value)) {
+            return false;
+        }
+        
         if (
                 $value instanceof \Skinny\Data\KeyNotExist ||
                 false === (new NotEmpty())->isValid($value)
