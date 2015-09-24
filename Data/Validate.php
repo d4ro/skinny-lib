@@ -315,9 +315,16 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         // Jeżeli nie jest ustawiony walidator MustExist a klucz nie istnieje,
         // nie trzeba przeprowadzać walidacji
         if (
-                $value instanceof KeyNotExist &&
-                !$item->hasValidator(Validator\MustExist::class) &&
-                !$item->hasValidator(Validator\Required::class)
+                (
+                    $value instanceof KeyNotExist &&
+                    !$item->hasValidator(Validator\MustExist::class) &&
+                    !$item->hasValidator(Validator\Required::class)
+                ) ||
+                (
+                    empty($value) &&
+                    !$item->hasValidator(Validator\NotEmpty::class) &&
+                    !$item->hasValidator(Validator\Required::class)
+                )
         ) {
             return true;
         }
