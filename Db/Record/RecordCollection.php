@@ -91,7 +91,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @return array tablica rezultatów metody
      */
     public function &__call($name, $arguments) {
-        return $this->call($name, $arguments);
+        $result = $this->call($name, $arguments);
+        return $result;
     }
 
     public function useIndex($index) {
