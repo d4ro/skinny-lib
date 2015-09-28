@@ -1222,6 +1222,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string|array $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
      * @param int $offset część zapytania OFFSET
+     * @param string $groupby część zapytania GROUP BY
+     * @param string $having część zapytania HAVING
      * @return \Zend_Db_Select
      */
     public function prepareSelect($where = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
