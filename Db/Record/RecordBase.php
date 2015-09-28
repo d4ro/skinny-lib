@@ -1466,7 +1466,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param \Zend_Db_Select $select zapytanie do modyfikacji
      * @param array $join złączenia JOIN zapytania
      */
-    public static function _addJoinToSelect(\Zend_Db_Select $select, array $join) {
+    protected static function _addJoinToSelect(\Zend_Db_Select $select, array $join) {
         foreach ($join as $value) {
             if (!is_array($value)) {
                 throw new RecordException('Invalid join format');
