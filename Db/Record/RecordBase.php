@@ -1301,9 +1301,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $select = $obj->prepareSelect($where, $order, $limit, $offset, $groupby, $having);
 
         if (!empty($join)) {
-            self::_addJoinToSelect($select, $join);
+            static::_addJoinToSelect($select, $join);
         }
-//        die($select);     
+
         return static::_select($select);
     }
 
