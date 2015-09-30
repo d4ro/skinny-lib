@@ -92,6 +92,7 @@ class Path {
 
     /**
      * Stwierdza, czy podana ścieżka jest scieżką bezwględną.
+     * 
      * @param string $path
      * @return boolean
      */
@@ -101,6 +102,26 @@ class Path {
         }
 
         return($path[0] == '/' || $path[0] == '\\');
+    }
+
+    /**
+     * Tworzy podaną ścieżkę katalogów rekurencyjnie.
+     * 
+     * @param string $path
+     * @param int $mode tryb dostępu
+     * @return boolean
+     */
+    public static function create($path, $mode = 0777) {
+        if (is_dir($path)) {
+            return true;
+        }
+
+        $parent = dirname($path);
+        if ($parent != '.') {
+            self::create($parent, $mode);
+        }
+
+        return mkdir($path, $mode);
     }
 
 }
