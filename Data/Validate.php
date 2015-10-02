@@ -256,17 +256,17 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             return $value;
         }
 
-        if ($this->_name !== null) {
+        if (!$this->isRoot()) {
             if ($value instanceof \Traversable) {
                 $arrayVal = (array) $value;
-                if (key_exists($this->_name, $arrayVal)) {
-                    $toCheck = $value->{$this->_name};
+                if (key_exists($this->getName(), $arrayVal)) {
+                    $toCheck = $value->{$this->getName()};
                 } else {
                     $toCheck = new KeyNotExist();
                 }
             } else if (is_array($value)) {
-                if (key_exists($this->_name, $value)) {
-                    $toCheck = $value[$this->_name];
+                if (key_exists($this->getName(), $value)) {
+                    $toCheck = $value[$this->getName()];
                 } else {
                     $toCheck = new KeyNotExist();
                 }
@@ -316,14 +316,14 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         // nie trzeba przeprowadzać walidacji
         if (
                 (
-                    $value instanceof KeyNotExist &&
-                    !$item->hasValidator(Validator\MustExist::class) &&
-                    !$item->hasValidator(Validator\Required::class)
+                $value instanceof KeyNotExist &&
+                !$item->hasValidator(Validator\MustExist::class) &&
+                !$item->hasValidator(Validator\Required::class)
                 ) ||
                 (
-                    empty($value) &&
-                    !$item->hasValidator(Validator\NotEmpty::class) &&
-                    !$item->hasValidator(Validator\Required::class)
+                empty($value) &&
+                !$item->hasValidator(Validator\NotEmpty::class) &&
+                !$item->hasValidator(Validator\Required::class)
                 )
         ) {
             return true;
@@ -332,7 +332,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         foreach ($item->_validators as $validator) {
             // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
             $params = array_merge(
-                    [Validator\ValidatorBase::PRM_NAME => $item->_name/*, Validator\ValidatorBase::PRM_VALUE => $value*/]
+                    [Validator\ValidatorBase::PRM_NAME => $item->_name/* , Validator\ValidatorBase::PRM_VALUE => $value */]
                     , $item->_options[self::OPTION_MESSAGES_PARAMS]);
 
             $validator->setMessagesParams($params);
@@ -627,7 +627,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      */
     public function value($value = null) {
         if (func_num_args() === 0) {
-            if ($this->_name) {
+            if ($this->getName()) {
                 $val = $this->_value;
 //                $val = @$val[$this->_name]; // zwraca wartość konkretnego pola
 //
@@ -740,7 +740,13 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
                 $this->resetValidation();
             }
             $itemsBefore = $this->count();
-            $result = $this->_validate($this->value());
+            if ($this->isRoot()) {
+                $dataToValidate = $this->value();
+            } else {
+                $dataToValidate = [];
+                $dataToValidate[$this->getName()] = $this->value();
+            }
+            $result = $this->_validate($dataToValidate);
             $itemsAfter = $this->count();
 
             $i++;
@@ -761,13 +767,14 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     public function setData($data = null) {
         if ($data !== null) {
             if (is_array($data) && $this->isRoot()) {
-//                foreach ($data as $k => $v) {
-//                    $this->{$k}->__setAllDataLevelValue($v);
-//                }
                 foreach ($this->_items as $name => $item) {
                     /* @var $item Validate */
                     if (isset($data[$name])) {
                         $item->_value = $data[$name];
+                        $item->__setAllDataLevelValue($data[$name]);
+                    } else if (!$item->_value) {
+                        $item->_value = new KeyNotExist();
+                        $data[$name] = $item->_value;
                         $item->__setAllDataLevelValue($data[$name]);
                     }
                 }
@@ -933,8 +940,25 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         return $this->root()->__allData;
     }
 
+    /**
+     * Resetuje dane ustawione w obiekcie.
+     * 
+     * @return \Skinny\Data\Validate
+     */
+    public function resetData() {
+        $this->root()->__allData = [];
+        foreach ($this as $item) {
+            $item->_value = null;
+        }
+        return $this;
+    }
+
 }
 
 class KeyNotExist {
-    
+
+    public function __toString() {
+        return '';
+    }
+
 }
