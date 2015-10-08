@@ -1433,11 +1433,20 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return integer
      */
     public static function count($where = null) {
-        $select = static::$db->select()->from(['t' => static::getTableName()], ['COUNT(1)']);
+        $select = static::_getCountSelect();
 
-        self::_addWhereToSelect($select, $where);
+        static::_addWhereToSelect($select, $where);
 
         return self::$db->fetchOne($select);
+    }
+    
+    /**
+     * Zwraca obiekt select przygotowany do obliczenia liczby rekordów.
+     * 
+     * @return \Zend_Db_Select
+     */
+    protected static function _getCountSelect() {
+        return static::$db->select()->from(['t' => static::getTableName()], ['COUNT(1)']);
     }
 
     /**

@@ -207,8 +207,12 @@ class View extends DataObject\ArrayWrapper {
      * Zwraca ustawione zmienne JavaScript zakodowane w JSON.
      * @return string JSON
      */
-    public function getScriptVars() {
-        return json_encode($this->_jsVars);
+    public function getScriptVars($getJson = true) {
+        if($getJson) {
+            return json_encode($this->_jsVars);
+        } else {
+            return $this->_jsVars;
+        }
     }
 
     /**
