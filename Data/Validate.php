@@ -321,7 +321,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
                 !$item->hasValidator(Validator\Required::class)
                 ) ||
                 (
-                empty($value) &&
+                !(new Validator\NotEmpty())->isValid($value) &&
                 !$item->hasValidator(Validator\NotEmpty::class) &&
                 !$item->hasValidator(Validator\Required::class)
                 )
