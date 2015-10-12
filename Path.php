@@ -78,7 +78,7 @@ class Path {
             }
 
             $trimmed = trim($arg, '/\\:');
-            if ($arg[0] === DIRECTORY_SEPARATOR) {
+            if (isset($arg[0]) && $arg[0] === DIRECTORY_SEPARATOR) {
                 $targetPath = DIRECTORY_SEPARATOR . $trimmed . DIRECTORY_SEPARATOR;
             } else {
                 if (!empty($trimmed)) {
