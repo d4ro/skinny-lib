@@ -61,7 +61,7 @@ class Form extends Validate implements \JsonSerializable {
      * @var array
      */
     protected $_classes = [];
-    
+
     /**
      * Przechowuje dane ustawione za pomocą magicznych wywołań.
      * @var array
@@ -98,6 +98,35 @@ class Form extends Validate implements \JsonSerializable {
         }
 
         return $item;
+    }
+
+    /**
+     * Zwraca aktualnie ustawione dane dla całego obiektu.
+     * 
+     * @return array
+     */
+    public function getData() {
+        $data = parent::getData();
+        $data = $this->_filterDataRecursive($data);
+        return $data;
+    }
+
+    /**
+     * Usuwa z data indykatory KeyNotExists.
+     * 
+     * @param array $data
+     * @return array
+     */
+    private function _filterDataRecursive($data) {
+        $result = [];
+        foreach ($data as $key => &$value) {
+            if (is_array($value)) {
+                $result[$key] = $this->_filterDataRecursive($value);
+            } elseif (!($value instanceof KeyNotExist)) {
+                $result[$key] = $value;
+            }
+        }
+        return $result;
     }
 
     /**
@@ -259,7 +288,7 @@ class Form extends Validate implements \JsonSerializable {
     public function getAttribute($name) {
         return @$this->_attributes[$name];
     }
-    
+
     /**
      * Sprawdza czy jest ustawiony atrybut o podanej nazwie.
      * 
@@ -291,7 +320,7 @@ class Form extends Validate implements \JsonSerializable {
         if ($name === 'class') {
             return call_user_func_array([$this, '__cls'], $arguments);
         } else {
-            if(empty($arguments)) {
+            if (empty($arguments)) {
                 // get
                 return $this->_getData($name);
             } else {
@@ -300,7 +329,7 @@ class Form extends Validate implements \JsonSerializable {
             }
         }
     }
-    
+
     /**
      * Ustawia dodatkową daną obiektu w kontenerze _customData.
      * 
@@ -312,7 +341,7 @@ class Form extends Validate implements \JsonSerializable {
         $this->_customData[$name] = $value;
         return $this;
     }
-    
+
     /**
      * Pobiera ustawioną wartość lub zwraca null jeśli nie ustawiona.
      * 
@@ -434,7 +463,7 @@ class Form extends Validate implements \JsonSerializable {
 
         return $this;
     }
-    
+
     /**
      * Sprawdza czy jest ustawiona klasa o podanej nazwie.
      * 
@@ -446,10 +475,10 @@ class Form extends Validate implements \JsonSerializable {
         if (empty($class) || !is_string($class)) {
             throw new Form\Exception('Invalid class name');
         }
-        
+
         return in_array($class, $this->_classes);
     }
-    
+
     /**
      * Ustawia lub pobiera atrybut "id" formularza.
      * 

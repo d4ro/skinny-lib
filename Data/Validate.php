@@ -960,11 +960,11 @@ class KeyNotExist {
     public function __toString() {
         return '';
     }
-    
+
     public function __isset($name) {
         return false;
     }
-    
+
     public function __get($name) {
         return null;
     }
