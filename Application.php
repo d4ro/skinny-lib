@@ -391,16 +391,12 @@ class Application {
 
     public function shutdownHandler() {
         // TODO: do uzupełnienia i przeprowadzenia pełnych testów
-        $lastError = $this->getLastError(); // error_get_last();
+        $lastError = $this->getLastError();
         if (!$lastError) {
             return;
         }
 
-//        try {
         $this->handleLastError($lastError);
-//        } catch (\Skinny\Exception $e) {
-//            return false;
-//        }
     }
 
     protected function handleLastError(array $lastError) {
@@ -455,7 +451,6 @@ class Application {
         Exception::throwIf(null === $errorAction, new Action\ActionException("Error handler action is not defined to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
         Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException("Error occured in error handler action to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
 
-//        if (null !== $errorAction && $errorAction !== $this->_request->current()->getRequestUrl()) {
         try {
             $this->forwardError(['@error' => 'fatal', '@lastError' => $lastError], $errorAction);
         } catch (Action\ForwardException $ex) {
@@ -464,10 +459,7 @@ class Application {
 
         $this->_request->proceed();
         $this->run();
-//        ob_flush();
-        die();
-//        return true;
-//        }
+        exit();
         return false;
     }
 
