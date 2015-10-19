@@ -209,4 +209,14 @@ class ArrayWrapper extends DataBase implements \JsonSerializable, \ArrayAccess, 
         return $last_key;
     }
 
+    public static function compareValues($value1, $value2) {
+        if ($value1 > $value2) {
+            return 1;
+        }
+        if ($value1 < $value2) {
+            return -1;
+        }
+        return 0;
+    }
+
 }

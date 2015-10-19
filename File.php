@@ -3,14 +3,29 @@
 namespace Skinny;
 
 /**
- * Description of File
- *
- * @author Daro
+ * Klasa reprezentująca plik w systemie plików systemu operacyjnego.
+ * Umożliwia operacje na zawartości pliku takie, jak odczyt, zapis,
+ * oparcje ogólne takie, jak usuwanie, przenoszenie, kopiowanie oraz
+ * dostarcza informacje o pliku takie, jak rozmiar, ścieżka, itp.
  */
 class File {
 
+    /**
+     * Deskryptor otwartego pliku; pozostaje null, gdy plik nie został otwarty
+     * @var resource
+     */
     protected $_descriptor;
+
+    /**
+     * Tryb dostępu do pliku; pozostaje null, gdy plik nie został otwarty
+     * @var string
+     */
     protected $_mode;
+
+    /**
+     * Ścieżka do pliku
+     * @var string
+     */
     protected $_path;
 
     public function __construct($path) {
