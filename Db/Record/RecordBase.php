@@ -1008,6 +1008,28 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
+     * Odświeża rekord pobierając dane z bazy.
+     * 
+     * @return boolean czy pobranie danych się udało;
+     * może się nie udać, gdy rekord nie istnieje lub nie da się określić, który to jest w bazie
+     */
+    public function reload() {
+        if (null === $this->_idValue || !$this->_exists) {
+            return false;
+        }
+
+        try {
+            $this->_idValue = $this->_validateIdentifier($this->_idValue);
+        } catch (RecordException $ex) {
+            return false;
+        }
+
+        $success = $this->_load($this->_idValue);
+
+        return (boolean) $success;
+    }
+
+    /**
      * Pobiera wartość kolumny rekordu w takiej formie, jaka jest zapisywana do tabeli lub została ustawiona.
      * 
      * @param string $name nazwa kolumny (pola) rekordu
@@ -1439,7 +1461,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         return self::$db->fetchOne($select);
     }
-    
+
     /**
      * Zwraca obiekt select przygotowany do obliczenia liczby rekordów.
      * 
