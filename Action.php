@@ -128,6 +128,14 @@ abstract class Action extends Application\Components\ComponentsAware {
     }
 
     /**
+     * Pobiera wszystkie parametry zapytania do akcji w formie stringu oddzielonego ukośnikiem.
+     * @return array
+     */
+    public function getParamsString() {
+        return $this->getRequest()->current()->getParamsString();
+    }
+
+    /**
      * Pobiera ścieżkę żądania do aktualnej akcji.
      * @return string
      */
