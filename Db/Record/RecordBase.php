@@ -599,19 +599,20 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param boolean $includeFilledColumns czy ma podać wszystkie kolumny zdefiniowane w rekordzie
      * @param boolean $includeRecordColumns czy ma pobrać także kolumny rekordowe
      * @param boolean $includeCollectionColumns czy ma pobrać także kolumny z kolekcjami
+     * @param boolean $includeJsonColumns czy ma pobrać także kolumny JSONowe
      * @return array
      */
-    public function getColumns($includeFilledColumns = false, $includeRecordColumns = false, $includeCollectionColumns = false) {
+    public function getColumns($includeFilledColumns = false, $includeRecordColumns = false, $includeCollectionColumns = false, $includeJsonColumns = false) {
         $columns = $this->_columns;
         if (null === $this->_columns) {
             $structure = $this->_getTableStructure($this->_tableName);
             $this->_columns = $columns = array_keys($structure);
-            user_error('Performance issue: Record columns have not been specified. Had to describe table: ' . static::getTableName() . '.', E_USER_NOTICE);
+            user_error('Performance issue: Record columns have not been specified. Had to describe table: ' . $this->_tableName . '.', E_USER_NOTICE);
         }
 
         if ($includeFilledColumns) {
-            $realColumns = array_keys($this->_data);
-            $columns = array_merge($columns, $realColumns);
+            $filledColumns = array_keys($this->_data);
+            $columns = array_merge($columns, $filledColumns);
         }
 
         if ($includeRecordColumns) {
@@ -622,6 +623,11 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         if ($includeCollectionColumns) {
             $collectionColumns = array_keys($this->_collectionColumns);
             $columns = array_merge($columns, $collectionColumns);
+        }
+
+        if ($includeJsonColumns) {
+            $jsonColumns = array_keys($this->_jsonColumns);
+            $columns = array_merge($columns, $jsonColumns);
         }
 
         return $columns;
@@ -677,19 +683,30 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param boolean $includeWritingDisabled czy ma eksportować także kolumny określone jako nie-do-zapisu
      * @param boolean $includeRecordColumns załącza kolumny rekordowe (wartością tych kolumn będą obiekty RecordCollection)
      * @param boolean $includeCollectionColumns załącza kolumny z kolekcjami (wartością tych kolumn będą obiekty Record)
-     * @param boolean $inclueJsonColumns załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)
+     * @param boolean $includeJsonColumns załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)
      * @return array dane
      */
-    public function exportData($includeFilledColumns = false, $rawData = true, $useFiltering = false, $includeWritingDisabled = false, $includeRecordColumns = false, $includeCollectionColumns = false, $inclueJsonColumns = false) {
-        $data = [];
-        foreach ($this->getColumns($includeFilledColumns, $includeRecordColumns, $includeCollectionColumns) as $column) {
-            // ignorujemy kolumny, których mamy nie zapisywać do bazy
-            if (!$includeWritingDisabled && in_array($column, $this->_writingDisabledColumns)) {
-                continue;
-            }
+    public function exportData($includeFilledColumns = false, $rawData = true, $useFiltering = false, $includeWritingDisabled = false, $includeRecordColumns = false, $includeCollectionColumns = false, $includeJsonColumns = false) {
+        $columns = $this->getColumns($includeFilledColumns, $includeRecordColumns, $includeCollectionColumns, $includeJsonColumns);
+        if (!$includeWritingDisabled) {
+            $columns = array_diff($columns, $this->_writingDisabledColumns);
+        }
+        return $this->exportColumns($columns, $rawData, $useFiltering);
+    }
 
+    /**
+     * Pobiera dane konkretnych kolumn rekordu.
+     * 
+     * @param array $columns które kolumny mają zostać wyeksportowane
+     * @param boolean $rawData czy dane mają być w postaci surowej (takie jakie przychodzą do bazy lub z niej)
+     * @param boolean $useFiltering czy ma używać metod filtrujących wartości przy ich odczycie
+     * @return array dane
+     */
+    public function exportColumns(array $columns, $rawData = true, $useFiltering = false) {
+        $data = [];
+        foreach ($columns as $column) {
             // eksportujemy kolumny z kolekcjami
-            if ($includeCollectionColumns && key_exists($column, $this->_collectionColumns)) {
+            if (!$rawData && key_exists($column, $this->_collectionColumns)) {
                 if (!$this->_collectionColumns[$column]['hasValue']) {
                     $this->_buildCollectionColumn($column);
                 }
@@ -699,7 +716,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             }
 
             // eksportujemy kolumny z rekordami
-            if ($includeRecordColumns && key_exists($column, $this->_recordColumns)) {
+            if (key_exists($column, $this->_recordColumns)) {
                 if (!$this->_recordColumns[$column]['hasValue']) {
                     $identifier = $this->_buildWhere($this->_recordColumns[$column]['identifier']);
 
@@ -713,13 +730,15 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                     }
                 }
 
-                $data[$column] = $this->_recordColumns[$column]['value'];
-                continue;
-            }
+                if (!$rawData) {
+                    $data[$column] = $this->_recordColumns[$column]['value'];
+                    continue;
+                }
 
-            // omijaj wypełnione kolumny, jeżeli nie należą to tabeli i nie życzymy ich sobie pobierać
-            if (!$includeFilledColumns && !key_exists($column, $this->_data)) {
-                continue;
+                $result = $this->_getIdValuesFormRecordColumn($column);
+                foreach ($result as $key => $value) {
+                    $this->_data[$key] = $value;
+                }
             }
 
             // konwertujemy kolumny jsonowe, gdy jest w nich wartość
@@ -729,16 +748,12 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                     $this->_jsonColumns[$column]['hasValue'] = true;
                 }
 
-                $data[$column] = $this->_jsonColumns[$column]['value'];
-                continue;
-            }
-
-            // pobieramy ID z obcych rekordów, o ile są załadowane
-            if (key_exists($column, $this->_recordColumns) && $this->_recordColumns[$column]['hasValue']) {
-                $result = $this->_getIdValuesFormRecordColumn($column);
-                foreach ($result as $key => $value) {
-                    $this->_data[$key] = $value;
+                if (!$rawData) {
+                    $data[$column] = $this->_jsonColumns[$column]['value'];
+                    continue;
                 }
+
+                $this->_data[$column] = json_encode($this->_jsonColumns[$column]['value']);
             }
 
             if (key_exists($column, $this->_data)) {
@@ -883,7 +898,6 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             $array[$key] = $this->{$key};
         }
         return $array;
-//        return $this->exportData(true);
     }
 
     public function createRandomHash() {
