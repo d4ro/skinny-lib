@@ -112,6 +112,7 @@ abstract class ContainerBase implements ContainerInterface {
 
     /**
      * Returns depth level of the action counting from base.
+     * 
      * @return int
      */
     public function getActionDepth() {
@@ -121,6 +122,7 @@ abstract class ContainerBase implements ContainerInterface {
     /**
      * Returns whether action in the container is the same as in the original request.
      * [Obsolete cadidate]
+     * 
      * @return bool
      */
     public function getActionMatch() {
@@ -129,6 +131,7 @@ abstract class ContainerBase implements ContainerInterface {
 
     /**
      * Returns action parts subset of whole arguments array.
+     * 
      * @return array
      */
     public function getActionParts() {
@@ -137,6 +140,7 @@ abstract class ContainerBase implements ContainerInterface {
 
     /**
      * Returns arguments array extracted from the request.
+     * 
      * @return array
      */
     public function getArgs() {
@@ -145,6 +149,7 @@ abstract class ContainerBase implements ContainerInterface {
 
     /**
      * Returns number of arguments.
+     * 
      * @return int
      */
     public function getArgCount() {
@@ -153,6 +158,7 @@ abstract class ContainerBase implements ContainerInterface {
 
     /**
      * Returns associated array of parameters where names are keys.
+     * 
      * @return array
      */
     public function getParams() {
@@ -160,7 +166,22 @@ abstract class ContainerBase implements ContainerInterface {
     }
 
     /**
+     * Returns parameters in string format.
+     * 
+     * @return string
+     * @todo obsłużyć parametry tablicowe
+     */
+    public function getParamsString() {
+        $result = '';
+        foreach ($this->_params as $key => $value) {
+            $result .= $key . '/' . $value . '/';
+        }
+        return $result;
+    }
+
+    /**
      * Returns number of parameters.
+     * 
      * @return int
      */
     public function getParamCount() {
