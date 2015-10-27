@@ -742,7 +742,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             }
 
             // konwertujemy kolumny jsonowe, gdy jest w nich wartość
-            if ($inclueJsonColumns && key_exists($column, $this->_jsonColumns)) {
+            if (key_exists($column, $this->_jsonColumns)) {
                 if (!$this->_jsonColumns[$column]['hasValue']) {
                     $this->_jsonColumns[$column]['value'] = json_decode($this->_data[$column], true);
                     $this->_jsonColumns[$column]['hasValue'] = true;
