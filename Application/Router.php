@@ -195,5 +195,22 @@ class Router extends Router\RouterBase {
 
         return $container;
     }
+    
+    /**
+     * Tworzy ścieżkę na podstawie stringa zawierającego nawiasy kwadratowe
+     * odzwierciedlającego jakąś nazwę z dowolnym załebieniem.
+     * W rezultacie zamiast nazwa[test][test2] otrzymamy:
+     * nazwa/test/test2
+     * 
+     * @param string $key
+     * @return string
+     */
+    public static function getMultiDimensionalKeyPath ($key) {
+        if(!empty($key) && is_string($key)) {
+            $that = new self();
+            return $that->_trueKey($key);
+        }
+        return '';
+    }
 
 }
