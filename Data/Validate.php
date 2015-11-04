@@ -140,6 +140,27 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
 
         return $item;
     }
+    
+    /**
+     * Tworzy lub zwraca istniejący element - alias to magicznej metody get.
+     * Metoda może być wieloargumentowa - wtedy każdy kolejny argumenty to kolejny poziom zagłębienia.
+     * 
+     * @param string $name
+     * @return static
+     */
+    public function item($name) {
+        if(func_num_args() > 1) {
+            $item = $this;
+            $args = func_get_args();
+            foreach($args as $arg) {
+                $item = $item->{$arg};
+            }
+        } else {
+            $item = $this->{$name};
+        }
+        
+        return $item;
+    }
 
     /**
      * Tworzy nowy obiekt w taki sposób aby miał wskaźnik na swojego rodzica oraz
@@ -296,7 +317,11 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
                     $this->$k->mergeOptions($vData['options']); // TODO czy to na pewno tak ma być = opcje nadpisywane na poziomie każdego walidatora z osobna...
                 }
             }
+            
+            // Po powstaniu nowych poziomów należy "przepisać" dane dla tego poziomu
+            $this->value($data);
 
+            // Czyszczenie aktualnej tablicy walidatorów "each"
             $this->_eachValidators = [];
         }
     }
@@ -625,44 +650,44 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @param mixed $value
      * @return mixed
      */
-    public function value($value = null) {
-        if (func_num_args() === 0) {
-            if ($this->getName()) {
-                $val = $this->_value;
-//                $val = @$val[$this->_name]; // zwraca wartość konkretnego pola
+//    public function value($value = null) {
+//        if (func_num_args() === 0) {
+//            if ($this->getName()) {
+//                $val = $this->_value;
+////                $val = @$val[$this->_name]; // zwraca wartość konkretnego pola
+////
+////                $data = $this->root()->__allData;
+////                // Odnalezienie ścieżki danych, które zawsze są aktualne w __allData
+////                // i zwrócenie odpowiedniego klucza - lub null jeżeli brak wartości
+////                foreach ($this->_keysFromRoot as $key) {
+////                    if (!isset($data[$key])) {
+////                        $data = null;
+////                        break;
+////                    } else {
+////                        $data = $data[$key];
+////                    }
+////                }
+////
+////                return $data;
+//            } else {
+//                $val = $this->root()->__allData; // zwraca całość danych ustawionych lokalnie
+//            }
+//            return $val;
+//        } else {
+//            // Ustawienie wartości dla pola
+//            // Przy ustawieniu automatycznie merdżujemy __allData
+//            if ($this->_name) {
+//                $this->_value = $value;
 //
-//                $data = $this->root()->__allData;
-//                // Odnalezienie ścieżki danych, które zawsze są aktualne w __allData
-//                // i zwrócenie odpowiedniego klucza - lub null jeżeli brak wartości
-//                foreach ($this->_keysFromRoot as $key) {
-//                    if (!isset($data[$key])) {
-//                        $data = null;
-//                        break;
-//                    } else {
-//                        $data = $data[$key];
-//                    }
-//                }
+//                $this->__setAllDataLevelValue($value);
 //
-//                return $data;
-            } else {
-                $val = $this->root()->__allData; // zwraca całość danych ustawionych lokalnie
-            }
-            return $val;
-        } else {
-            // Ustawienie wartości dla pola
-            // Przy ustawieniu automatycznie merdżujemy __allData
-            if ($this->_name) {
-                $this->_value = $value;
-
-                $this->__setAllDataLevelValue($value);
-
-                // resetuje statusy walidacji
-                $this->root()->resetValidation();
-            }
-        }
-
-        return $this;
-    }
+//                // resetuje statusy walidacji
+//                $this->root()->resetValidation();
+//            }
+//        }
+//
+//        return $this;
+//    }
 
     /**
      * Metoda ustawia dane dla danego poziomu z uwzględnieniem ścieżki danych
@@ -671,58 +696,36 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @param mixed $value
      * @throws Validate\Exception
      */
-    private function __setAllDataLevelValue($value) {
-//        if (is_array($value) && !empty($this->_items)) {
-//            die(var_dump(['AAA', $value, $this->value()]));
-//            throw new Validate\Exception('Cannot set an "array value" for this level');
-//            return;
+//    private function __setAllDataLevelValue($value) {
+////        if (is_array($value) && !empty($this->_items)) {
+////            die(var_dump(['AAA', $value, $this->value()]));
+////            throw new Validate\Exception('Cannot set an "array value" for this level');
+////            return;
+////        }
+//
+//        $data = $this->root()->__allData;
+//        $rootData = &$data;
+//        $prev = ($name = $this->getName()) ? $name : 'root';
+//
+//        foreach ($this->_keysFromRoot as $key) {
+//            if (!isset($data[$key])) {
+//                $data[$key] = [];
+//            }
+//            if (is_string($data)) {
+//                throw new Validate\Exception("Data for level \"{$prev}\" is invalid");
+//            }
+//            $data = &$data[$key];
+//            $prev = $key;
 //        }
-
-        $data = $this->root()->__allData;
-        $rootData = &$data;
-        $prev = ($name = $this->getName()) ? $name : 'root';
-
-        foreach ($this->_keysFromRoot as $key) {
-            if (!isset($data[$key])) {
-                $data[$key] = [];
-            }
-            if (is_string($data)) {
-                throw new Validate\Exception("Data for level \"{$prev}\" is invalid");
-            }
-            $data = &$data[$key];
-            $prev = $key;
-        }
-
-        if (!empty($this->_items)) {
-            die(var_dump([$value, $this->value()]));
-            throw new Validate\Exception("Cannot set non array value for this level");
-        }
-
-        $data = $value;
-        $this->root()->__allData = $rootData;
-    }
-
-    private function __setData($data) {
-        $rootData = $this->__prepareRootData();
-        $rootData[$this->getName()] = $data;
-        $this->_value = $data;
-
-        if (!empty($this->_items)) {
-            
-        }
-    }
-
-    private function __prepareRootData() {
-        $data = $this->root()->__allData;
-        $rootData = &$data;
-        foreach ($this->_keysFromRoot as $key) {
-            if (!isset($data[$key])) {
-                $data[$key] = [];
-            }
-            $data = &$data[$key];
-        }
-        return $rootData;
-    }
+//
+//        if (!empty($this->_items)) {
+//            die(var_dump([$value, $this->value()]));
+//            throw new Validate\Exception("Cannot set non array value for this level");
+//        }
+//
+//        $data = $value;
+//        $this->root()->__allData = $rootData;
+//    }
 
     /**
      * Uruchamia walidację dla bieżącego pola (lub całej walidacji).
@@ -738,7 +741,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
 
         // Jeżeli wszystkie dane są puste - niewypełnione a walidacja nie została przeprowadzona - błąd
-        if ($this->_status === self::STATUS_NOT_VALIDATED && empty($this->root()->__allData) && $data === null) {
+        if ($this->_status === self::STATUS_NOT_VALIDATED && empty($this->value()) && func_num_args() === 0) {
             throw new Validate\Exception("No data to validate");
         }
 
@@ -749,7 +752,9 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             return $this->_result;
         }
 
-        $this->setData($data);
+        if (func_num_args() > 0) {
+            $this->setData($data);
+        }
 
         $i = 0;
         $result = null;
@@ -792,100 +797,94 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @return \Skinny\Data\Validate
      */
     public function setData($data = null) {
-        if ($data !== null) {
-            if (is_array($data) && $this->isRoot()) {
-                foreach ($this->_items as $name => $item) {
-                    /* @var $item Validate */
-                    if (isset($data[$name])) {
-                        $item->_value = $data[$name];
-                        $item->__setAllDataLevelValue($data[$name]);
-//                        if(!empty($item->_items)) {
-//                            foreach($item->_items as $subitem) {
-//                                $subitem->setData
-//                            }
-//                        }
-                    } else if (!$item->_value) {
-                        $item->_value = new KeyNotExist();
-                        $data[$name] = $item->_value;
-                        $item->__setAllDataLevelValue($data[$name]);
-                    }
-                }
-                foreach ($data as $name => $value) {
-                    if (!isset($this->__allData[$name])) {
-                        $this->__allData[$name] = $value;
-                    }
-                }
-            } else {
-                $this->__setAllDataLevelValue($data);
-            }
-        }
+        $this->value($data);
+//        if ($data !== null) {
+//            if (is_array($data) && $this->isRoot()) {
+//                foreach ($this->_items as $name => $item) {
+//                    /* @var $item Validate */
+//                    if (isset($data[$name])) {
+//                        $item->_value = $data[$name];
+//                        $item->__setAllDataLevelValue($data[$name]);
+////                        if(!empty($item->_items)) {
+////                            foreach($item->_items as $subitem) {
+////                                $subitem->setData
+////                            }
+////                        }
+//                    } else if (!$item->_value) {
+//                        $item->_value = new KeyNotExist();
+//                        $data[$name] = $item->_value;
+//                        $item->__setAllDataLevelValue($data[$name]);
+//                    }
+//                }
+//                foreach ($data as $name => $value) {
+//                    if (!isset($this->__allData[$name])) {
+//                        $this->__allData[$name] = $value;
+//                    }
+//                }
+//            } else {
+//                $this->__setAllDataLevelValue($data);
+//            }
+//        }
         return $this;
     }
 
     /**
+     * Odczyt lub ustawienie nowej wartości dla bieżącej właściwości.
      * 
-     * @param type $data
+     * Jeżeli metoda wywołana jest bezargumentowo, zwróci ustawioną wartość,
+     * w przeciwnym wypadku ustawi nową.
+     * 
+     * Jeżeli element ma podelementy a ustawiane dane są obiektem 
+     * implementującym \ArrayAccess do podelementów zostanie podjęta próba przypisania
+     * odpowiedniego podelementu z ustawianego obiektu/tablicy.
+     * 
+     * Nieistniejące klucze są zapisywane jako obiekt KeyNotExist. 
+     * Przy odczycie takie klucze są pomijane.
+     * 
+     * @param mixed $data
+     * @return mixed
      */
-    public function value2($data) {
+    public function value($data) {
         if (func_num_args() > 0) {
+            // Zapis nowej wartości dla bieżącego poziomu
             if (!isset($data)) {
                 $data = new KeyNotExist();
             }
-            
+
+            // Przypisanie danych do bieżącego poziomu
             $this->_value = $data;
 
-//        $curData = &$data;
+            // Jeżeli istnieją jakieś podelementy dla tego poziomu to dla nich również należy
+            // przypisać odpowiednie wartości
             if (!empty($this->_items)) {
                 foreach ($this->_items as $item) {
-                    var_dump($item->getName());
                     if (!isset($data[$item->getName()])) {
-                        $item->value2(new KeyNotExist());
+                        $item->value(new KeyNotExist());
                     } else {
-                        $item->value2($data[$item->getName()]);
+                        $item->value($val = $data[$item->getName()]);
                     }
                 }
             }
 
+            // Reset walidacji dla tego poziomu
+            $this->resetValidation();
+
             return $this;
         } else {
-            if(empty($this->_items)) {
-                return $this->_value;
-            } else {
-                $value = [];
-                foreach($this->_items as $item) {
-                    $value[$item->getName()] = $item->value2();
+            // Pobranie wartości ustawionej dla bieżącego poziomu,
+            // oraz jeżeli element ma podelementy, to nadpisanie wszystkich możliwych
+            // właściwości z podelementów
+            $value = $this->_value;
+
+            if (!empty($this->_items) && is_array($value)) {
+                foreach ($this->_items as $item) {
+                    $value[$item->getName()] = $item->value();
                 }
             }
-            
-            return $this->_value;
-        }
-//        // Ustawienie bieżącemu polu konkretnej wartości
-//        $this->_value = $data;
-//        
-//        if(empty($this->_keysFromRoot)) {
-//            $this->__allData = $data;
-//        } else {
-//            $levelData = &$this->__allData;
-//            foreach($this->_keysFromRoot as $key) {
-//                if(!isset($levelData[$key])) {
-//                    $levelData[$key] = [];
-//                }
-//                $levelData = &$levelData[$key];
-//            }
-//            
-//            $levelData = $data;
-//        }
-//        
-//        foreach ($this->_keysFromRoot as $key) {
-//            
-//        }
-//
-//        return $this;
-    }
 
-//    private function __prepareDataBeforeSet($data) {
-//        
-//    }
+            return $value;
+        }
+    }
 
     /**
      * Ustawia status walidacji.
@@ -1011,12 +1010,22 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     }
 
     /**
-     * Sprawdza czy dany poziom był walidowany.
+     * Sprawdza czy dany poziom oraz jego podpoziomy są zwalidowane.
      * 
      * @return boolean
      */
     public function validated() {
-        return $this->_status === self::STATUS_VALIDATED;
+        if ($this->_status !== self::STATUS_VALIDATED) {
+            return false;
+        }
+        if (!empty($this->_items)) {
+            foreach ($this->_items as $item) {
+                if (!$item->validated()) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
