@@ -529,5 +529,23 @@ class Form extends Validate implements \JsonSerializable {
 
         return $json;
     }
+    
+    /**
+     * Zwraca nazwę elementu na podstawie jego zagłębienia - nazwa jak przy formularzach:
+     * np. test[pole1][podpole2]
+     * 
+     * @return string
+     */
+    public function getArrayLikeName() {
+        $name = "";
+        foreach($this->_keysFromRoot as $i => $key) {
+            if($i == 0) {
+                $name = $key;
+            } else {
+                $name .= "[$key]";
+            }
+        }
+        return $name;
+    }
 
 }
