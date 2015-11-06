@@ -140,27 +140,6 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
 
         return $item;
     }
-    
-    /**
-     * Tworzy lub zwraca istniejący element - alias to magicznej metody get.
-     * Metoda może być wieloargumentowa - wtedy każdy kolejny argumenty to kolejny poziom zagłębienia.
-     * 
-     * @param string $name
-     * @return static
-     */
-    public function item($name) {
-        if(func_num_args() > 1) {
-            $item = $this;
-            $args = func_get_args();
-            foreach($args as $arg) {
-                $item = $item->{$arg};
-            }
-        } else {
-            $item = $this->{$name};
-        }
-        
-        return $item;
-    }
 
     /**
      * Tworzy nowy obiekt w taki sposób aby miał wskaźnik na swojego rodzica oraz
@@ -461,7 +440,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * (opcja OPT_MSG_PARAMS dla klucza "label")
      * 
      * @param string $label
-     * @return \Skinny\Data\Validate|string
+     * @return static
      */
     public function label($label = null) {
         if (func_num_args() === 0) {
@@ -480,7 +459,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     /**
      * Ustawia parametry wiadomości dla wszystkich walidatorów danego pola
      * @param array $params
-     * @return \Skinny\Data\Validate
+     * @return static
      */
     public function setMessagesParams(array $params) {
         $this->setOptions([
@@ -741,7 +720,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
 
         // Jeżeli wszystkie dane są puste - niewypełnione a walidacja nie została przeprowadzona - błąd
-        if ($this->_status === self::STATUS_NOT_VALIDATED && empty($this->value()) && func_num_args() === 0) {
+        if ($this->_status === self::STATUS_NOT_VALIDATED && empty($this->value()) && func_num_args() === 0 && $this->isRoot()) {
             throw new Validate\Exception("No data to validate");
         }
 
@@ -794,7 +773,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     /**
      * Ustawia (nadpisuje) dane dla wybranego poziomu.
      * @param mixed $data
-     * @return \Skinny\Data\Validate
+     * @return static
      */
     public function setData($data = null) {
         $this->value($data);
@@ -1049,7 +1028,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     /**
      * Resetuje dane ustawione w obiekcie.
      * 
-     * @return \Skinny\Data\Validate
+     * @return static
      */
     public function resetData() {
         $this->root()->__allData = [];
