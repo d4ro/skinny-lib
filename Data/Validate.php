@@ -292,10 +292,13 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             // jeżeli ustawiono walidatory dla wszystkich podelementów to należy je najpierw przygotować
             foreach ($data as $k => $v) {
                 foreach ($this->_eachValidators as $vData) {
-                    $this->$k->__prepend($vData['validator'], $vData['errorMsg'], $vData['options']);
-                    $this->$k->mergeOptions($vData['options']); // TODO czy to na pewno tak ma być = opcje nadpisywane na poziomie każdego walidatora z osobna...
+                    $this->child($k)->__prepend($vData['validator'], $vData['errorMsg'], $vData['options']);
+//                    $this->child($k)->add($vData['validator'], $vData['errorMsg'], $vData['options']);
+//                    $this->child($k)->mergeOptions($vData['options']); // TODO czy to na pewno tak ma być = opcje nadpisywane na poziomie każdego walidatora z osobna...
                 }
             }
+            
+            die(var_dump($this->_eachValidators));
             
             // Po powstaniu nowych poziomów należy "przepisać" dane dla tego poziomu
             $this->value($data);
@@ -503,7 +506,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @param Validator\ValidatorBase|\Closure  $validator  Obiekt walidatora
      * @param string|array                      $errorMsg   Komunikat w przypadku błędu
      * @param array                             $options    Tablica ustawień walidatorów
-     * @return \model\validate
+     * @return static
      * 
      * @todo Sprawdzić czy nadpisywanie opcji działa poprawnie
      */
@@ -524,7 +527,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @param Validator\ValidatorBase $validator
      * @param string|array $errorMsg
      * @param array $options
-     * @return \model\validate
+     * @return static
      */
     private function __prepend($validator, $errorMsg = null, $options = null) {
         if (!($validator instanceof Validator\ValidatorBase)) {
@@ -550,7 +553,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * tablicy/obiekcie danych.
      * 
      * @param   string $message Komunikat w przypadku błędu
-     * @return  \model\validate
+     * @return  static
      */
     public function mustExist($message = null) {
         return $this->__prepend(new Validator\MustExist(), $message);
@@ -561,7 +564,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * Automatycznie dodaje 2 walidatory MustExist oraz NotEmpty.
      * 
      * @param   string $message Komunikat w przypadku błędu
-     * @return  \model\validate
+     * @return  static
      */
     public function required($message = null) {
         return $this->__prepend(new Validator\Required(), $message);
@@ -576,7 +579,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      *                              asocjacyjna gdzie klucz jest nazwą 
      *                              pola a wartość customowym komunikatem o błędzie.
      * @param   string  $message    Komunikat w przypadku błędu
-     * @return  \model\validate
+     * @return  static
      * @throws  Validate\Exception
      */
     public function requires($names, $message = null) {
@@ -1040,10 +1043,20 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
         return $this;
     }
+    
+    /**
+     * Sprawdza czy pole ma ustawioną jakąś wartość, nawet null - czyli czy wartość
+     * NIE JEST instancją KeyNotExist.
+     * 
+     * @return boolean
+     */
+    public function hasValue() {
+        return !($this->value() instanceof KeyNotExist);
+    }
 
 }
 
-class KeyNotExist {
+class KeyNotExist implements \ArrayAccess {
 
     public function __toString() {
         return '';
@@ -1055,6 +1068,22 @@ class KeyNotExist {
 
     public function __get($name) {
         return null;
+    }
+
+    public function offsetExists($offset) {
+        return false;
+    }
+
+    public function offsetGet($offset) {
+        return null;
+    }
+
+    public function offsetSet($offset, $value) {
+        return;
+    }
+
+    public function offsetUnset($offset) {
+        return;
     }
 
 }
