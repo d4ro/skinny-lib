@@ -278,7 +278,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         if ($callback instanceof \Closure) {
             foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
                 $record = $this->_data[$recordNum];
-                $result[$key] = $callback($record);
+                $result[$key] = $callback($record, $key);
             }
         } else {
             throw new \BadFunctionCallException('Callback is not a function.');
@@ -544,4 +544,30 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         }
     }
 
+//    public function getIterator() {
+//        return new RecordCollectionIterator($this);
+//    }
 }
+
+//class RecordCollectionIterator implements \Iterator {
+//    public function current() {
+//        
+//    }
+//
+//    public function key() {
+//        
+//    }
+//
+//    public function next() {
+//        
+//    }
+//
+//    public function rewind() {
+//        
+//    }
+//
+//    public function valid() {
+//        
+//    }
+//
+//}

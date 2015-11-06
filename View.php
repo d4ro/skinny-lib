@@ -208,7 +208,7 @@ class View extends DataObject\ArrayWrapper {
      * @return string JSON
      */
     public function getScriptVars($getJson = true) {
-        if($getJson) {
+        if ($getJson) {
             return json_encode($this->_jsVars);
         } else {
             return $this->_jsVars;
