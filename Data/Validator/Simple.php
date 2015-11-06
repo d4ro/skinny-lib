@@ -77,7 +77,7 @@ class Simple extends ValidatorBase {
         ];
         $this->value = $value;
 
-        $result = (false !== call_user_func($this->customValidator, $this->value, $this->item)); // Wywołanie customowego walidatora
+        $result = (false !== (boolean) call_user_func($this->customValidator, $this->value, $this->item)); // Wywołanie customowego walidatora
         // jeżeli zwrócono wynik funkcji (false) a nie wystąpiły żadne błędy (nie dodano ich przy użyciu funkcji error) to należy dodać błąd domyślny
         if (!$result && empty($this->_errors)) {
             $this->error();
