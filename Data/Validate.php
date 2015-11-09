@@ -292,15 +292,11 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             // jeżeli ustawiono walidatory dla wszystkich podelementów to należy je najpierw przygotować
             foreach ($data as $k => $v) {
                 foreach ($this->_eachValidators as $vData) {
-                    $this->child($k)->__prepend($vData['validator'], $vData['errorMsg'], $vData['options']);
-//                    $this->child($k)->add($vData['validator'], $vData['errorMsg'], $vData['options']);
-//                    $this->child($k)->mergeOptions($vData['options']); // TODO czy to na pewno tak ma być = opcje nadpisywane na poziomie każdego walidatora z osobna...
+                    $this->child($k)->add(clone $vData['validator'], $vData['errorMsg'], $vData['options']);
                 }
             }
-            
-            die(var_dump($this->_eachValidators));
-            
-            // Po powstaniu nowych poziomów należy "przepisać" dane dla tego poziomu
+
+            // Po powstaniu nowych poziomów należy "przepisać" dane na nowo stworzonych poziomach
             $this->value($data);
 
             // Czyszczenie aktualnej tablicy walidatorów "each"
@@ -339,7 +335,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         foreach ($item->_validators as $validator) {
             // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
             $params = array_merge(
-                    [Validator\ValidatorBase::PRM_NAME => $item->_name/* , Validator\ValidatorBase::PRM_VALUE => $value */]
+                    [Validator\ValidatorBase::PRM_NAME => $item->getName()/* , Validator\ValidatorBase::PRM_VALUE => $value */]
                     , $item->_options[self::OPTION_MESSAGES_PARAMS]);
 
             $validator->setMessagesParams($params);
@@ -347,6 +343,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             // Walidacja
             if (!$validator->isValid($value)) {
                 $item->_result = false;
+                
                 if ($this->_options[self::OPTION_BREAK_ON_VALIDATOR_FAILURE] === true) {
                     break;
                 }
@@ -741,10 +738,15 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         $i = 0;
         $result = null;
 
-        // Uruchamianie walidacji niezwalidowanych elementów dopóki istnieje rónica w sumie elementów.
-        // Pętla wykona się ponownie np. w momencie gdy dla elementów istnieją walidatory Closure
-        // które dodadzą do elementów nowe elementy i walidatory na podstawie walidowanych danych
-        // (głównie w przypadku "each")
+        /**
+         * Uruchamianie walidacji niezwalidowanych elementów dopóki istnieje rónica 
+         * w sumie elementów. Pętla wykona się ponownie np. w momencie gdy dla elementów 
+         * istnieją walidatory Closure które dodadzą do elementów nowe elementy 
+         * i walidatory na podstawie walidowanych danych (głównie w przypadku "each").
+         * Pętla jest potrzebna tylko jeśli po wykonaniu walidacji w jakimś polu
+         * dynamicznie zostaną dodane do niego walidatory w innym polu, wtedy należy 
+         * "wrócić" z walidacją :)
+         */
         do {
             if ($i > 0) {
                 // teoretycznie można to jeszcze zoptymalizować żeby resetować walidację
@@ -826,7 +828,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @param mixed $data
      * @return mixed
      */
-    public function value($data) {
+    public function value($data = null) {
         if (func_num_args() > 0) {
             // Zapis nowej wartości dla bieżącego poziomu
             if (!isset($data)) {
@@ -955,6 +957,19 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
 
         return $errors;
     }
+    
+    public function getResults(&$results = []) {
+        $name = $this->isRoot() ? 'root' : $this->getName();
+        $results[$name] = ['__result__' => $this->_result];
+        
+        if(!empty($this->_items)) {
+            foreach($this->_items as $item) {
+                $item->getResults($results[$name]);
+            }
+        }
+        
+        return $results;
+    }
 
     /**
      * Zwraca tablicę błędów dla bieżącego poziomu (tylko! nie rekurencyjnie)
@@ -1043,7 +1058,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
         return $this;
     }
-    
+
     /**
      * Sprawdza czy pole ma ustawioną jakąś wartość, nawet null - czyli czy wartość
      * NIE JEST instancją KeyNotExist.
