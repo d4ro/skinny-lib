@@ -245,6 +245,15 @@ abstract class ObjectModelBase implements \IteratorAggregate {
     public function getItems() {
         return $this->_items;
     }
+    
+    /**
+     * Sprawdza czy bieżący poziom posiada ustawione podelementy.
+     * 
+     * @return boolean
+     */
+    public function hasItems() {
+        return !empty($this->_items);
+    }
 
     /**
      * Sprawdza czy bieżący element jest root'em.
