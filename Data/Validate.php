@@ -1040,7 +1040,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @return array
      */
     public function getData() {
-        return $this->root()->__allData;
+        return $this->root->value();
+//        return $this->root()->__allData;
     }
 
     /**
