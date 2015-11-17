@@ -195,7 +195,7 @@ class Router extends Router\RouterBase {
 
         return $container;
     }
-    
+
     /**
      * Tworzy ścieżkę na podstawie stringa zawierającego nawiasy kwadratowe
      * odzwierciedlającego jakąś nazwę z dowolnym załebieniem.
@@ -205,10 +205,9 @@ class Router extends Router\RouterBase {
      * @param string $key
      * @return string
      */
-    public static function getMultiDimensionalKeyPath ($key) {
-        if(!empty($key) && is_string($key)) {
-            $that = new self();
-            return $that->_trueKey($key);
+    public function getMultiDimensionalKeyPath($key) {
+        if (!empty($key) && is_string($key)) {
+            return $this->_trueKey($key);
         }
         return '';
     }
