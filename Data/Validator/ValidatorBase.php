@@ -119,7 +119,7 @@ abstract class ValidatorBase {
                         $param = str_replace('%', '', $param);
                         while (false !== ($pos = strpos($error, "%$param%"))) {
                             $val = $value;
-                            if ($error[$pos - 1] == '^' && is_string($value)) {
+                            if (isset($error[$pos - 1]) && $error[$pos - 1] == '^' && is_string($value)) {
                                 $val = ucfirst($value);
                                 $error = substr_replace($error, null, $pos - 1, 1);
                                 $pos--;
