@@ -343,7 +343,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             // Walidacja
             if (!$validator->isValid($value)) {
                 $item->_result = false;
-                
+
                 if ($this->_options[self::OPTION_BREAK_ON_VALIDATOR_FAILURE] === true) {
                     break;
                 }
@@ -732,7 +732,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
 
         if (func_num_args() > 0) {
-            $this->setData($data);
+            $this->value($data);
         }
 
         $i = 0;
@@ -776,39 +776,20 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     }
 
     /**
-     * Ustawia (nadpisuje) dane dla wybranego poziomu.
-     * @param mixed $data
+     * Ustawia dane dla całego obiektu (root).
+     * 
+     * @param array   $data               Dane do ustawienia - tablica
+     * @param boolean $extendExistingData Czy dane mają rozszerzać te aktualnie ustawione - domyślnie "true"
+     * 
      * @return static
      */
-    public function setData($data = null) {
-        $this->value($data);
-//        if ($data !== null) {
-//            if (is_array($data) && $this->isRoot()) {
-//                foreach ($this->_items as $name => $item) {
-//                    /* @var $item Validate */
-//                    if (isset($data[$name])) {
-//                        $item->_value = $data[$name];
-//                        $item->__setAllDataLevelValue($data[$name]);
-////                        if(!empty($item->_items)) {
-////                            foreach($item->_items as $subitem) {
-////                                $subitem->setData
-////                            }
-////                        }
-//                    } else if (!$item->_value) {
-//                        $item->_value = new KeyNotExist();
-//                        $data[$name] = $item->_value;
-//                        $item->__setAllDataLevelValue($data[$name]);
-//                    }
-//                }
-//                foreach ($data as $name => $value) {
-//                    if (!isset($this->__allData[$name])) {
-//                        $this->__allData[$name] = $value;
-//                    }
-//                }
-//            } else {
-//                $this->__setAllDataLevelValue($data);
-//            }
-//        }
+    public function setData(array $data = null, $extendExistingData = true) {
+        if ($extendExistingData) {
+            $dataBeforeMerge = $this->root()->value();
+            $this->root()->value(\Skinny\DataObject\ArrayWrapper::deepMerge($dataBeforeMerge, $data));
+        } else {
+            $this->root()->value($data);
+        }
         return $this;
     }
 
@@ -853,6 +834,17 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             // Reset walidacji dla tego poziomu
             $this->resetValidation();
 
+            // Poniższy kod ma "naprawiać" puste wartości rodziców, które
+            // powinny być tablicamy - takie dane powstają gdy nie ustawiamy
+            // wartości całemu obiektowi "root" a jedynie jakiemuś potomkowi.
+            $item = $this;
+            do {
+                if ($item->hasItems() && $item->_value === null) {
+                    $item->_value = [];
+                }
+                $item = $item->parent();
+            } while ($item);
+
             return $this;
         } else {
             // Pobranie wartości ustawionej dla bieżącego poziomu,
@@ -860,7 +852,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             // właściwości z podelementów
             $value = $this->_value;
 
-            if (!empty($this->_items) && is_array($value)) {
+            if ($this->hasItems() && is_array($value)) {
                 foreach ($this->_items as $item) {
                     $value[$item->getName()] = $item->value();
                 }
@@ -957,17 +949,23 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
 
         return $errors;
     }
-    
+
+    /**
+     * Zwraca tablicę wyników walidacji.
+     * 
+     * @param array $results
+     * @return array
+     */
     public function getResults(&$results = []) {
         $name = $this->isRoot() ? 'root' : $this->getName();
         $results[$name] = ['__result__' => $this->_result];
-        
-        if(!empty($this->_items)) {
-            foreach($this->_items as $item) {
+
+        if (!empty($this->_items)) {
+            foreach ($this->_items as $item) {
                 $item->getResults($results[$name]);
             }
         }
-        
+
         return $results;
     }
 
@@ -1041,7 +1039,6 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      */
     public function getData() {
         return $this->root()->value();
-//        return $this->root()->__allData;
     }
 
     /**
@@ -1072,6 +1069,9 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
 
 }
 
+/**
+ * Klasa do obsługi nieistniejących kluczy walidowanych danych.
+ */
 class KeyNotExist implements \ArrayAccess {
 
     public function __toString() {
