@@ -474,12 +474,12 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * Działanie analogiczne jak przy metodzie validate::add(), z tym że pierwszym argumentem jest tablica pól.
      * Jeżeli w tablicy pól podany
      * 
-     * @param array                         $names      Lista wymaganych pól. <br/>
-     *                                                  Może być to zwykła tablica lub tablica asocjacyjna gdzie klucz jest nazwą 
-     *                                                  pola a wartość customowym komunikatem o błędzie.
-     * @param Validator\ValidatorBase||\Closure  $validator  Parametr opisany przy metodzie validate::add()
-     * @param string|array                  $errorMsg   Parametr opisany przy metodzie validate::add()
-     * @param array                         $options    Parametr opisany przy metodzie validate::add()
+     * @param array                             $names      Lista wymaganych pól. <br/>
+     *                                                      Może być to zwykła tablica lub tablica asocjacyjna gdzie klucz jest nazwą 
+     *                                                      pola a wartość customowym komunikatem o błędzie.
+     * @param Validator\ValidatorBase||\Closure $validator  Parametr opisany przy metodzie validate::add()
+     * @param string|array                      $errorMsg   Parametr opisany przy metodzie validate::add()
+     * @param array                             $options    Parametr opisany przy metodzie validate::add()
      */
     public function addMultiple($names, $validator, $errorMsg = null, $options = null) {
         if (empty($names) || !is_array($names)) {
