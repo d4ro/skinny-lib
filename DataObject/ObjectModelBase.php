@@ -51,10 +51,6 @@ abstract class ObjectModelBase implements \IteratorAggregate {
         return new \ArrayIterator($this->_items);
     }
 
-//    public function __construct() {
-//        $this->_root = $this;
-//    }
-
     /**
      * Odczyt nieistniejącej właściwości tworzy nowy obiekt tej lub innej klasy
      * zgodnie z dokumentacją metody _createObject.
@@ -107,15 +103,6 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      */
     public function __set($name, $value) {
         $this->_items[$name] = $value;
-//        
-//        if ($value instanceof self) {
-//            if($this->_root === null) {
-//                $this->_root = $this;
-//            }
-//            
-//            $this->_items[$name]->_name = $name;
-//            $this->_items[$name]->_parent = $this;
-//        }
     }
 
     /**
