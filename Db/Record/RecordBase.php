@@ -1639,7 +1639,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Walidacja identyfikatora
+     * Walidacja identyfikatora.
      * Jeżeli identyfikator nie jest tablicą i przejdzie poprawnie walidację, zostaje zwrócony w formie tablicy.
      * 
      * @param mixed $id
@@ -1731,7 +1731,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Metoda używana do serializacji obiektu do JSONa
+     * Metoda używana do serializacji obiektu do JSON.
      * 
      * @return array
      */
@@ -1740,7 +1740,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Metoda używana przy isset($this[$offset])
+     * Metoda używana przy isset($this[$offset]).
      * 
      * @param mixed $offset
      * @return boolean
@@ -1756,7 +1756,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Metoda używana przy return $this[$offset]
+     * Metoda używana przy return $this[$offset].
      * 
      * @param mixed $offset
      * @return mixed
@@ -1766,7 +1766,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Metoda używana przy $this[$offset] = $value
+     * Metoda używana przy $this[$offset] = $value.
      * 
      * @param mixed $offset
      * @param mixed $value
@@ -1776,7 +1776,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Metoda używana przy unset($this[$offset])
+     * Metoda używana przy unset($this[$offset]).
      * 
      * @param mixed $offset
      * @return boolean

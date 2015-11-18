@@ -84,7 +84,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     }
 
     /**
-     * MAgiczne wywołanie metody na kolekcji wywołuje ją na każdym rekordzie z osobna.
+     * Magiczne wywołanie metody na kolekcji wywołuje ją na każdym rekordzie z osobna.
      * 
      * @param string $name nazwa metody
      * @param array $arguments argumenty metody
@@ -95,6 +95,15 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         return $result;
     }
 
+    /**
+     * Ustawia aktualnie używany indeks. Możliwe wartości:
+     *       self::IDX_PLAIN    =>  indeks kolejny, inkrementowany, numerowany od 0,
+     *       self::IDX_ID       =>  indeks na podstawie ID rekordu,
+     *       self::IDX_TBL_ID   =>  indeks na podstawie nazwy tabeli i ID rekordu,
+     *       self::IDX_HASH     =>  indeks na podstawie unikalnego hasha rekordu.
+     * 
+     * @param int $index
+     */
     public function useIndex($index) {
         $this->_useIndex = $index;
     }
@@ -390,6 +399,12 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         $this->addRecords([$record]);
     }
 
+    /**
+     * Wstawia rekord w podaną pozycję indeksu kolejnego (plain) kolekcji.
+     * 
+     * @param \Skinny\Db\Record\RecordBase $record
+     * @param int $offset
+     */
     public function insertRecord(RecordBase $record, $offset) {
         if (key_exists($offset, $this->_data)) {
             foreach ($this->_idx[self::IDX_ID] as $key => $value) {
@@ -451,7 +466,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     }
 
     /**
-     * Metoda używana przy isset($this[$offset])
+     * Metoda używana przy isset($this[$offset]).
+     * 
      * @param mixed $offset
      * @return boolean
      */
@@ -459,6 +475,13 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         return key_exists($offset, $this->_idx[$this->_useIndex]);
     }
 
+    /**
+     * Pobiera rekord z aktualnie używanego indeksu spod podanego klucza.
+     * 
+     * @param int|string $name
+     * @param mixed $default
+     * @return mixed
+     */
     public function &get($name, $default = null) {
         if (key_exists($name, $this->_idx[$this->_useIndex])) {
             return $this->_data[$this->_idx[$this->_useIndex][$name]];
@@ -467,6 +490,15 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         return $default;
     }
 
+    /**
+     * Ustawia rekord pod podanym kluczem aktualnie używanego indeksu.
+     * 
+     * @param string|int $name klucz indeksu
+     * @param \Skinny\Db\Record\RecordBase $value
+     * @throws InvalidRecordException
+     * @throws RecordException
+     * @todo Do sprawdzenia czy podmiana rekordu nie powoduje bałąganu w indeksach
+     */
     public function set($name, $value) {
         if (!($value instanceof RecordBase)) {
             throw new InvalidRecordException('Value is not a record');
@@ -488,7 +520,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     }
 
     /**
-     * Metoda używana przy unset($this[$offset])
+     * Metoda używana przy unset($this[$offset]).
+     * 
      * @param mixed $offset
      * @return boolean
      */
@@ -501,6 +534,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Pobiera rekord z podanej pozycji iterowanej od 0.
+     * 
      * @param int $offset
      * @return RecordBase
      */
@@ -510,6 +544,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Ustawia rekord na podanej pozycji.
+     * 
      * @param int $offset
      * @param RecordBase $value
      */
@@ -519,6 +554,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Usuwa rekord z kolekcji, z podanej pozycji.
+     * 
      * @param int $offset
      */
     public function unsetAt($offset) {
@@ -544,30 +580,13 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         }
     }
 
-//    public function getIterator() {
-//        return new RecordCollectionIterator($this);
-//    }
-}
+    /**
+     * Serializuje kolekcję do formatu JSON łącznie z rekordami w niej się znajdującymi.
+     * 
+     * @return string
+     */
+    public function toJson() {
+        return json_encode($this->_data);
+    }
 
-//class RecordCollectionIterator implements \Iterator {
-//    public function current() {
-//        
-//    }
-//
-//    public function key() {
-//        
-//    }
-//
-//    public function next() {
-//        
-//    }
-//
-//    public function rewind() {
-//        
-//    }
-//
-//    public function valid() {
-//        
-//    }
-//
-//}
+}
