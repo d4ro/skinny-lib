@@ -62,21 +62,23 @@ class IsBool extends ValidatorBase {
             if (
                     $this->_options[self::OPT_STRICT] === false &&
                     is_string($value) && (
-                        ($lower = strtolower($value)) === 'true' ||
-                        $lower === 'false' ||
-                        $lower === 'yes' ||
-                        $lower === 'no' ||
-                        $lower === 'on' ||
-                        $lower === 'y' ||
-                        $lower === 'n' ||
-                        $lower === 'tak' ||
-                        $lower === 'nie' ||
-                        $lower === 't'
+                    ($lower = strtolower($value)) === 'true' ||
+                    $lower === 'false' ||
+                    $lower === 'yes' ||
+                    $lower === 'no' ||
+                    $lower === 'on' ||
+                    $lower === 'y' ||
+                    $lower === 'n' ||
+                    $lower === 'tak' ||
+                    $lower === 'nie' ||
+                    $lower === 't' ||
+                    $lower === "0" ||
+                    $lower === "1"
                     )
             ) {
                 return true;
             }
-            
+
             return $this->error(self::MSG_NOT_BOOL);
         }
         return true;
