@@ -784,8 +784,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @return static
      */
     public function setData(array $data = null, $extendExistingData = true) {
-        if ($extendExistingData) {
-            $dataBeforeMerge = $this->root()->value();
+        if ($extendExistingData && ($dataBeforeMerge = $this->root()->value())) {
             $this->root()->value(\Skinny\DataObject\ArrayWrapper::deepMerge($dataBeforeMerge, $data));
         } else {
             $this->root()->value($data);
