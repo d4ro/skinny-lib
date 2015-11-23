@@ -35,13 +35,14 @@ class Request {
     protected $_router;
 
     /**
-     *  Obiekt odpowiedzi zarządzający informacją zwrotną
+     * Obiekt odpowiedzi zarządzający informacją zwrotną
      * @var Response\ResponseInterface
      */
     protected $_response;
 
     /**
      * Konstruktor obiektu żądania.
+     * 
      * @param Router\RouterInterface $router instancja routera do rozwiązywania żądania
      */
     public function __construct($router = null) {
@@ -60,6 +61,7 @@ class Request {
 
     /**
      * Pobiera aktualny krok żądania.
+     * 
      * @return Request\Step
      */
     public function current() {
@@ -72,6 +74,7 @@ class Request {
 
     /**
      * Pobiera ostatni zainicjalizowany krok żądania (w tym jeszcze nieobsłużony).
+     * 
      * @return Request\Step
      */
     public function last() {
@@ -81,6 +84,7 @@ class Request {
 
     /**
      * Pobiera pierwszy (oryginalny) krok żądania.
+     * 
      * @return Request\Step
      */
     public function first() {
@@ -94,6 +98,7 @@ class Request {
 
     /**
      * Pobiera poprzednio wykonany krok żądania.
+     * 
      * @return Request\Step
      */
     public function previous() {
@@ -108,6 +113,7 @@ class Request {
     /**
      * Dodaje kolejny krok do żądania do obsłużenia.
      * Zwraca kolejny krrok lub aktualnie dodany.
+     * 
      * @param Request\Step $step
      * @return Request\Step
      */
@@ -144,6 +150,7 @@ class Request {
     /**
      * Dodaje kolejny krok jako następny po aktualnie obsługiwanym.
      * Wszyskie kroki, ustalone jako następne przed dodaniem, zostają odrzucone i są zwracane w postaci arraya.
+     * 
      * @param Request\Step $step
      * @return array
      */
@@ -179,6 +186,7 @@ class Request {
 
     /**
      * Stwierdza, czy wszystkie kroki żądania zostały przetworzone.
+     * 
      * @return boolean
      */
     public function isStepToProceed() {
@@ -191,7 +199,8 @@ class Request {
 
     /**
      * Stwierdza, czy aktualny krok żądania został rozwiązany przez router.
-     * @return type
+     * 
+     * @return boolean
      */
     public function isResolved() {
 //        $this->log('isResolved()');
@@ -203,7 +212,6 @@ class Request {
     /**
      * Rozwiązuje aktualny krok żądania.
      * Jeżeli aktualny krok jest już rozwiązany, przechodzi do kolejnego i go rozwiązuje.
-     * @return type
      */
     public function resolve() {
 //        $this->log('resolve()');
@@ -226,6 +234,7 @@ class Request {
 
     /**
      * Ustawia router używany do rozwiązania kroków żądania.
+     * 
      * @param \Skinny\Router\RouterInterface $router
      */
     public function setRouter(Router\RouterInterface $router) {
@@ -234,6 +243,7 @@ class Request {
 
     /**
      * Pobiera obiekt routera używanego do rozwiązywania kroków zapytania.
+     * 
      * @return Router\RouterInterface
      */
     public function getRouter() {
@@ -242,6 +252,7 @@ class Request {
 
     /**
      * Pobiera obiekt odpowiedzi.
+     * 
      * @return Response\ResponseInterface
      */
     public function getResponse() {
@@ -250,6 +261,7 @@ class Request {
 
     /**
      * Ustawia obiekt odpowiedzi.
+     * 
      * @param \Skinny\Application\Response\ResponseInterface $response
      */
     public function setResponse(Response\ResponseInterface $response) {
@@ -257,12 +269,22 @@ class Request {
     }
 
     /**
-     * Zwraca informację o tym czy żądanie akceptuje application/json (w zmiennej SERVER['HTTP_ACCEPT'])
+     * Zwraca informację o tym czy żądanie akceptuje application/json (w zmiennej SERVER['HTTP_ACCEPT']).
+     * 
      * @return boolean
      * @todo Przemyśleć i ustandaryzować
      */
     public function acceptJson() {
         return false !== strstr($_SERVER['HTTP_ACCEPT'], 'application/json');
+    }
+
+    /**
+     * Stwierdza, czy żądanie do serwera zostało wykonane metodą POST.
+     * 
+     * @return boolean
+     */
+    public function hasPost() {
+        return ($_SERVER['REQUEST_METHOD'] === 'POST');
     }
 
     public function toBreadCrumbs() {
