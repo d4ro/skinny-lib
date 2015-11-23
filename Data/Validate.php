@@ -140,6 +140,10 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
 
         return $item;
     }
+    
+    public function __isset($name) {
+        return isset($this->_items[$name]);
+    }
 
     /**
      * Tworzy nowy obiekt w taki sposób aby miał wskaźnik na swojego rodzica oraz
@@ -1064,6 +1068,10 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      */
     public function hasValue() {
         return !($this->value() instanceof KeyNotExist);
+    }
+
+    public function length() {
+        return count($this->_items);
     }
 
 }

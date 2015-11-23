@@ -67,7 +67,7 @@ abstract class ObjectModelBase implements \IteratorAggregate {
         }
         return $this->_items[$name];
     }
-    
+
     /**
      * Tworzy lub zwraca istniejący element - alias to magicznej metody get.
      * Metoda może być wieloargumentowa - wtedy każdy kolejny argumenty to kolejny poziom zagłębienia.
@@ -78,16 +78,16 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      * @todo Przepisać w taki sposób aby było obsługiwane nie przez magiczne metody.
      */
     public function child($name) {
-        if(func_num_args() > 1) {
+        if (func_num_args() > 1) {
             $item = $this;
             $args = func_get_args();
-            foreach($args as $arg) {
+            foreach ($args as $arg) {
                 $item = $item->{$arg};
             }
         } else {
             $item = $this->{$name};
         }
-        
+
         return $item;
     }
 
@@ -232,7 +232,7 @@ abstract class ObjectModelBase implements \IteratorAggregate {
     public function getItems() {
         return $this->_items;
     }
-    
+
     /**
      * Sprawdza czy bieżący poziom posiada ustawione podelementy.
      * 
