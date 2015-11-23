@@ -118,6 +118,9 @@ class Form extends Validate implements \JsonSerializable {
      * @return array
      */
     private function _filterDataRecursive($data) {
+        if (!is_array($data)) {
+            return $data;
+        }
         $result = [];
         foreach ($data as $key => &$value) {
             if (is_array($value)) {
@@ -529,7 +532,7 @@ class Form extends Validate implements \JsonSerializable {
 
         return $json;
     }
-    
+
     /**
      * Zwraca nazwę elementu na podstawie jego zagłębienia - nazwa jak przy formularzach:
      * np. test[pole1][podpole2]
@@ -538,8 +541,8 @@ class Form extends Validate implements \JsonSerializable {
      */
     public function getArrayLikeName() {
         $name = "";
-        foreach($this->_keysFromRoot as $i => $key) {
-            if($i == 0) {
+        foreach ($this->_keysFromRoot as $i => $key) {
+            if ($i == 0) {
                 $name = $key;
             } else {
                 $name .= "[$key]";
