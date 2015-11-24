@@ -214,9 +214,9 @@ abstract class Action extends Application\Components\ComponentsAware {
      * Użycie w akcji informuje aplikację, że akcja nie istnieje i powinna wyświetlić się strona not found.
      */
     public function noAction() {
-        $notFoundAction = $this->getApplication()->getConfig()->actions->notFound(null);
+        $notFoundAction = $this->getConfig()->actions->notFound(null);
         if (null !== $notFoundAction) {
-            $this->forward($notFoundAction, ['error' => 'notFound', 'requestStep' => $this->_request->current()]);
+            $this->forward($notFoundAction, ['error' => 'notFound', 'requestStep' => $this->request->current()]);
         }
         // TODO: 404
     }
