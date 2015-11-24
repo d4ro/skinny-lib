@@ -103,9 +103,24 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      *       self::IDX_HASH     =>  indeks na podstawie unikalnego hasha rekordu.
      * 
      * @param int $index
+     * @todo walidacja parametrów
      */
     public function useIndex($index) {
         $this->_useIndex = $index;
+    }
+
+    /**
+     * Konwertuje kolekcję na tablicę z zachowaniem indeksów aktualnie ustawionego typu.
+     * 
+     * @return array
+     */
+    public function toArray() {
+        $result = [];
+        foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
+            $record = $this->_data[$recordNum];
+            $result[$key] = $record;
+        }
+        return $result;
     }
 
     /**
@@ -480,7 +495,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * 
      * @param int|string $name
      * @param mixed $default
-     * @return mixed
+     * @return RecordBase
      */
     public function &get($name, $default = null) {
         if (key_exists($name, $this->_idx[$this->_useIndex])) {
