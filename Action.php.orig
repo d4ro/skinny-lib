@@ -9,20 +9,13 @@ use Skinny\Application\Request;
  *
  * @author Daro
  */
-abstract class Action {
-
-    /**
-     * 
-     * @var Application
-     */
-    private $_application;
-    private $_usage;
+abstract class Action extends Application\Components\ComponentsAware {
 
     /**
      * Konstruktor akcji - nie przeciążamy! Od tego jest _init().
      */
     final public function __construct() {
-        $this->_usage = new Action\Usage();
+        
     }
 
     /**
@@ -34,7 +27,7 @@ abstract class Action {
      * - akcji (d. action)                         action
      * - czynności końcowych (d. postDispatch)     afterwards
      */
-    public function _init() {
+    public function onInit() {
         
     }
 
@@ -45,14 +38,14 @@ abstract class Action {
      * Należy w tym miejscu sprecyzować sposoby (ways) wykorzystania akcji przez użytkownika (przy pomocy $this->getUsage()->allowUsage()).
      * @return boolean czy jest zezwolenie na wykonanie danej akcji
      */
-    abstract public function _permit();
+    abstract public function onPermissionCheck();
 
     /**
      * [Składnik akcji - opcjonalny]
      * Przygotowania przed uruchomieniem akcji.
      * Wczytujemy (globalne?) dane, przygotowujemy je; po tym etapie mamy wszystko, co potrzebne do obsługi akcji.
      */
-    public function _prepare() {
+    public function onPrepare() {
         
     }
 
@@ -61,44 +54,17 @@ abstract class Action {
      * Serce akcji. Wykonywane, gdy użytkownik ma jakiekolwiek uprawnienia do akcji.
      * Dodatkowe uprawnienia można stwierdzić przy pomocy $this->getUsage()->isAllowed().
      */
-    abstract public function _action();
+    abstract public function onAction();
 
     /**
      * [Składnik akcji - opcjonalny]
      * Zakończenie akcji, często czyszczenie danych, połączeń, pamięci, buforów, obsługa wyjścia (output).
      */
-    public function _afterwards() {
+    public function onComplete() {
         
     }
 
-    /* krytyczne */
-
-    /**
-     * 
-     * @return Action\Usage
-     */
-    final public function getUsage() {
-        return $this->_usage;
-    }
-
-    final public function setApplication(Application $application) {
-        $this->_application = $application;
-    }
-
-    private function requireApplication($objectName = 'Application') {
-        Exception::throwIf(null === $this->_application, new Application\ApplicationException("Cannot invoke $objectName object while Application instance is not set in current Action."));
-    }
-
     /* uzytkowe */
-
-    /**
-     * Pobiera konfigurację aplikacji
-     * @param string $key
-     * @return mixed
-     */
-    public function getConfig($key = null) {
-        return $this->_application->getConfig($key);
-    }
 
     /**
      * Pobiera ilość argumentów żądania
@@ -162,6 +128,14 @@ abstract class Action {
     }
 
     /**
+     * Pobiera wszystkie parametry zapytania do akcji w formie stringu oddzielonego ukośnikiem.
+     * @return array
+     */
+    public function getParamsString() {
+        return $this->getRequest()->current()->getParamsString();
+    }
+
+    /**
      * Pobiera ścieżkę żądania do aktualnej akcji.
      * @return string
      */
@@ -174,9 +148,7 @@ abstract class Action {
      * @return Request
      */
     public function getRequest() {
-        $this->requireApplication('Request');
-
-        return $this->_application->getRequest();
+        return $this->getComponent('request');
     }
 
     /**
@@ -184,30 +156,7 @@ abstract class Action {
      * @return Request
      */
     public function getResponse() {
-        $this->requireApplication('Response');
-
-        return $this->_application->getResponse();
-    }
-
-    /**
-     * Pobiera obiekt komponentu z aplikacji.
-     * @param string $name
-     * @return mixed
-     */
-    public function getComponent($name) {
-        $this->requireApplication('Components');
-
-        return $this->_application->getComponent($name);
-    }
-
-    /**
-     * Nieistniejąca właściwość - pobranie komponentu aplikacji
-     * np. $this->view->... odwołuje się do komponentu "view".
-     * @param string $name
-     * @return mixed
-     */
-    public function __get($name) {
-        return $this->getComponent($name);
+        return $this->getRequest()->getResponse();
     }
 
     /**
@@ -251,7 +200,7 @@ abstract class Action {
         if (!Url::isAbsolute($url)) {
             $url = Url::combine($this->getBaseUrl(), $url);
         }
-        
+
         if (null === $secure) {
             Location::redirect($url, $params, $returnCode);
         } elseif ($secure) {
@@ -265,15 +214,14 @@ abstract class Action {
      * Użycie w akcji informuje aplikację, że akcja nie istnieje i powinna wyświetlić się strona not found.
      */
     public function noAction() {
-        $notFoundAction = $this->_application->getConfig()->actions->notFound(null);
+        $notFoundAction = $this->getConfig()->actions->notFound(null);
+        if (null !== $notFoundAction) {
 <<<<<<< HEAD
-        if (null !== $notFoundAction)
             $this->forward($notFoundAction, ['error' => 'notFound', 'step' => $this->getRequest()->current()]);
 =======
-        if (null !== $notFoundAction) {
-            $this->forward($notFoundAction, ['error' => 'notFound', 'requestStep' => $this->_request->current()]);
+            $this->forward($notFoundAction, ['error' => 'notFound', 'requestStep' => $this->request->current()]);
+>>>>>>> Naprawa buga w actionie
         }
->>>>>>> Dodatkowe metody w obsłudze plików, obsługa komponentów w osobnych plikach, zmiany w obsłudze błędów, zmiany w nazewnictwie metod w akcji
         // TODO: 404
     }
     
