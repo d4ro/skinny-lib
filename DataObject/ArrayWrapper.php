@@ -217,4 +217,12 @@ class ArrayWrapper extends DataBase implements \JsonSerializable, \ArrayAccess, 
         return 0;
     }
 
+    public static function combineWithKeys($keys, $values, $default = null) {
+        $result = [];
+        foreach ($keys as $key) {
+            $result[$key] = key_exists($key, $values) ? $values[$key] : $default;
+        }
+        return $result;
+    }
+
 }
