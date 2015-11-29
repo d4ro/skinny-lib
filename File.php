@@ -121,4 +121,8 @@ class File {
         return is_readable($this->_path);
     }
 
+    public function size() {
+        return filesize($this->_path);
+    }
+
 }
