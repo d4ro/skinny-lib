@@ -78,7 +78,22 @@ class File {
     }
 
     public function read($length = null) {
-        // TODO
+        $close = !$this->isOpened();
+        if ($close && !$this->open('r')) {
+            throw new IOException('Could not open file "' . $this->_path . '" to read.');
+        }
+
+        $content = fread($this->_descriptor, $this->size());
+
+        if ($close) {
+            $this->close();
+        }
+
+        return $content;
+    }
+
+    public function size() {
+        return filesize($this->_path);
     }
 
     public function delete() {
@@ -109,6 +124,10 @@ class File {
         }
     }
 
+    public function chmod($val) {
+        return chmod($this->_path, $val);
+    }
+
     public function lock($mode) {
         return flock($this->_descriptor, $mode);
     }
@@ -121,8 +140,8 @@ class File {
         return is_readable($this->_path);
     }
 
-    public function size() {
-        return filesize($this->_path);
+    public function copyTo($path) {
+        return copy($this->_path, $path);
     }
 
 }
