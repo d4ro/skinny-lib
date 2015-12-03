@@ -226,6 +226,7 @@ abstract class ValidatorBase {
      */
     public function resetErrors() {
         $this->_errors = [];
+        return $this;
     }
 
 }
