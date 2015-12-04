@@ -348,9 +348,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      */
     public function filter($callback) {
         $result = [];
-        if ($callback instanceof \Closure) {
+        if (is_callable($callback)) {
             foreach ($this->_data as $id => $record) {
-                if ($callback($record)) {
+                if (call_user_func($callback, $record)) {
                     $result[$id] = $record;
                 }
             }
@@ -359,7 +359,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $collection->_recordClassName = $this->_recordClassName;
             $collection->_data = $result;
         } else {
-            throw new \BadFunctionCallException('Callback is not a function.');
+            throw new \BadFunctionCallException('Argument is not callable.');
         }
         return $collection;
     }
