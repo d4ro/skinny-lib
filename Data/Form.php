@@ -49,6 +49,8 @@ class Form extends Validate implements \JsonSerializable {
      * @var string
      */
     protected $_controlPath = null;
+    
+    protected $_controlDir = null;
 
     /**
      * Ścieżka kontrolki atrybutów
@@ -166,10 +168,12 @@ class Form extends Validate implements \JsonSerializable {
         } else {
             if (!$this->isRoot()) {
                 // Mamy do czynienia z polem
+                $controlDir = \Skinny\Path::combine(self::$_config->templatesPath, 'control');
                 $path = \Skinny\Path::combine(self::$_config->templatesPath, 'control', $type . '.tpl');
                 $controlPath = realpath($path);
             } else {
                 // Mamy do czynienia z obiektem głównym - więc szablonem
+                $controlDir = \Skinny\Path::combine(self::$_config->templatesPath, 'template');
                 $path = \Skinny\Path::combine(self::$_config->templatesPath, 'template', $type . '.tpl');
                 $controlPath = realpath($path);
             }
@@ -180,6 +184,7 @@ class Form extends Validate implements \JsonSerializable {
 
             $this->_type = $type;
             $this->_controlPath = $controlPath;
+            $this->_controlDir = realpath($controlDir);
 
             return $this;
         }
@@ -243,6 +248,10 @@ class Form extends Validate implements \JsonSerializable {
         }
 
         return $this->_controlPath;
+    }
+    
+    public function getControlDir() {
+        return $this->_controlDir;
     }
 
     /**
