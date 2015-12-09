@@ -665,7 +665,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         foreach ($identifier as $remoteCol => $localCol) {
             if ($localCol === $name) {
-                $result[$localCol] = $value->_idValue[$remoteCol]; // TODO do testowania
+                $result[$localCol] = @$value->_idValue[$remoteCol]; // TODO do testowania
             }
         }
 
