@@ -45,7 +45,7 @@ class IsPrice extends ValidatorBase {
          */
 
         $separator = ($this->_options[self::OPT_SEPARATOR] == '.' ? '\.' : $this->_options[self::OPT_SEPARATOR]);
-        $pattern = '/^(?:0|[1-9]\d*)(?:' . $separator . '\d{2})?$/';
+        $pattern = '/^(?:0|[1-9]\d*)(?:' . $separator . '\d{0,2})?$/';
         if (!preg_match($pattern, $value)) {
             return $this->error(self::MSG_NOT_PRICE);
         }
