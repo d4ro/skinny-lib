@@ -144,4 +144,31 @@ class File {
         return copy($this->_path, $path);
     }
 
+    /**
+     * Zwraca MIME_TYPE pliku.
+     * 
+     * @return string
+     */
+    public function getMimeType() {
+        if (class_exists('finfo', false)) {
+            $const = defined('FILEINFO_MIME_TYPE') ? FILEINFO_MIME_TYPE : FILEINFO_MIME;
+            $mime = @finfo_open($const);
+
+            if (!empty($mime))
+                $mimeType = finfo_file($mime, $this->_path);
+
+            unset($mime);
+        }
+
+        if (empty($mimeType) && (function_exists('mime_content_type') && ini_get('mime_magic.magicfile'))) {
+            $mimeType = mime_content_type($this->_path);
+        }
+
+        if (empty($mimeType)) {
+            $mimeType = 'application/octet-stream';
+        }
+
+        return $mimeType;
+    }
+
 }
