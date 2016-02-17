@@ -153,6 +153,7 @@ class Router extends Router\RouterBase {
 
             $actionParts = array_slice($args, 0, $actionLength);
             $container->setActionParts($actionParts);
+            $container->resetArgs(array_slice($args, $actionLength));
             $actionClassName = '\\content\\' . implode('\\', $actionParts);
 
             if (!class_exists($actionClassName, false)) {
