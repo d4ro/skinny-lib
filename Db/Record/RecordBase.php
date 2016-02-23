@@ -467,6 +467,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                 $value = $this->_filteredColumns[$key]['setter']($value);
             }
 
+            $this->_isModified = true;
             $this->_data[$key] = $value;
         }
     }
