@@ -157,7 +157,7 @@ class Router extends Router\RouterBase {
             $args = array_slice($args, $actionLength);
             $container->resetArgs($args);
 
-            $actionClassName = '\\content\\' . implode('\\', $actionParts);
+            $actionClassName = '\\api\\' . implode('\\', $actionParts);
 
             if (!class_exists($actionClassName, false)) {
                 $actionFile = Path::combine($this->_contentPath, $actionParts) . '.php';
