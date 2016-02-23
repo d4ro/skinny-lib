@@ -96,10 +96,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     protected $_exists;
 
     /**
-     * Czy rekord został zmodyfikowany po ostatniej synchronizacji z bazą
-     * @var boolean
+     * Które kolumny zostały zmodyfikowane po ostatniej synchronizacji z bazą
+     * @var array
      */
-    protected $_isModified;
+    protected $_columnsModified = [];
 
     /**
      * Czy rekord jest w trakcie procesu zapisywania
@@ -142,7 +142,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             // i przypisujemy ich wartości do obiektu
             $obj->_setData($row);
             $obj->_exists = true;
-            $obj->_isModified = false;
+            $obj->_columnsModified = [];
             $obj->_isSaving = false;
 
             $result[] = $obj;
@@ -210,7 +210,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $this->_config = $options;
         $this->_exists = false;
-        $this->_isModified = false;
+        $this->_columnsModified = [];
         $this->_isSaving = false;
 
         if (!is_array($idColumns)) {
@@ -288,7 +288,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     public function __set($name, $value) {
-        $this->_isModified = true;
+        // TODO: optymalizacja poprzez sprawdzenie poprzedniej wartości
+        $this->_columnsModified[$name] = true;
         $setData = true;
 
         if (key_exists($name, $this->_collectionColumns)) {
@@ -467,6 +468,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                 $value = $this->_filteredColumns[$key]['setter']($value);
             }
 
+            // TODO: optymalizacja poprzez sprawdzenie poprzedniej wartości
+            $this->_columnsModified[$key] = true;
             $this->_data[$key] = $value;
         }
     }
@@ -789,14 +792,17 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Stwierdza, czy rekord został modyfikowany po ostatniej synchronizacji z bazą.
-     * Nowe rekordy, które nie zostały jeszcze wprowadzone do bazy są zawsze "zmodyfikowane".
+     * Stwierdza, czy kolumna rekordu została modyfikowany po ostatniej synchronizacji z bazą.
      * 
+     * @param string $column nazwa sprawdzaniej kolumny; null oznacza sprawdzenie całego rekordu
      * @return boolean
      */
-    public function isModified() {
-        // TODO: do przerobiena
-        return $this->_isModified;
+    public function isModified($column = null) {
+        if (null === $column) {
+            return !$this->_columnsModified;
+        }
+
+        return isset($this->_columnsModified[$column]);
     }
 
     /**
@@ -951,7 +957,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $this->_exists = true;
         $this->_isSaving = false;
-        $this->_isModified = false;
+        $this->_columnsModified = [];
 
         if ($refreshData) {
             // pobierz dane z bazy
@@ -974,7 +980,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return boolean informacja o powodzeniu
      */
     public function update($refreshData = true, $force = false) {
-        if (!$this->_isModified && !$force) {
+        if (!$this->_columnsModified && !$force) {
             return true;
         }
 
@@ -1016,7 +1022,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $this->_exists = true;
         $this->_isSaving = false;
-        $this->_isModified = false;
+        $this->_columnsModified = [];
 
         return (boolean) $success;
     }
