@@ -27,7 +27,7 @@ abstract class RouterBase implements RouterInterface {
 
     /**
      * Konfiguracja routera
-     * @var Store
+     * @var \Skinny\DataObject\Store
      */
     protected $_config;
 

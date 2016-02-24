@@ -60,6 +60,18 @@ class Components implements \ArrayAccess {
     }
 
     /**
+     * Pobiera konfigurację
+     * @param type $key
+     */
+    public static function getConfig($key = null) {
+        if (static::$_instance instanceof self) {
+            return static::$_instance->_getConfig($key);
+        }
+
+        return null;
+    }
+
+    /**
      * Magiczna funkcja pobierająca komponent o danej nazwie.
      * @param string $name
      * @return object
@@ -73,7 +85,7 @@ class Components implements \ArrayAccess {
      * @param string $key
      * @return mixed
      */
-    public function getConfig($key = null) {
+    protected function _getConfig($key = null) {
         if (null === $key) {
             return $this->_config;
         }
