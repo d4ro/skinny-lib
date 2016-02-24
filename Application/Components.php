@@ -30,6 +30,12 @@ class Components implements \ArrayAccess {
     protected $_initializers;
 
     /**
+     * Instancja kontenera
+     * @var Components
+     */
+    protected static $_instance;
+
+    /**
      * Konstruktor kontenera komponentów
      * @param Store $config
      */
@@ -37,6 +43,20 @@ class Components implements \ArrayAccess {
         $this->_components = array();
         $this->_initializers = array();
         $this->_config = $config;
+
+        static::$_instance = $this;
+    }
+
+    /**
+     * Pobiera komponent o podanej nazwie
+     * @param type $name
+     */
+    public static function get($name) {
+        if (static::$_instance instanceof self) {
+            return static::$_instance->getComponent($name);
+        }
+
+        return null;
     }
 
     /**

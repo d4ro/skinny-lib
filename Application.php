@@ -125,7 +125,6 @@ class Application {
         // components
         $this->_components = new Components($this->_config);
         $this->_components->setInitializers($this->_config->components->toArray());
-        Components\ComponentsAware::setComponents($this->_components);
 
         // router
         $this->_router = new Router(
