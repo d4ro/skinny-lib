@@ -57,6 +57,10 @@ class File {
         return null !== $this->_descriptor;
     }
 
+    public function isFile() {
+        return is_file($this->_path);
+    }
+
     public function getMode() {
         return $this->_mode;
     }
@@ -140,6 +144,24 @@ class File {
         return is_readable($this->_path);
     }
 
+    public function isHidden() {
+        return basename($this->_path)[0] == '.';
+    }
+
+    public function getName() {
+        return basename($this->_path);
+    }
+
+    public function getExtension() {
+        $path_parts = pathinfo($this->_path);
+
+//echo $path_parts['dirname'], "\n";
+//echo $path_parts['basename'], "\n";
+        return $path_parts['extension'];
+//echo $path_parts['filename'], "\n"; // od PHP 5.2.0
+//        return basename($this->_path);
+    }
+
     public function copyTo($path) {
         return copy($this->_path, $path);
     }
@@ -169,6 +191,11 @@ class File {
         }
 
         return $mimeType;
+    }
+
+    public function rename($newName) {
+        rename($this->_path, $newName);
+        $this->_path = realpath($newName);
     }
 
 }
