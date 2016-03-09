@@ -230,7 +230,7 @@ class Application {
      */
     public function run($request_url = null, array $params = array()) {
         if (null === $request_url) {
-            $request_url = $_SERVER['REQUEST_URI'];
+            $request_url = urldecode($_SERVER['REQUEST_URI']);
         }
 
         if (null === $this->_request->current()) {
