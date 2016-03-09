@@ -75,7 +75,7 @@ class Store extends ObjectModelBase implements \JsonSerializable {
         if ($obj !== null) {
             if (!is_object($obj) && !is_array($obj)) {
                 require_once __DIR__ . '/IOException.php';
-                throw new IOException('Invalid input data');
+                throw new \Skinny\IOException('Invalid input data');
             } else {
                 $this->merge($obj);
             }
