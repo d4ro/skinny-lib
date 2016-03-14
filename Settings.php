@@ -2,6 +2,8 @@
 
 namespace Skinny;
 
+use Skinny\DataObject\Store;
+
 /**
  * Description of Settings
  *
@@ -18,10 +20,11 @@ class Settings {
 
     public function __construct($config_path = 'config') {
         $this->_filename = $config_path . '/settings.conf.php';
-        if (file_exists($this->_filename))
+        if (file_exists($this->_filename)) {
             $this->_config = new Store(include $this->_filename);
-        else
+        } else {
             $this->_config = new Store ();
+        }
     }
 
     public function getSettings() {
@@ -57,7 +60,7 @@ class Settings {
     }
 
     public function save() {
-        $string = '<?php\n\n// This file is automaticaly created by dynamic settings utility in Skinny skeleton application.\n\nreturn ' . var_export($this->_config->toArray() . ';', true);
+        $string = '<?php\n\n// This file is automaticaly created by dynamic settings utility in Skinny skeleton application.\n\nreturn ' . var_export($this->_config->toArray(), true) . ';';
         file_put_contents($this->_filename, $string);
     }
 

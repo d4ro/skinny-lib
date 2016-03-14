@@ -13,5 +13,5 @@ interface LoaderInterface {
 
     public function register();
 
-    public function load($class_name);
+    public function load($className);
 }

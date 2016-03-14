@@ -2,37 +2,32 @@
 
 namespace Skinny;
 
+use Skinny\Application\Request;
+
 /**
  * Description of Action
  *
  * @author Daro
  */
-abstract class Action {
-
-    /**
-     * 
-     * @var Application
-     */
-    private $_application;
-    private $_usage;
+abstract class Action extends Application\Components\ComponentsAware {
 
     /**
      * Konstruktor akcji - nie przeciążamy! Od tego jest _init().
      */
     final public function __construct() {
-        $this->_usage = new Action\Usage();
+        
     }
 
     /**
      * [Składnik akcji - opcjonalny]
      * Inicjalizacja akcji - przedłużenie konstruktora
      * Tutaj przygotowujemy instancje obiektów, które będą potrzebne do obsługi:
-     * - uprawnień (d. protection)         permission
-     * - przygotowań (d. preDispatch)      prepare
-     * - akcji (d. action)                 action
-     * - porządkowań (d. postDispatch)     cleanup
+     * - uprawnień (d. protection)                 permit
+     * - przygotowań (d. preDispatch)              prepare
+     * - akcji (d. action)                         action
+     * - czynności końcowych (d. postDispatch)     afterwards
      */
-    public function _init() {
+    public function onInit() {
         
     }
 
@@ -43,14 +38,14 @@ abstract class Action {
      * Należy w tym miejscu sprecyzować sposoby (ways) wykorzystania akcji przez użytkownika (przy pomocy $this->getUsage()->allowUsage()).
      * @return boolean czy jest zezwolenie na wykonanie danej akcji
      */
-    abstract public function _permit();
+    abstract public function onPermissionCheck();
 
     /**
      * [Składnik akcji - opcjonalny]
      * Przygotowania przed uruchomieniem akcji.
      * Wczytujemy (globalne?) dane, przygotowujemy je; po tym etapie mamy wszystko, co potrzebne do obsługi akcji.
      */
-    public function _prepare() {
+    public function onPrepare() {
         
     }
 
@@ -59,40 +54,17 @@ abstract class Action {
      * Serce akcji. Wykonywane, gdy użytkownik ma jakiekolwiek uprawnienia do akcji.
      * Dodatkowe uprawnienia można stwierdzić przy pomocy $this->getUsage()->isAllowed().
      */
-    abstract public function _action();
+    abstract public function onAction();
 
     /**
      * [Składnik akcji - opcjonalny]
      * Zakończenie akcji, często czyszczenie danych, połączeń, pamięci, buforów, obsługa wyjścia (output).
      */
-    public function _cleanup() {
+    public function onComplete() {
         
     }
 
-    /* krytyczne */
-
-    /**
-     * 
-     * @return Action\Usage
-     */
-    final public function getUsage() {
-        return $this->_usage;
-    }
-
-    final public function setApplication(Application $application) {
-        $this->_application = $application;
-    }
-
     /* uzytkowe */
-
-    /**
-     * Pobiera konfigurację aplikacji
-     * @param string $key
-     * @return mixed
-     */
-    public function getConfig($key = null) {
-        return $this->_application->getConfig($key);
-    }
 
     /**
      * Pobiera ilość argumentów żądania
@@ -129,7 +101,7 @@ abstract class Action {
     public function getParam($name, $default = null) {
         return $this->getRequest()->current()->getParam($name, $default);
     }
-    
+
     /**
      * Ustawia parametry dla bieżącego żądania
      * @param array $params tablica parametrów do ustawienia
@@ -156,6 +128,14 @@ abstract class Action {
     }
 
     /**
+     * Pobiera wszystkie parametry zapytania do akcji w formie stringu oddzielonego ukośnikiem.
+     * @return array
+     */
+    public function getParamsString() {
+        return $this->getRequest()->current()->getParamsString();
+    }
+
+    /**
      * Pobiera ścieżkę żądania do aktualnej akcji.
      * @return string
      */
@@ -168,10 +148,7 @@ abstract class Action {
      * @return Request
      */
     public function getRequest() {
-        if (null === $this->_application)
-            return null;
-
-        return $this->_application->getRequest();
+        return $this->getComponent('request');
     }
 
     /**
@@ -179,32 +156,7 @@ abstract class Action {
      * @return Request
      */
     public function getResponse() {
-        if (null === $this->_application)
-            return null;
-
-        return $this->_application->getResponse();
-    }
-
-    /**
-     * Pobiera obiekt komponentu z aplikacji.
-     * @param string $name
-     * @return mixed
-     */
-    public function getComponent($name) {
-        if (null === $this->_application)
-            return null;
-
-        return $this->_application->getComponent($name);
-    }
-
-    /**
-     * Nieistniejąca właściwość - pobranie komponentu aplikacji
-     * np. $this->view->... odwołuje się do komponentu "view".
-     * @param string $name
-     * @return mixed
-     */
-    public function __get($name) {
-        return $this->getComponent($name);
+        return $this->getRequest()->getResponse();
     }
 
     /**
@@ -230,7 +182,7 @@ abstract class Action {
      * @param array $params opcjonalne parametry
      */
     final protected function forward($request_url, array $params = array()) {
-        $this->getRequest()->forceNext(new Request\Step($request_url, $params));
+        $this->getRequest()->next(new Request\Step($request_url, $params));
         throw new Action\ForwardException;
     }
 
@@ -245,23 +197,27 @@ abstract class Action {
      * @param integer $returnCode
      */
     public function redirect($url = null, array $params = array(), $secure = null, $returnCode = 302) {
-        if (!Url::isAbsolute($url))
+        if (!Url::isAbsolute($url)) {
             $url = Url::combine($this->getBaseUrl(), $url);
-        if (null === $secure)
+        }
+
+        if (null === $secure) {
             Location::redirect($url, $params, $returnCode);
-        elseif ($secure)
+        } elseif ($secure) {
             Location::redirectHttps($url, $params, $returnCode);
-        else
+        } else {
             Location::redirectHttp($url, $params, $returnCode);
+        }
     }
 
     /**
      * Użycie w akcji informuje aplikację, że akcja nie istnieje i powinna wyświetlić się strona not found.
      */
     public function noAction() {
-        $notFoundAction = $this->_application->getConfig()->actions->notFound(null);
-        if (null !== $notFoundAction)
+        $notFoundAction = $this->getConfig()->actions->notFound(null);
+        if (null !== $notFoundAction) {
             $this->forward($notFoundAction, ['error' => 'notFound', 'step' => $this->getRequest()->current()]);
+        }
         // TODO: 404
     }
     

@@ -2,7 +2,13 @@
 
 namespace Skinny;
 
+use Skinny\DataObject\Store;
 use Skinny\Application\Components;
+use Skinny\Application\Request;
+use Skinny\Application\Response;
+use Skinny\Application\Router;
+
+require_once __DIR__ . '/DataObject/Store.php';
 
 /**
  * Główna klasa przygotowująca aplikację bazującą na podstawce Skinny.
@@ -55,12 +61,6 @@ class Application {
     protected $_request;
 
     /**
-     * Obiekt odpowiedzi zarządzający informacją zwrotną
-     * @var Response\ResponseInterface
-     */
-    protected $_response;
-
-    /**
      * Okresla katalog roboczy aplikacji, czyli ten, który był ustawiony przed jej inicjalizacją.
      * Wymagane, aby przywrócić katalog roboczy po jego samoczynnej zmianie w obsłudze shutdown.
      * @var string
@@ -75,19 +75,36 @@ class Application {
 
     /**
      * Konstruktor obiektu aplikacji Skinny.
-     * @param string $config_path ścieżka do katalogu z konfiguracją względem miejsca, w którym tworzona jest instancja
+     * @param string $configPath ścieżka do katalogu z konfiguracją względem miejsca, w którym tworzona jest instancja
      */
-    public function __construct($config_path = 'config') {
+    public function __construct($configPath = 'config') {
         $this->_appCwd = getcwd();
 
         // config
-        require_once __DIR__ . '/Store.php';
-        $env = isset($_SERVER['APPLICATION_ENV']) ? $_SERVER['APPLICATION_ENV'] : 'production';
-        $config = new Store(include $config_path . '/global.conf.php');
-        if (file_exists($local_config = $config_path . '/' . $env . '.conf.php'))
-            $config->merge(include $local_config);
+        if (!isset($_SERVER['APPLICATION_ENV'])) {
+            die('Application environment is not set. Application cannot be run.');
+        }
+
+        // TODO: sprawdzenie, czy nazwa env nie jest pusta i czy nie zawiera nieprawidłowych znaków
+        $env = $_SERVER['APPLICATION_ENV'];
 
         $this->_env = $env;
+        $this->_configPath = $configPath;
+
+        if (!is_file($configPath . '/global.conf.php')) {
+            die("Application global config has not been found. File '$configPath/global.conf.php' does not exist. Application cannot be run.");
+        }
+
+        $local_config = $configPath . '/' . $env . '.conf.php';
+        if (!is_file($local_config)) {
+            die("Application environment config has not been found. File '$local_config' does not exist. Application cannot be run.");
+        }
+
+        $config = new Store(include $configPath . '/global.conf.php');
+        if (file_exists($local_config)) {
+            $config->merge(include $local_config);
+        }
+
         $this->_config = $config;
 
         // internal include-driven loader
@@ -96,7 +113,7 @@ class Application {
         // settings: only if enabled
         if ($config->settings->enabled(false)) {
             require_once 'Skinny/Settings.php';
-            $this->_settings = new Settings($config_path);
+            $this->_settings = new Settings($configPath);
         }
 
         // loader
@@ -105,21 +122,26 @@ class Application {
         $this->_loader->initLoaders($this->_config->loaders->toArray());
         $this->_loader->register();
 
-        // bootstrap
+        // components
         $this->_components = new Components($this->_config);
         $this->_components->setInitializers($this->_config->components->toArray());
+        Components\ComponentsAware::setComponents($this->_components);
 
-        //router
+        // router
         $this->_router = new Router(
-                        $this->_config->paths->content('content', true), $this->_config->paths->cache('cache', true), $this->_config->router()
+                $this->_config->paths->content('content', true), $this->_config->paths->cache('cache', true), $this->_config->router()
         );
 
-        //request
+        // request
         $this->_request = new Request($this->_router);
+        $this->_components->setInitializers(['request' => function () {
+                return $this->_request;
+            }]);
 
-        \model\base::setApplication($this); // ustawia wskaźnik do aplikacji dla modeli poprzez \model\base
-
+        // error handler
         $this->registerErrorHandler();
+
+//        Application\ApplicationAware::setApplication($this);
     }
 
     /**
@@ -137,8 +159,9 @@ class Application {
      */
     public function getConfig($key = null) {
         $key = (string) $key;
-        if (empty($key))
+        if (empty($key)) {
             return $this->_config;
+        }
 
         return $this->_config->$key(null);
     }
@@ -150,8 +173,9 @@ class Application {
      */
     public function getSettings($key = null) {
         $key = (string) $key;
-        if (empty($key))
+        if (empty($key)) {
             return $this->_settings;
+        }
 
         return $this->_settings->$key(null);
     }
@@ -199,74 +223,70 @@ class Application {
     }
 
     /**
-     * Pobiera obiekt odpowiedzi.
-     * @return Response\ResponseInterface
-     */
-    public function getResponse() {
-        return $this->_response;
-    }
-
-    /**
      * Główna pętla wykonań żądań do akcji aplikacji.
      * @param string $request_url url pierwszego żądania
      * @param array $params parametry pierwszego żądania
      * @throws \Skinny\Exception
-     * @throws Action\Exception
+     * @throws Action\ActionException
      */
     public function run($request_url = null, array $params = array()) {
-        if (null === $request_url)
-            $request_url = $_SERVER['REQUEST_URI'];
+        if (null === $request_url) {
+            $request_url = urldecode($_SERVER['REQUEST_URI']);
+        }
 
-        if (null === $this->_request->current())
+        if (null === $this->_request->current()) {
             $this->_request->next(new Request\Step($request_url, $params));
+        }
 
-        if (null === $this->_response)
-            $this->_response = new Response\Http();
+        if (null === $this->_request->getResponse()) {
+            $this->_request->setResponse(new Response\Http());
+        }
 
-        $counter = 0;
-        while (!$this->_request->isProcessed()) {
+        $counter = $maxForwardCount = $this->_config->skinny->maxNumActionsForwarded(10);
+        while ($this->_request->isStepToProceed()) {
             try {
-                $counter++;
-                if ($counter >= 10)
-                    throw new Action\Exception('Too many forwards: 10 in action ' . $this->_request->current()->getRequestUrl());
+                --$counter;
 
-                if (!$this->_request->isResolved())
+                if (!$this->_request->isResolved()) {
                     $this->_request->resolve();
+                }
+
+                if ($counter === 0) {
+                    throw new Action\ActionException("Too many actions dispatched in one request: $maxForwardCount in action '{$this->_request->current()->getRequestUrl()}'. Actions: " . $this->_request->toBreadCrumbs());
+                }
 
                 $action = $this->_request->current()->getAction();
                 if (null === $action) {
-                    $notFoundAction = $this->_config->actions->notFound(null);
-                    if (null !== $notFoundAction) {
-                        $this->_request->next(new Request\Step($notFoundAction, ['error' => 'notFound', 'step' => $this->_request->current()]));
-                        $this->_request->proceed();
-                        continue;
-                    }
-                    else
-                    // TODO: błąd 404
-                        throw new Action\Exception('Cannot find action corresponding to URL "' . $this->_request->current()->getRequestUrl() . '".');
-                    // TODO: $this->_response->notFound();
+                    $notFoundAction = $this->_config->actions->notFound('/notFound');
+                    $accessDeniedAction = $this->_config->actions->accessDenied('/accessDenied');
+                    $errorAction = $this->_config->actions->error('/error');
+
+                    Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException('Error handler action cannot be found.'));
+                    Exception::throwIf(null === $notFoundAction && ($this->_request->getResponse()->setCode(404) || true), new Action\ActionException("Cannot find action corresponding to URL '{$this->_request->current()->getRequestUrl()}'."));
+                    Exception::throwIf($notFoundAction === $this->_request->current()->getRequestUrl(), new Action\ActionException('Cannot find the action for handling missing actions.'));
+
+                    $this->forwardError(['@error' => 'notFound'], $notFoundAction);
                 }
 
-                if (!($action instanceof Action))
-                    throw new Action\Exception('Action found is not an instance of the Skinny\Action base class.');
+                Exception::throwIf(!($action instanceof Action), new Action\ActionException("Action's '{$this->_request->current()->getRequestUrl()}' object is not an instance of the Skinny\\Action base class."));
 
-                $action->setApplication($this);
-                $action->_init();
-
-                try {
-                    $permission = $action->_permit();
-                } catch (\Skinny\Action\ForwardException $e) {
-                    
-                }
-
-                if ($this->isRequestForwarded())
-                    continue;
+                $action->onInit();
+                $action->onPrepare();
+                $permission = (bool) $action->onPermissionCheck();
 
                 if (true !== $permission) {
-                    $errorAction = $this->_config->actions->accessDenied(null);
-                    if (null !== $errorAction) {
-                        $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'accessDenied', 'step' => $this->_request->current()]));
-                        $this->_request->next()->setParams(['discardedSteps' => $discarded]);
+                    $accessDeniedAction = $this->_config->actions->accessDenied('/accessDenied');
+                    $errorAction = $this->_config->actions->error('/error');
+                    $notFoundAction = $this->_config->actions->notFound('/notFound');
+
+                    Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException('Access denied occured in error handler action.'));
+                    if ($notFoundAction === $this->_request->current()->getRequestUrl()) {
+                        $this->forwardError(['@error' => 'exception', '@exception' => new Action\ActionException('Access denied occured in not found handler action.')], $errorAction);
+                    }
+
+                    if (null !== $accessDeniedAction) {
+                        $discarded = $this->_request->forceNext(new Request\Step($accessDeniedAction, ['@error' => 'accessDenied']));
+                        $this->_request->next()->setParams(['@discardedSteps' => $discarded]);
                         $this->_request->proceed();
                         continue;
                     } else {
@@ -276,45 +296,44 @@ class Application {
                     }
                 }
 
-                try {
-                    $action->_prepare();
-                } catch (\Skinny\Action\ForwardException $e) {
-                    
-                }
-
-                if ($this->isRequestForwarded())
-                    continue;
-
-                try {
-                    $action->_action();
-                } catch (\Skinny\Action\ForwardException $e) {
-                    
-                }
-
-                if ($this->isRequestForwarded())
-                    continue;
-
-                try {
-                    $action->_cleanup();
-                } catch (\Skinny\Action\ForwardException $e) {
-                    
-                }
-
-                $this->_request->proceed();
+                $action->onAction();
+                $action->onComplete();
+            } catch (\Skinny\Action\ForwardException $e) {
+                
             } catch (\Exception $e) {
-                if ($e instanceof Action\Exception)
-                    throw $e;
+                // get URL of error action
+                $errorAction = $this->_config->actions->error('/error');
 
-                $errorAction = $this->_config->actions->error(null);
-                if (null !== $errorAction) {
-                    $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'exception', 'step' => $this->_request->current(), 'exception' => $e]));
-                    $this->_request->next()->setParams(['discardedSteps' => $discarded]);
-                    $this->_request->proceed();
-                    continue;
+                // check for exception in params and attach it to $e if found
+                $related = $this->_request->current()->getParam('@error');
+                if (null !== $related) {
+                    $related = ['@error' => $related];
+                    if (null !== $this->_request->current()->getParam('@exception')) {
+                        $related['@exception'] = $this->_request->current()->getParam('@exception');
+                    }
+                    if (null !== $this->_request->current()->getParam('@lastError')) {
+                        $related['@lastError'] = $this->_request->current()->getParam('@lastError');
+                    }
+                    if (null !== $this->_request->current()->getParam('@discardedSteps')) {
+                        $related['@discardedSteps'] = $this->_request->current()->getParam('@discardedSteps');
+                    }
+                    $e = new Exception("(with related error data) {$e->getMessage()}", 0, $e, $related);
                 }
-                else
-                    throw $e;
+
+                // rethrow exceptions that error action cannot handle
+                Exception::throwIf($e instanceof Action\ActionException, $e);
+                Exception::throwIf(null === $errorAction, $e);
+                Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException("Uncaught exception in error handler action: {$e->getMessage()}", 0, $e));
+
+                // forward to error action
+                try {
+                    $this->forwardError(['@error' => 'exception', '@exception' => $e], $errorAction);
+                } catch (Action\ForwardException $ex) {
+                    
+                }
             }
+
+            $this->_request->proceed();
         }
 
 //        $this->_response->respond();
@@ -325,11 +344,27 @@ class Application {
      * Jeżeli posiada, aktualny jest kończony.
      * @return boolean
      */
-    protected function isRequestForwarded() {
-        $forwarded = null !== $this->_request->next();
-        if ($forwarded)
-            $this->_request->proceed();
-        return $forwarded;
+//    protected function isRequestForwarded() {
+//        $forwarded = null !== $this->_request->next();
+//        if ($forwarded) {
+//            $this->_request->proceed();
+//        }
+//        return $forwarded;
+//    }
+
+    protected function forwardError($params, $errorAction = null) {
+        // TODO: przemyśleć nazwę metody
+        if (null === $errorAction || !is_string($errorAction)) {
+            $errorAction = $this->_config->actions->error('/error');
+        }
+
+        Exception::throwIf(null === $errorAction, new Action\ActionException('Error handler action is not defined.'));
+
+        $discarded = $this->_request->forceNext(new Request\Step($errorAction, $params));
+        $this->_request->next()->setParams(['@discardedSteps' => $discarded]);
+//        $this->_request->proceed();
+
+        throw new Action\ForwardException();
     }
 
     protected function registerErrorHandler() {
@@ -344,69 +379,40 @@ class Application {
 
     public function errorHandler($errno, $errstr, $errfile, $errline) {
         $errorReporting = error_reporting();
-        if (!$errorReporting)
+        if (!$errorReporting) {
             return true;
-
-        switch ($errno) {
-            // notice
-            case E_NOTICE:
-            case E_DEPRECATED:
-            case E_STRICT:
-            case E_USER_DEPRECATED:
-                // ignorowanie
-                return false;
-                break;
-
-            // warning
-            case E_COMPILE_WARNING:
-            case E_CORE_WARNING:
-            case E_USER_WARNING:
-            case E_WARNING:
-                // logowanie, ale idziemy dalej
-                // TODO: logowanie warninga
-                return false;
-                break;
-
-            // error
-            case E_COMPILE_ERROR:
-            case E_CORE_ERROR:
-            case E_ERROR:
-            case E_PARSE:
-            case E_RECOVERABLE_ERROR:
-            case E_USER_ERROR:
-                // obsługa błędu
-                break;
-
-            default:
-                break;
         }
 
-        // obsługa błędu
-        $errorAction = $this->_config->actions->error(null);
-        if (null !== $errorAction) {
-            $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'fatal', 'step' => $this->_request->current(), 'lastError' => ['type' => $errno, 'message' => $errstr, 'file' => $errfile, 'line' => $errline]]));
-            $this->_request->next()->setParams(['discardedSteps' => $discarded]);
-            $this->_request->proceed();
-        }
+        $lastError = ['type' => $errno, 'message' => $errstr, 'file' => $errfile, 'line' => $errline];
+        $this->_lastError = $lastError;
 
-        $this->run();
-        exit();
-        return true;
+        return $this->handleLastError($lastError);
     }
 
     public function shutdownHandler() {
-        $lastError = $this->getLastError(); // error_get_last();
-        if (!$lastError)
+        // TODO: do uzupełnienia i przeprowadzenia pełnych testów
+        $lastError = $this->getLastError();
+        if (!$lastError) {
             return;
+        }
+
+        $this->handleLastError($lastError);
+    }
+
+    protected function handleLastError(array $lastError) {
+        if (!isset($lastError['type'])) {
+            return false;
+        }
 
         switch ($lastError['type']) {
             // notice
             case E_NOTICE:
+            case E_USER_NOTICE:
             case E_DEPRECATED:
-            case E_STRICT:
             case E_USER_DEPRECATED:
+            case E_STRICT:
                 // ignorowanie
-                return;
+                return false;
                 break;
 
             // warning
@@ -416,13 +422,15 @@ class Application {
             case E_WARNING:
                 // logowanie, ale idziemy dalej
                 // TODO: logowanie warninga
-                return;
+                return false;
                 break;
 
             // error
+            case E_ERROR:
+//                if (strpos($lastError['message'], 'Uncaught exception') === 0)
+//                    return;
             case E_COMPILE_ERROR:
             case E_CORE_ERROR:
-            case E_ERROR:
             case E_PARSE:
             case E_RECOVERABLE_ERROR:
             case E_USER_ERROR:
@@ -437,15 +445,22 @@ class Application {
         ob_clean();
 
         // obsługa błędu
-        $errorAction = $this->_config->actions->error(null);
-        if (null !== $errorAction) {
-            $discarded = $this->_request->forceNext(new Request\Step($errorAction, ['error' => 'fatal', 'step' => $this->_request->current(), 'lastError' => $lastError]));
-            $this->_request->next()->setParams(['discardedSteps' => $discarded]);
-            $this->_request->proceed();
+        $errorAction = $this->_config->actions->error('/error');
+
+        Exception::throwIf(null === $this->_request->current(), new Action\ActionException("Error occured in Application: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
+        Exception::throwIf(null === $errorAction, new Action\ActionException("Error handler action is not defined to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
+        Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(), new Action\ActionException("Error occured in error handler action to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.", 0, null, $lastError));
+
+        try {
+            $this->forwardError(['@error' => 'fatal', '@lastError' => $lastError], $errorAction);
+        } catch (Action\ForwardException $ex) {
+            
         }
 
+        $this->_request->proceed();
         $this->run();
         exit();
+        return false;
     }
 
     protected function getLastError() {

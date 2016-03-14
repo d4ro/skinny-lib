@@ -3,14 +3,29 @@
 namespace Skinny;
 
 /**
- * Description of File
- *
- * @author Daro
+ * Klasa reprezentująca plik w systemie plików systemu operacyjnego.
+ * Umożliwia operacje na zawartości pliku takie, jak odczyt, zapis,
+ * oparcje ogólne takie, jak usuwanie, przenoszenie, kopiowanie oraz
+ * dostarcza informacje o pliku takie, jak rozmiar, ścieżka, itp.
  */
 class File {
 
+    /**
+     * Deskryptor otwartego pliku; pozostaje null, gdy plik nie został otwarty
+     * @var resource
+     */
     protected $_descriptor;
+
+    /**
+     * Tryb dostępu do pliku; pozostaje null, gdy plik nie został otwarty
+     * @var string
+     */
     protected $_mode;
+
+    /**
+     * Ścieżka do pliku
+     * @var string
+     */
     protected $_path;
 
     public function __construct($path) {
@@ -24,14 +39,15 @@ class File {
             $this->_descriptor = $f;
             $this->_mode = $mode;
             return true;
-        }
-        else
+        } else {
             return false;
+        }
     }
 
     public function close() {
-        if ($this->isOpened())
+        if ($this->isOpened()) {
             fclose($this->_descriptor);
+        }
 
         $this->_descriptor = null;
         $this->_mode = null;
@@ -47,33 +63,112 @@ class File {
 
     public function write($content) {
         $close = !$this->isOpened();
-        if ($close && !$this->open('wb'))
+        if ($close && !$this->open('wb')) {
             throw new IOException('Could not open file "' . $this->_path . '" to write.');
+        }
 
-        fwrite($this->_descriptor, $content);
+        if ($this->lock(LOCK_EX)) {
+            fwrite($this->_descriptor, $content);
+            $this->unlock();
+        }
 
-        if ($close)
+        if ($close) {
             $this->close();
+        }
     }
 
-    public function read() {
-        
+    public function read($length = null) {
+        $close = !$this->isOpened();
+        if ($close && !$this->open('r')) {
+            throw new IOException('Could not open file "' . $this->_path . '" to read.');
+        }
+
+        $content = fread($this->_descriptor, $this->size());
+
+        if ($close) {
+            $this->close();
+        }
+
+        return $content;
+    }
+
+    public function size() {
+        return filesize($this->_path);
     }
 
     public function delete() {
-        
+        unlink($this->_path);
     }
 
     public function exists() {
-        
+        return file_exists($this->_path);
     }
 
     public function create() {
         touch($this->_path);
     }
 
-    public function append() {
-        
+    public function append($content) {
+        $close = !$this->isOpened();
+        if ($close && !$this->open('ab')) {
+            throw new IOException('Could not open file "' . $this->_path . '" to append.');
+        }
+
+        if ($this->lock(LOCK_EX)) {
+            fwrite($this->_descriptor, $content);
+            $this->unlock();
+        }
+
+        if ($close) {
+            $this->close();
+        }
+    }
+
+    public function chmod($val) {
+        return chmod($this->_path, $val);
+    }
+
+    public function lock($mode) {
+        return flock($this->_descriptor, $mode);
+    }
+
+    public function unlock() {
+        return $this->lock(LOCK_UN);
+    }
+
+    public function isReadable() {
+        return is_readable($this->_path);
+    }
+
+    public function copyTo($path) {
+        return copy($this->_path, $path);
+    }
+
+    /**
+     * Zwraca MIME_TYPE pliku.
+     * 
+     * @return string
+     */
+    public function getMimeType() {
+        if (class_exists('finfo', false)) {
+            $const = defined('FILEINFO_MIME_TYPE') ? FILEINFO_MIME_TYPE : FILEINFO_MIME;
+            $mime = @finfo_open($const);
+
+            if (!empty($mime))
+                $mimeType = finfo_file($mime, $this->_path);
+
+            unset($mime);
+        }
+
+        if (empty($mimeType) && (function_exists('mime_content_type') && ini_get('mime_magic.magicfile'))) {
+            $mimeType = mime_content_type($this->_path);
+        }
+
+        if (empty($mimeType)) {
+            $mimeType = 'application/octet-stream';
+        }
+
+        return $mimeType;
     }
 
 }

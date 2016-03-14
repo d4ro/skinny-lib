@@ -2,7 +2,7 @@
 
 namespace Skinny\Loader;
 
-require_once 'Skinny\Loader\LoaderBase.php';
+require_once 'Skinny/Loader/LoaderBase.php';
 
 /**
  * Description of Standard
@@ -18,12 +18,14 @@ class Standard extends LoaderBase {
                     implode(PATH_SEPARATOR, $this->_config->paths->toArray()),
                     implode(PATH_SEPARATOR, $this->_paths->toArray()),
                     get_include_path()
-                )));
+                ))
+        );
+
         // zarejestruj standardowy loader
-        spl_autoload_register();
+//        spl_autoload_register();
     }
 
-    public function load($class_name) {
+    public function load($className) {
         // NOT USED
     }
 

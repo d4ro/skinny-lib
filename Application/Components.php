@@ -2,7 +2,7 @@
 
 namespace Skinny\Application;
 
-use Skinny\Store;
+use Skinny\DataObject\Store;
 
 /**
  * Kontener komponentów aplikacji Skinny
@@ -39,7 +39,7 @@ class Components implements \ArrayAccess {
      * Konstruktor kontenera komponentów
      * @param Store $config
      */
-    public function __construct($config) {
+    public function __construct(Store $config) {
         $this->_components = array();
         $this->_initializers = array();
         $this->_config = $config;
@@ -69,8 +69,9 @@ class Components implements \ArrayAccess {
      * @return mixed
      */
     public function getConfig($key = null) {
-        if (null === $key)
+        if (null === $key) {
             return $this->_config;
+        }
 
         return $this->_config->$key(null);
     }
@@ -91,8 +92,9 @@ class Components implements \ArrayAccess {
      */
     public function getComponent($name) {
         if (!$this->isInitialized($name)) {
-            if (!$this->hasInitializer($name))
+            if (!$this->hasInitializer($name)) {
                 return null;
+            }
 
             $this->initialize($name);
         }
@@ -105,10 +107,12 @@ class Components implements \ArrayAccess {
      * @param string $name
      */
     public function removeComponent($name) {
-        if (isset($this->_components[$name]))
+        if (isset($this->_components[$name])) {
             unset($this->_components[$name]);
-        if (isset($this->_initializers[$name]))
+        }
+        if (isset($this->_initializers[$name])) {
             unset($this->_initializers[$name]);
+        }
     }
 
     /**
@@ -121,19 +125,22 @@ class Components implements \ArrayAccess {
     }
 
     /**
+     * [unused]
      * Stwierdza, czy komponenty o nazwach podanych w tablicy $name zostały już finalnie zainicjalizowane.
      * Jeżeli parametr zostanie pominięty, funkcja stwierdza, czy wszystkie komponenty zostały w pełni zainicjalizowane.
      * @param array $name
      * @return boolean
      */
     public function areInitialized($name = null) {
-        if (empty($name))
+        if (empty($name)) {
             return empty($this->_initializers);
+        }
 
         $names = (array) $name;
         foreach ($names as $component) {
-            if (!$this->isInitialized($component))
+            if (!$this->isInitialized($component)) {
                 return false;
+            }
         }
         return true;
     }
@@ -144,14 +151,19 @@ class Components implements \ArrayAccess {
      * @throws \InvalidArgumentException
      */
     public function setInitializers(array $initializers) {
-        if (!empty($initializers))
-            foreach ($initializers as $name => $initializer) {
-                if (is_numeric($name))
-                    throw new \InvalidArgumentException('Component name "' . $name . '" cannot be numeric.');
-                if (!$initializer instanceof \Closure)
-                    throw new \InvalidArgumentException('Component name "' . $name . '" initializer is not a function.');
-                $this->_initializers[$name] = $initializer;
+        if (empty($initializers)) {
+            return;
+        }
+
+        foreach ($initializers as $name => $initializer) {
+            if (is_numeric($name)) {
+                throw new \InvalidArgumentException('Component name "' . $name . '" cannot be numeric.');
             }
+            if (!$initializer instanceof \Closure) {
+                throw new \InvalidArgumentException('Component name "' . $name . '" initializer is not a function.');
+            }
+            $this->_initializers[$name] = $initializer;
+        }
     }
 
     /**
@@ -160,7 +172,21 @@ class Components implements \ArrayAccess {
      * @return boolean
      */
     public function hasInitializer($name) {
-        return isset($this->_initializers[$name]) && $this->_initializers[$name] instanceof \Closure;
+        if (isset($this->_initializers[$name])) {
+            return ($this->_initializers[$name] instanceof \Closure);
+        }
+
+        if (isset($this->_components[$name])) {
+            return false;
+        }
+
+        $file = new \Skinny\File($filename = \Skinny\Path::combine($this->_config->paths->components('component/init', true), $name . '.php'));
+
+        if (!$file->isReadable()) {
+            return false;
+        }
+        $this->_initializers[$name] = include $filename;
+        return ($this->_initializers[$name] instanceof \Closure);
     }
 
     /**
@@ -169,23 +195,27 @@ class Components implements \ArrayAccess {
      * @throws \InvalidArgumentException
      * @throws \BadFunctionCallException
      */
-    public function initialize($name = null) {
-        if (null === $name)
+    protected function initialize($name = null) {
+        if (null === $name) {
             $name = array_keys($this->_initializers);
+        }
 
         $names = (array) $name;
         foreach ($names as $component) {
-            if ($this->isInitialized($component))
-            // TODO: a może nic nie robić?
+            if ($this->isInitialized($component)) {
+                // TODO: a może nic nie robić?
                 throw new \InvalidArgumentException('Component name "' . $component . '" has already been initialized.');
+            }
 
-            if (!$this->hasInitializer($component))
+            if (!$this->hasInitializer($component)) {
                 throw new \InvalidArgumentException('Component name "' . $component . '" does not have proper initializer.');
+            }
 
             $initializer = $this->_initializers[$component];
             $result = $initializer();
-            if (null === $result)
+            if (null === $result) {
                 throw new \BadFunctionCallException('Component name "' . $component . '" initializer does not return object.');
+            }
 
             $this->_components[$component] = $result;
             unset($this->_initializers[$component]);
