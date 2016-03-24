@@ -15,7 +15,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @var \Zend_Db_Adapter_Pdo_Mysql
      * @todo Uniezależnienie od Zend_Db
      */
-    protected static $db;
+    protected $_db;
 
     /**
      * Nazwa głównej tabeli, w której przechowywany jest wiersz (rekord)
@@ -118,7 +118,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return array tablica obiektów rekordów będących rezultatem zapytania
      */
     private static function _select($select) {
-        $data = self::$db->fetchAll($select);
+        $static = new static();
+        $data = $static->getDb()->fetchAll($select);
 
         // czy są dane
         $result = array();
@@ -150,13 +151,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         return $result;
     }
 
-    public static function getDb() {
-        return self::$db;
+    public function getDb() {
+        return $this->_db;
     }
 
-    public static function setDb($db) {
+    public function setDb($db) {
         // TODO: sprawdzenie typu
-        self::$db = $db;
+        $this->_db = $db;
     }
 
     /**
@@ -201,7 +202,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * - isAutoRefreshForbidden: czy ma być wyłączone automatyczne pobieranie rekordu z bazy po inserach oraz update'ach, domyślnie false
      */
     public function __construct($mainTable, $idColumns = 'id', $data = array(), $options = null) {
-        \Skinny\Exception::throwIf(self::$db === null, new \Skinny\Db\DbException('Database adaptor used by record is not set'));
+        \Skinny\Exception::throwIf($this->_db === null, new \Skinny\Db\DbException('Database adaptor used by record is not set'));
         \Skinny\Exception::throwIf($options !== null && !($options instanceof Store), new \InvalidArgumentException('Param $options is not instance of Store'));
 
         if (null === $options) {
@@ -652,7 +653,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return array
      */
     protected function _getTableStructure($tableName) {
-        return self::$db->describeTable($tableName);
+        return $this->_db->describeTable($tableName);
     }
 
     /**
@@ -784,7 +785,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             $select = $this->_getSelectWhere();
             $select->limit(1);
             $sql = "SELECT EXISTS($select)";
-            $result = self::$db->fetchOne($sql);
+            $result = $this->_db->fetchOne($sql);
             $this->_exists = (boolean) $result;
         }
 
@@ -937,7 +938,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     final protected function _insert($data, $refreshData) {
         $this->_isSaving = true;
-        self::$db->insert($this->_tableName, $data);
+        $this->_db->insert($this->_tableName, $data);
         /* @var $id array */
         $id = $this->getLastInsertId();
 
@@ -1004,7 +1005,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $this->_idValue = $this->_validateIdentifier($this->_idValue);
         $this->_isSaving = true;
 
-        $success = self::$db->update($this->_tableName, $data, $this->_getWhere());
+        $success = $this->_db->update($this->_tableName, $data, $this->_getWhere());
 
         // bug: update może zwrócić 0, gdy wiersz w tabeli się nie zmienił
 //        if ($success === 0) {
@@ -1106,7 +1107,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             return false;
         }
 
-        self::$db->delete($this->_tableName, $this->_getWhere());
+        $this->_db->delete($this->_tableName, $this->_getWhere());
         $this->_exists = false;
         return true;
     }
@@ -1124,7 +1125,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             return 0;
         }
 
-        return self::$db->delete($obj->_tableName, $where);
+        return $obj->getDb()->delete($obj->_tableName, $where);
     }
 
     /**
@@ -1143,9 +1144,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $where = [];
         foreach ($this->_idColumns as $col) {
             if (!isset($id[$col])) {
-                $where[] = self::$db->quoteIdentifier($this->_tableName) . '.' . self::$db->quoteIdentifier($col) . ' is null';
+                $where[] = $this->_db->quoteIdentifier($this->_tableName) . '.' . $this->_db->quoteIdentifier($col) . ' is null';
             } else {
-                $where[self::$db->quoteIdentifier($this->_tableName) . '.' . self::$db->quoteIdentifier($col) . ' = ?'] = $id[$col];
+                $where[$this->_db->quoteIdentifier($this->_tableName) . '.' . $this->_db->quoteIdentifier($col) . ' = ?'] = $id[$col];
             }
         }
         return $where;
@@ -1157,7 +1158,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return \Zend_Db_Select
      */
     protected function _getSelect() {
-        $select = self::$db->select()
+        $select = $this->_db->select()
                 ->from($this->_tableName, $this->getColumns());
         return $select;
     }
@@ -1239,7 +1240,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $this->_exists = false;
 
         $select = $this->_getSelectWhere($id);
-        $data = self::$db->fetchRow($select);
+        $data = $this->_db->fetchRow($select);
 
         if ($data) {
             // ustawiamy dane
@@ -1478,8 +1479,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $select = static::_getCountSelect();
 
         static::_addWhereToSelect($select, $where);
+        
+        $static = new static();
 
-        return self::$db->fetchOne($select);
+        return $static->getDb()->fetchOne($select);
     }
 
     /**
@@ -1714,7 +1717,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
           $tableName = $this->_tableName;
           } */
 
-        return self::$db->lastInsertId(/* $tableName */$this->_tableName, $idCol);
+        return $this->_db->lastInsertId(/* $tableName */$this->_tableName, $idCol);
     }
 
     /**
