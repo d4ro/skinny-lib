@@ -12,6 +12,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     const IDX_ID = 1;
     const IDX_TBL_ID = 2;
     const IDX_HASH = 3;
+    const IDX_CUSTOM = 4;
 
     /**
      * Połączenie do bazy danych
@@ -45,6 +46,12 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     protected $_idx;
 
     /**
+     * Indeks użytkownika - nazwa kolumny
+     * @var string
+     */
+    protected $_customIdx;
+
+    /**
      * Pobiera połączenie do bazy danych.
      * 
      * @return \Zend_Db_Adapter_Pdo_Mysql
@@ -74,7 +81,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             self::IDX_ID => [],
             self::IDX_TBL_ID => [],
             self::IDX_HASH => [],
+            self::IDX_CUSTOM => [],
         ];
+
         $this->useIndex(self::IDX_PLAIN);
 
         $this->_isStrictTypeCheckEnabled = $strictTypeCheck;
@@ -101,12 +110,58 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      *       self::IDX_ID       =>  indeks na podstawie ID rekordu,
      *       self::IDX_TBL_ID   =>  indeks na podstawie nazwy tabeli i ID rekordu,
      *       self::IDX_HASH     =>  indeks na podstawie unikalnego hasha rekordu.
+     *       self::IDX_CUSTOM   =>  indeks na podstawie wybranej przez uzytkownika kolumny.
      * 
-     * @param int $index
+     * @param mixed $index
      * @todo walidacja parametrów
      */
     public function useIndex($index) {
-        $this->_useIndex = $index;
+        if (is_int($index)) {
+            $this->_useIndex = $index;
+        } else {
+            $this->_useIndex = self::IDX_CUSTOM;
+            $this->_customIdx = $index;
+            $this->_rebuildIndex(self::IDX_CUSTOM);
+        }
+
+        return $this;
+    }
+
+    protected function _rebuildIndex($index) {
+        // todo: dokumentacja, switch, walidacja
+        $this->_idx[$index] = [];
+
+        if ($index == self::IDX_PLAIN) {
+            foreach ($this->_data as $key => $record) {
+                $this->_idx[self::IDX_PLAIN][$key] = $key;
+            }
+        }
+
+        if ($index == self::IDX_ID) {
+            foreach ($this->_data as $key => $record) {
+                $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $key;
+            }
+        }
+
+        if ($index == self::IDX_TBL_ID) {
+            foreach ($this->_data as $key => $record) {
+                $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $key;
+            }
+        }
+
+        if ($index == self::IDX_HASH) {
+            foreach ($this->_data as $key => $record) {
+                $this->_idx[self::IDX_HASH][$record->createRandomHash()] = $key;
+            }
+        }
+
+        if ($this->_customIdx && $index == self::IDX_CUSTOM) {
+            foreach ($this->_data as $key => $record) {
+                $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $key;
+            }
+        }
+
+        return $this;
     }
 
     /**
@@ -231,6 +286,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $key;
             $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $key;
             $this->_idx[self::IDX_HASH][$record->createRandomHash()] = $key;
+            if ($this->_customIdx) {
+                $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $key;
+            }
         }
     }
 
@@ -427,14 +485,24 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
                     unset($this->_idx[self::IDX_ID][$key]);
                 }
             }
+
             foreach ($this->_idx[self::IDX_TBL_ID] as $key => $value) {
                 if ($value == $offset) {
                     unset($this->_idx[self::IDX_TBL_ID][$key]);
                 }
             }
+
             foreach ($this->_idx[self::IDX_HASH] as $key => $value) {
                 if ($value == $offset) {
                     unset($this->_idx[self::IDX_HASH][$key]);
+                }
+            }
+
+            if ($this->_customIdx) {
+                foreach ($this->_idx[self::IDX_CUSTOM] as $key => $value) {
+                    if ($value == $offset) {
+                        unset($this->_idx[self::IDX_CUSTOM][$key]);
+                    }
                 }
             }
         }
@@ -445,6 +513,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $offset;
         $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $offset;
         $this->_idx[self::IDX_HASH][$record->createRandomHash()] = $offset;
+        if ($this->_customIdx) {
+            $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $offset;
+        }
     }
 
     /**
@@ -527,6 +598,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $this->_idx[self::IDX_ID][$value->getIdAsString(false, true)] = $key;
             $this->_idx[self::IDX_TBL_ID][$value->getIdAsString(true, true)] = $key;
             $this->_idx[self::IDX_HASH][$value->createRandomHash()] = $key;
+            if ($this->_customIdx) {
+                $this->_idx[self::IDX_CUSTOM][$value->{$this->_customIdx}] = $key;
+            }
         } elseif ($this->_useIndex === self::IDX_PLAIN) {
             $this->insertRecord($value, $name);
         } else {
@@ -582,14 +656,24 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
                     unset($this->_idx[self::IDX_ID][$key]);
                 }
             }
+
             foreach ($this->_idx[self::IDX_TBL_ID] as $key => $value) {
                 if ($value == $offset) {
                     unset($this->_idx[self::IDX_TBL_ID][$key]);
                 }
             }
+
             foreach ($this->_idx[self::IDX_HASH] as $key => $value) {
                 if ($value == $offset) {
                     unset($this->_idx[self::IDX_HASH][$key]);
+                }
+            }
+
+            if ($this->_customIdx) {
+                foreach ($this->_idx[self::IDX_CUSTOM] as $key => $value) {
+                    if ($value == $offset) {
+                        unset($this->_idx[self::IDX_CUSTOM][$key]);
+                    }
                 }
             }
         }
