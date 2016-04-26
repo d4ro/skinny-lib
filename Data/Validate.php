@@ -140,7 +140,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
 
         return $item;
     }
-    
+
     public function __isset($name) {
         return isset($this->_items[$name]);
     }
@@ -337,17 +337,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
 
         foreach ($item->_validators as $validator) {
-            // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
-            $params = array_merge(
-                    [Validator\ValidatorBase::PRM_NAME => $item->getName()/* , Validator\ValidatorBase::PRM_VALUE => $value */]
-                    , $item->_options[self::OPTION_MESSAGES_PARAMS]);
-
-            $validator->setMessagesParams($params);
-
-            // Walidacja
-            if (!$validator->isValid($value)) {
+            if (!$this->_validateItemValidator($item, $validator, $value)) {
                 $item->_result = false;
-
                 if ($this->_options[self::OPTION_BREAK_ON_VALIDATOR_FAILURE] === true) {
                     break;
                 }
@@ -355,6 +346,24 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
 
         return $item->_result;
+    }
+
+    /**
+     * 
+     * @param type $item
+     * @param type $validator
+     * @param type $value
+     * @return type
+     */
+    protected function _validateItemValidator($item, $validator, $value) {
+        // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
+        $params = array_merge(
+                [Validator\ValidatorBase::PRM_NAME => $item->getName()/* , Validator\ValidatorBase::PRM_VALUE => $value */]
+                , $item->_options[self::OPTION_MESSAGES_PARAMS]);
+
+        $validator->setMessagesParams($params);
+
+        return $validator->isValid($value);
     }
 
     /**
@@ -929,9 +938,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         if (!empty($this->_validators)) {
             $errors['@errors'] = [];
             foreach ($this->_validators as $validator) {
-                if (($e = $validator->getErrors())) {
-                    $errors['@errors'] = array_merge($errors['@errors'], $e);
-                }
+                $this->_mergeValidatorErrors($errors, $validator);
             }
             if (empty($errors['@errors'])) {
                 unset($errors['@errors']);
@@ -951,6 +958,14 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
 
         return $errors;
+    }
+
+    protected function _mergeValidatorErrors(&$errors, $validator) {
+        if (($e = $validator->getErrors())) {
+            $errors['@errors'] = array_merge($errors['@errors'], $e);
+            return true;
+        }
+        return false;
     }
 
     /**
