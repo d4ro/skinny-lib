@@ -49,6 +49,11 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     const OPTION_BREAK_ON_VALIDATOR_FAILURE = 'optionBreakOnValidatorFailure';
 
     /**
+     * Waliduje nawet gdy nie ustawiono walidaotra "notEmpty" a wartość jest pusta.
+     */
+    const OPTION_VALIDATE_ON_EMPTY = 'optionValidateOnEmpty';
+
+    /**
      * Limit "głębokich" walidacji, których każde wywołanie powoduje utworzenie nowych podelementów dla dowolnego poziomu
      */
     const DEEP_VALIDATION_LIMIT = 100;
@@ -91,7 +96,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     protected $_options = [
         self::OPTION_BREAK_ON_ITEM_FAILURE => false,
         self::OPTION_BREAK_ON_VALIDATOR_FAILURE => true,
-        self::OPTION_MESSAGES_PARAMS => []
+        self::OPTION_MESSAGES_PARAMS => [],
+        self::OPTION_VALIDATE_ON_EMPTY => false
     ];
 
     /**
@@ -222,7 +228,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             foreach ($this->_items as $item) {
                 if (!$item->_validate($toCheck)) {
                     $this->_result = false;
-                    if ($this->_options[self::OPTION_BREAK_ON_ITEM_FAILURE] === true) {
+                    if ($item->_options[self::OPTION_BREAK_ON_ITEM_FAILURE] === true) {
                         break;
                     }
                 }
@@ -328,6 +334,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
                 !$item->hasValidator(Validator\Required::class)
                 ) ||
                 (
+                $item->_options[self::OPTION_VALIDATE_ON_EMPTY] === false &&
                 !(new Validator\NotEmpty())->isValid($value) &&
                 !$item->hasValidator(Validator\NotEmpty::class) &&
                 !$item->hasValidator(Validator\Required::class)
@@ -339,7 +346,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         foreach ($item->_validators as $validator) {
             if (!$this->_validateItemValidator($item, $validator, $value)) {
                 $item->_result = false;
-                if ($this->_options[self::OPTION_BREAK_ON_VALIDATOR_FAILURE] === true) {
+                if ($item->_options[self::OPTION_BREAK_ON_VALIDATOR_FAILURE] === true) {
                     break;
                 }
             }
@@ -372,22 +379,27 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @param array $options Parametr łączy (merge) przekazane opcje z domyślnymi opcjami ustawionymi dla bieżącego pola walidacji. <br/>
      *                       Poprzez opcje można ustawić m.in. przerwanie walidacji w momencie wystąpienia błędu walidatora/pola 
      *                       oraz przekazać dodatkowe parametry do komunikatów.
+     * 
+     * @return \Skinny\Data\Validate
      */
     public function mergeOptions($options) {
         if (!empty($options) && is_array($options)) {
-//            $this->_options = array_merge($this->_options, $options);
             $this->_options = \Skinny\DataObject\ArrayWrapper::deepMerge($this->_options, $options);
         }
+        return $this;
     }
 
     /**
-     * Alias metody mergeOptions
+     * Alias metody mergeOptions.
+     * 
      * @param array $options
+     * @return \Skinny\Data\Validate
      */
     public function setOptions(array $options) {
         if (!empty($options)) {
             $this->mergeOptions($options);
         }
+        return $this;
     }
 
     /**
