@@ -586,15 +586,22 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * Uruchamiane są w sytuacji pobrania lub ustawienia wartości podanej kolumny.
      * Jeżeli getter nie jest ustawiony, a wartość jest pobierana, zachowanie jest standardowe.
      * Analogicznie sytuacja ma się z setterem przy ustawieniu wartości.
-     * @param string $columnName nazwa kolumny, któa ma posiadać specjalne filtrowanie
-     * @param \Closure $getter funkcja filtrująca pobierane dane z kolumny
-     * @param \Closure $setter funkcja filtrująca ustawiane dane do kolumny
+     * 
+     * @param string|array  $columnName     Nazwa kolumny, która ma posiadać specjalne filtrowanie
+     * @param \Closure      $getter         Funkcja filtrująca pobierane dane z kolumny
+     * @param \Closure      $setter         Funkcja filtrująca ustawiane dane do kolumny
      */
     protected function _setFilteredColumn($columnName, \Closure $getter = null, \Closure $setter = null) {
-        $this->_filteredColumns[$columnName] = [
-            'setter' => $setter,
-            'getter' => $getter
-        ];
+        if (!is_array($columnName)) {
+            $columnName = [$columnName];
+        }
+
+        foreach ($columnName as $name) {
+            $this->_filteredColumns[$name] = [
+                'setter' => $setter,
+                'getter' => $getter
+            ];
+        }
     }
 
     /**
@@ -1479,7 +1486,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $select = static::_getCountSelect();
 
         static::_addWhereToSelect($select, $where);
-        
+
         $static = new static();
 
         return $static->getDb()->fetchOne($select);
