@@ -15,6 +15,11 @@ class StringLength extends IsString {
     const OPT_MAX = 'optMax';
 
     /**
+     * Czy dane wejściowe mają zostać ztrimowane
+     */
+    const OPT_TRIM_INPUT = 'optTrimInput';
+
+    /**
      * String jest zbyt krótki
      */
     const MSG_TOO_SHORT = 'msgTooShort';
@@ -75,6 +80,14 @@ class StringLength extends IsString {
             throw new exception("At least one option has to be set.");
         }
 
+        if (key_exists(self::OPT_TRIM_INPUT, $this->_options)) {
+            if (!is_bool($this->_options[self::OPT_TRIM_INPUT])) {
+                throw new exception("Invalid option: '" . self::OPT_TRIM_INPUT . "'. Boolean expected.");
+            }
+        } else {
+            $this->_options[self::OPT_TRIM_INPUT] = false;
+        }
+
         // Ustawienie komunikatów
         $this->_setMessagesTemplates([
             self::MSG_TOO_SHORT => "Tekst jest za krótki. Minimalna ilość znaków: " . self::PRM_MIN,
@@ -85,6 +98,10 @@ class StringLength extends IsString {
     public function isValid($value) {
         if (!parent::isValid($value)) {
             return false;
+        }
+
+        if ($this->_options[self::OPT_TRIM_INPUT]) {
+            $value = trim($value);
         }
 
         $this->_currentLength = strlen($value); // Ustawienie bieżącej długości stringa
