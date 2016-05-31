@@ -281,7 +281,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         }
 
         if (key_exists($column, $this->_filteredColumns) && isset($this->_filteredColumns[$column]['getter']) && ($this->_filteredColumns[$column]['getter'] instanceof \Closure)) {
-            return $this->_filteredColumns[$name]['getter'](parent::__get($column));
+            $result = $this->_filteredColumns[$column]['getter'](parent::__get($column));
+            return $result;
         }
 
         return parent::__get($column);
