@@ -10,6 +10,12 @@ use Skinny\DataObject\Store;
  * @author Daro
  */
 class Components implements \ArrayAccess {
+    
+    /**
+     * Przechowuje instancję komponentów
+     * @var Components
+     */
+    protected static $instance = null;
 
     /**
      * Konfiguracja kontenera
@@ -37,6 +43,15 @@ class Components implements \ArrayAccess {
         $this->_components = array();
         $this->_initializers = array();
         $this->_config = $config;
+        self::$instance = $this;
+    }
+    
+    /**
+     * Zwraca instancję komponentów
+     * @return Components
+     */
+    public static function getInstance() {
+        return self::$instance;
     }
 
     /**

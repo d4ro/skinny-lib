@@ -216,9 +216,21 @@ abstract class Action extends Application\Components\ComponentsAware {
     public function noAction() {
         $notFoundAction = $this->getConfig()->actions->notFound(null);
         if (null !== $notFoundAction) {
-            $this->forward($notFoundAction, ['error' => 'notFound', 'requestStep' => $this->request->current()]);
+            $this->forward($notFoundAction, ['error' => 'notFound', 'step' => $this->getRequest()->current()]);
         }
         // TODO: 404
+    }
+    
+    /**
+     * Forwarduje aplikację do akcji błędu z przekazaniem wybranych parametrów.
+     * 
+     * @param array $params Tablica parametrów
+     * @param string $type Typ błędu
+     */
+    public function error(array $params, $type = 'other') {
+        $errorAction = $this->_application->getConfig()->actions->error(null);
+        if (null !== $errorAction)
+            $this->forward($errorAction, array_merge(['error' => $type, 'step' => $this->getRequest()->current()], $params));
     }
 
 }

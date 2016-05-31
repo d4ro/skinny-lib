@@ -28,6 +28,8 @@ class ArrayWrapper extends DataBase implements \JsonSerializable, \ArrayAccess, 
     public function &get($name, $default = null) {
         if (array_key_exists($name, $this->_data)) {
             return $this->_data[$name];
+        $a = null;
+        return $a;
         }
 
         return $default;
