@@ -156,7 +156,7 @@ class Store extends ObjectModelBase implements \JsonSerializable {
 //        if (is_array($value)) {
 //            parent::__set($name, $this->_createObject()->merge($value));
 //        } else {
-            parent::__set($name, $value);
+        parent::__set($name, $value);
 //        }
     }
 
@@ -227,7 +227,7 @@ class Store extends ObjectModelBase implements \JsonSerializable {
 
         $obj = (array) $obj;
         foreach ($obj as $key => $value) {
-            if ($value instanceof self || is_array($value)) {
+            if ($value instanceof self || is_array($value) || $value instanceof \stdClass) {
                 if (isset($this->_items[$key]) && (is_array($this->_items[$key]) || $this->_items[$key] instanceof self)) {
                     if (is_array($this->_items[$key])) {
                         $this->_items[$key] = new self($this->_items[$key]);
