@@ -1224,7 +1224,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     /**
      * Dodaje do obiektu elementy znajdujące się w tablicy asocjacyjnej.
      * 
-     * @param array $data
+     * @param array     $data
+     * @param boolean   $useFiltering Używaj filtrowania do zapisu (setter)
      * @return boolean
      */
     public function importData(array $data, $useFiltering = false) {
