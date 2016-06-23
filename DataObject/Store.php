@@ -243,5 +243,14 @@ class Store extends ObjectModelBase implements \JsonSerializable {
 
         return $this;
     }
+    
+    /**
+     * Zwraca klucze wszystkich podelementów
+     * 
+     * @return array
+     */
+    public function getKeys() {
+        return array_keys($this->_items);
+    }
 
 }
