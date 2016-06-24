@@ -831,7 +831,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     public function getId() {
         if (count($this->_idColumns) === 1) {
-            return $this->_idValue[$this->_idColumns[0]];
+            return @$this->_idValue[$this->_idColumns[0]];
         } else {
             return $this->getFullId();
         }
