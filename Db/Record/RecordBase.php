@@ -1255,7 +1255,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             $this->_idValue = $id;
 
             $this->_setData($data);
-            
+
             foreach ($this->_readingDisabledColumns as $column) {
                 unset($this->$column);
             }
