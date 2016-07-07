@@ -151,7 +151,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
         if ($index == self::IDX_HASH) {
             foreach ($this->_data as $key => $record) {
-                $this->_idx[self::IDX_HASH][$record->createRandomHash()] = $key;
+                $this->_idx[self::IDX_HASH][$record->createRandomString()] = $key;
             }
         }
 
@@ -285,7 +285,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $this->_idx[self::IDX_PLAIN][$key] = $key;
             $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $key;
             $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $key;
-            $this->_idx[self::IDX_HASH][$record->createRandomHash()] = $key;
+            $this->_idx[self::IDX_HASH][$record->createRandomString()] = $key;
             if ($this->_customIdx) {
                 $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $key;
             }
@@ -512,7 +512,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         $this->_idx[self::IDX_PLAIN][$offset] = $offset;
         $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $offset;
         $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $offset;
-        $this->_idx[self::IDX_HASH][$record->createRandomHash()] = $offset;
+        $this->_idx[self::IDX_HASH][$record->createRandomString()] = $offset;
         if ($this->_customIdx) {
             $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $offset;
         }
@@ -597,7 +597,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $this->_idx[self::IDX_PLAIN][$key] = $key;
             $this->_idx[self::IDX_ID][$value->getIdAsString(false, true)] = $key;
             $this->_idx[self::IDX_TBL_ID][$value->getIdAsString(true, true)] = $key;
-            $this->_idx[self::IDX_HASH][$value->createRandomHash()] = $key;
+            $this->_idx[self::IDX_HASH][$value->createRandomString()] = $key;
             if ($this->_customIdx) {
                 $this->_idx[self::IDX_CUSTOM][$value->{$this->_customIdx}] = $key;
             }

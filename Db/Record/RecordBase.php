@@ -868,7 +868,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $result = $includeTable ? '"' . $this->_tableName . '":' : '';
         foreach ($fullId as $val) {
             if (null === $val) {
-                $result .= ($randomHashAsNull ? $this->createRandomHash() : 'null') . ',';
+                $result .= ($randomHashAsNull ? $this->createRandomString() : 'null') . ',';
             } else {
                 $result .= '"' . htmlspecialchars($val) . '",';
             }
@@ -878,7 +878,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
     /**
      * Ustawia własny identyfikator (np. gdy id nie jest autoincrement).
-     * Umożliwia usyawienie części klucza.
+     * Umożliwia ustawienie części klucza.
      * 
      * @param mixed $id
      */
@@ -914,8 +914,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         return $array;
     }
 
-    public function createRandomHash() {
-        $length = 10;
+    /**
+     * Tworzy ciąg znaków o podanej długości (domyślnie 10 znaków) z losowych znaków ze zbioru [a-zA-Z0-9].
+     * 
+     * @param int $length długość ciągu wynikowego
+     * @return string rezultat - losowy ciąg
+     */
+    public function createRandomString($length = 10) {
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $charactersLength = strlen($characters);
         $randomString = '';
