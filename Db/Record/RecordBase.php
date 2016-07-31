@@ -938,6 +938,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     public function insert($refreshData = true) {
         $data = $this->exportData();
+        $this->_validateData($data);
         return $this->_insert($data, $refreshData && !$this->_config->isAutoRefreshForbidden(false, true));
     }
 
@@ -998,6 +999,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         }
 
         $data = $this->exportData();
+        $this->_validateData($data);
         return $this->_update($data, $refreshData && !$this->_config->isAutoRefreshForbidden(false, true));
     }
 
@@ -1017,27 +1019,23 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $this->_idValue = $this->_validateIdentifier($this->_idValue);
         $this->_isSaving = true;
 
-        $success = $this->_db->update($this->_tableName, $data, $this->_getWhere());
+        $result = $this->_db->update($this->_tableName, $data, $this->_getWhere());
 
-        // bug: update może zwrócić 0, gdy wiersz w tabeli się nie zmienił
-//        if ($success === 0) {
-//            $this->_exists = false;
-//            return false;
-//        }
-
-        if ($success > 1) {
+        if ($result > 1) {
             throw new \Skinny\Db\DbException('Record identified by its primary key is ambiguous in table "' . $this->_tableName . '". Rows updated: ' . $success);
         }
+
+        $success = true;
 
         if ($refreshData) {
             $success = $this->_load($this->_idValue);
         }
 
-        $this->_exists = true;
+        $this->_exists = $success;
         $this->_isSaving = false;
         $this->_columnsModified = [];
 
-        return (boolean) $success;
+        return $success;
     }
 
     /**
@@ -1059,7 +1057,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $success = $this->_load($this->_idValue);
 
-        return (boolean) $success;
+        return $success;
     }
 
     /**
@@ -1241,6 +1239,23 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $this->_setData($data, $useFiltering);
 
         return true;
+    }
+
+    /**
+     * Waliduje dane wejściowe do bazy danych pod kątem prawidłowego typu dla bazy.
+     * Nie sprawdza, czy wartości kolumn są zgodne z typami kolumn, do których mają być przypisane.
+     * 
+     * @param array $data dane wejściowe
+     * @return boolean
+     */
+    protected function _validateData(array $data) {
+        return array_walk($data, function ($value, $column) {
+            if (null === $value || is_string($value) || is_numeric($value)) {
+                return true;
+            }
+
+            throw new RecordException('Data for column "' . $column . '" is invalid for database.');
+        });
     }
 
     /**
