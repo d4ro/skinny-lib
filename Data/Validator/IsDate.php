@@ -30,6 +30,7 @@ class IsDate extends IsString {
         if (count($dateExplode) < 3 || !checkdate($dateExplode[1], $dateExplode[2], $dateExplode[0])) {
             return $this->error(self::MSG_NOT_DATE);
         }
+
         return true;
     }
 

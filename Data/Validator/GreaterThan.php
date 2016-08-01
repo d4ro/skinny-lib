@@ -23,26 +23,9 @@ class GreaterThan extends ValidatorBase {
     const OPT_GREATER_THAN = 'optGreaterThan';
 
     public function __construct($options = null) {
-        if (!parent::isValid($value)) {
-            return false;
-        }
-        
-        /**
-         * BUG!
-         * Zostawione die i niezabezpieczone dane, wygląda jakby to było nieskończone
-         * 
-         * DO POPRAWIENIA
-         * TODO 
-         */
-        
-        throw new Exception('Walidator błędnie skonstruowany - do poprawy');
-        
         parent::__construct($options);
 
-        $this->_options = $options;
-
-        if (!$options[self::OPT_GREATER_THAN]) {
-            die($this->_option[self::OPT_GREATER_THAN]);
+        if (!key_exists(self::OPT_GREATER_THAN, $options)) {
             throw new exception("Brak kluczowego parametru " . self::OPT_GREATER_THAN);
         }
 
@@ -53,6 +36,10 @@ class GreaterThan extends ValidatorBase {
     }
 
     public function isValid($value) {
+        if (!parent::isValid($value)) {
+            return false;
+        }
+
         if (!is_numeric($value)) {
             return $this->error(self::MSG_IS_NOT_NUMERIC);
         }
