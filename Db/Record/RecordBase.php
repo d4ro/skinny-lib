@@ -1251,7 +1251,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     protected function _validateData(array $data) {
         return array_walk($data, function ($value, $column) {
-            if (null === $value || is_string($value) || is_numeric($value)) {
+            if (null === $value || is_string($value) || is_numeric($value) || $value instanceof \Zend_Db_Expr) {
                 return true;
             }
 

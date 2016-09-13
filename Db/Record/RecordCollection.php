@@ -416,6 +416,14 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $collection->_isStrictTypeCheckEnabled = $this->_isStrictTypeCheckEnabled;
             $collection->_recordClassName = $this->_recordClassName;
             $collection->_data = $result;
+            $collection->_rebuildIndex(self::IDX_PLAIN);
+            $collection->_rebuildIndex(self::IDX_ID);
+            $collection->_rebuildIndex(self::IDX_TBL_ID);
+            $collection->_rebuildIndex(self::IDX_HASH);
+            if ($this->_customIdx) {
+                $collection->_customIdx = $this->_customIdx;
+                $collection->_rebuildIndex(self::IDX_CUSTOM);
+            }
         } else {
             throw new \BadFunctionCallException('Argument is not callable.');
         }
