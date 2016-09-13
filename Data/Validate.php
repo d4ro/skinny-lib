@@ -856,7 +856,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             }
 
             // Reset walidacji dla tego poziomu
-            $this->resetValidation();
+            $this->resetValidation(); 
 
             // Poniższy kod ma "naprawiać" puste wartości rodziców, które
             // powinny być tablicamy - takie dane powstają gdy nie ustawiamy
