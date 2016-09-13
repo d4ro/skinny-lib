@@ -266,8 +266,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         // nie mamy wartości w polu, return null
         if (!key_exists($column, $this->_data)) {
-            $r = null;
-            return $r;
+            $value = null;
+            return $value;
         }
 
         // pobranie wartośći z kolumny jsonowej
@@ -281,8 +281,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         }
 
         if (key_exists($column, $this->_filteredColumns) && isset($this->_filteredColumns[$column]['getter']) && ($this->_filteredColumns[$column]['getter'] instanceof \Closure)) {
-            $result = $this->_filteredColumns[$column]['getter'](parent::__get($column));
-            return $result;
+            $value = $this->_filteredColumns[$column]['getter'](parent::__get($column));
+            return $value;
         }
 
         return parent::__get($column);
@@ -819,7 +819,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     public function getId() {
         if (count($this->_idColumns) === 1) {
-            return $this->_idValue[$this->_idColumns[0]];
+            return @$this->_idValue[$this->_idColumns[0]];
         } else {
             return $this->getFullId();
         }
