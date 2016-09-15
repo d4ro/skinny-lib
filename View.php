@@ -147,7 +147,7 @@ class View extends DataObject\ArrayWrapper {
      * @return string
      */
     public function getLayout() {
-        return $this->_config->layout;
+        return $this->_config->layout('');
     }
 
     /**
@@ -172,14 +172,13 @@ class View extends DataObject\ArrayWrapper {
         }
 
         if (
-                !\Skinny\Path::isAbsolute($this->_config->layout) &&
-                !\Skinny\Url::hasProtocol($this->_config->layout)
+                !\Skinny\Path::isAbsolute($this->_config->layout('')) &&
+                !\Skinny\Url::hasProtocol($this->_config->layout(''))
         ) {
-
-            $file = \Skinny\Path::combine($this->_config->layoutsPath, $this->_config->layout);
+            $file = \Skinny\Path::combine($this->_config->layoutsPath(''), $this->_config->layout(''));
         }
 
-        return realpath($file . $this->_config->templatesExtension);
+        return ($file . $this->_config->templatesExtension(''));
     }
 
     /**
@@ -225,7 +224,7 @@ class View extends DataObject\ArrayWrapper {
             throw new View\Exception("Renderer has not been set");
         }
         if (!is_readable(($currentLayoutPath = $this->getCurrentLayoutPath()))) {
-            throw new View\Exception("Layout file is not readable");
+            throw new View\Exception("Layout file '$currentLayoutPath' is not readable");
         }
 
         echo $renderer->fetch($currentLayoutPath, ['this' => $this]);

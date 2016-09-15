@@ -97,6 +97,8 @@ class Path {
      * @return boolean
      */
     public static function isAbsolute($path) {
+        Exception::throwIf(!is_string($path), 'Parameter "path" is not a string.');
+
         if (empty($path)) {
             return false;
         }
