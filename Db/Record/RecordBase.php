@@ -202,6 +202,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * - isAutoRefreshForbidden: czy ma być wyłączone automatyczne pobieranie rekordu z bazy po inserach oraz update'ach, domyślnie false
      */
     public function __construct($mainTable, $idColumns = 'id', $data = array(), $options = null) {
+        \Skinny\Exception::throwIf(!is_string($mainTable));
         \Skinny\Exception::throwIf($this->_db === null, new \Skinny\Db\DbException('Database adaptor used by record is not set'));
         \Skinny\Exception::throwIf($options !== null && !($options instanceof Store), new \InvalidArgumentException('Param $options is not instance of Store'));
 
