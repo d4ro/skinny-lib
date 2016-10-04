@@ -64,6 +64,15 @@ class File {
     public function getMode() {
         return $this->_mode;
     }
+    
+    /**
+     * Zwraca ustawioną ścieżkę pliku.
+     * 
+     * @return string
+     */
+    public function getPath() {
+        return $this->_path;
+    }
 
     public function write($content) {
         $close = !$this->isOpened();
@@ -162,8 +171,24 @@ class File {
 //        return basename($this->_path);
     }
 
+    /**
+     * Kopiuje plik do podanej ścieżki.
+     * 
+     * @param string $path
+     * @return boolean
+     */
     public function copyTo($path) {
         return copy($this->_path, $path);
+    }
+    
+    /**
+     * Przenosi plik do podanej ścieżki.
+     * 
+     * @param string $path
+     * @return boolean
+     */
+    public function moveTo($path) {
+        return rename($this->_path, $path);
     }
 
     /**
