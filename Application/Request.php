@@ -277,6 +277,10 @@ class Request {
     public function acceptJson() {
         return false !== strstr($_SERVER['HTTP_ACCEPT'], 'application/json');
     }
+    
+    public function getContentType() {
+        return @$_SERVER['CONTENT_TYPE'];
+    }
 
     /**
      * Stwierdza, czy żądanie do serwera zostało wykonane metodą POST.
