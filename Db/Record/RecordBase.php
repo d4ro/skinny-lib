@@ -1043,11 +1043,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     /**
      * Odświeża rekord pobierając dane z bazy.
      * 
+     * @param boolean $force przeładowuje, nawet, gdy w rekordzie jest informacja, że rekord nie istnieje w bazie
+     * 
      * @return boolean czy pobranie danych się udało;
      * może się nie udać, gdy rekord nie istnieje lub nie da się określić, który to jest w bazie
      */
-    public function reload() {
-        if (null === $this->_idValue || !$this->_exists) {
+    public function reload($force = false) {
+        if (!$force && (null === $this->_idValue || !$this->_exists)) {
             return false;
         }
 
