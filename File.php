@@ -64,7 +64,7 @@ class File {
     public function getMode() {
         return $this->_mode;
     }
-    
+
     /**
      * Zwraca ustawioną ścieżkę pliku.
      * 
@@ -180,7 +180,7 @@ class File {
     public function copyTo($path) {
         return copy($this->_path, $path);
     }
-    
+
     /**
      * Przenosi plik do podanej ścieżki.
      * 
@@ -221,6 +221,27 @@ class File {
     public function rename($newName) {
         rename($this->_path, $newName);
         $this->_path = realpath($newName);
+    }
+
+    /**
+     * Czyta plik i ustawia go jako załącznik do pobrania.
+     */
+    public function output($outputFileName = null) {
+        $file = \Skinny\Path::combine(\Skinny\Application\Components::getConfig()->personProposalAttachment, $this->getParam('file'));
+
+        if (!file_exists($file)) {
+            throw new Exception('File does not exist.');
+        }
+
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . ($outputFileName ? $outputFileName : basename($file)) . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($file));
+        readfile($file);
+        exit;
     }
 
 }
