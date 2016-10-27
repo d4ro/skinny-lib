@@ -1258,8 +1258,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                 return true;
             }
 
-            $type = gettype($value);
-            throw new RecordException('Data type (' . $type . ') of column "' . $column . '" is invalid for the database.');
+            throw new RecordException('Data type (' . gettype($value) . ') of column "' . $column . '" is invalid for the database.');
         });
     }
 
