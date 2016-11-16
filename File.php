@@ -227,20 +227,18 @@ class File {
      * Czyta plik i ustawia go jako załącznik do pobrania.
      */
     public function output($outputFileName = null) {
-        $file = \Skinny\Path::combine(\Skinny\Application\Components::getConfig()->personProposalAttachment, $this->getParam('file'));
-
-        if (!file_exists($file)) {
+        if (!file_exists($this->getPath())) {
             throw new Exception('File does not exist.');
         }
 
         header('Content-Description: File Transfer');
         header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="' . ($outputFileName ? $outputFileName : basename($file)) . '"');
+        header('Content-Disposition: attachment; filename="' . ($outputFileName ? $outputFileName : basename($this->getPath())) . '"');
         header('Expires: 0');
         header('Cache-Control: must-revalidate');
         header('Pragma: public');
-        header('Content-Length: ' . filesize($file));
-        readfile($file);
+        header('Content-Length: ' . filesize($this->getPath()));
+        readfile($this->getPath());
         exit;
     }
 
