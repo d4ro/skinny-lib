@@ -319,7 +319,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         if (key_exists($name, $this->_jsonColumns)) {
             $this->_jsonColumns[$name]['hasValue'] = true;
             $this->_jsonColumns[$name]['value'] = $value;
-            $value = json_encode($value, true);
+            $value = json_encode($value);
         }
 
         if ($setData) {
