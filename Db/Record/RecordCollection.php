@@ -319,11 +319,12 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     /**
      * Zapisuje wszystkie rekordy.
      * 
+     * @param boolean $refreshData czy po zapisaniu mają się uaktualnić dane w rekordzie
      * @return array
      */
-    public function save() {
+    public function save($refreshData = true) {
         // TODO: optymalizacja - pobranie zapytań do bazy i wykonanie ich w jednym query
-        return $this->call('save');
+        return $this->call('save', [$refreshData]);
     }
 
     /**
