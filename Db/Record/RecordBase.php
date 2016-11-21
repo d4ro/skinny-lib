@@ -317,7 +317,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         }
 
         if (key_exists($name, $this->_jsonColumns)) {
-            $this->_jsonColumns[$name]['hasValue'] = false; //json_decode($value, true);
+            $this->_jsonColumns[$name]['hasValue'] = true;
+            $this->_jsonColumns[$name]['value'] = $value;
+            $value = json_encode($value, true);
         }
 
         if ($setData) {
@@ -497,8 +499,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string|array $columnNames
      */
     protected function _setJsonColumns($columnNames) {
-        $columnName = (array) $columnName;
-        foreach ($columnNames as $$columnName) {
+        $columnNames = (array) $columnNames;
+        foreach ($columnNames as $columnName) {
             if (!key_exists($columnName, $this->_jsonColumns)) {
                 $this->_jsonColumns[$columnName] = ['value' => null, 'hasValue' => false];
             }
