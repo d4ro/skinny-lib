@@ -56,7 +56,7 @@ class Application {
 
     /**
      * Obiekt żądania posiadający informacje o wszystkich krokach żądań
-     * @var type 
+     * @var type
      */
     protected $_request;
 
@@ -126,9 +126,11 @@ class Application {
         $this->_components = new Components($this->_config);
         $this->_components->setInitializers($this->_config->components->toArray());
 
-        // router
-        $this->_router = new Router(
-                $this->_config->paths->content('content', true), $this->_config->paths->cache('cache', true), $this->_config->router()
+        $router = $this->_config->router->class('Skinny\Application\Router', true);
+        $this->_router = new $router(
+            $this->_config->paths->content('content', true),
+            $this->_config->paths->cache('cache', true),
+            $this->_config->router()
         );
 
         // request
@@ -298,7 +300,7 @@ class Application {
                 $action->onAction();
                 $action->onComplete();
             } catch (\Skinny\Action\ForwardException $e) {
-                
+
             } catch (\Exception $e) {
                 // get URL of error action
                 $errorAction = $this->_config->actions->error('/error');
@@ -328,7 +330,7 @@ class Application {
                 try {
                     $this->forwardError(['@error' => 'exception', '@exception' => $e], $errorAction);
                 } catch (Action\ForwardException $ex) {
-                    
+
                 }
             }
 
@@ -453,7 +455,7 @@ class Application {
         try {
             $this->forwardError(['@error' => 'fatal', '@lastError' => $lastError], $errorAction);
         } catch (Action\ForwardException $ex) {
-            
+
         }
 
         $this->_request->proceed();
