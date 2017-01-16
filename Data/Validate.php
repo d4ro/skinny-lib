@@ -94,10 +94,10 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @var array
      */
     protected $_options = [
-            self::OPTION_BREAK_ON_ITEM_FAILURE => false,
-            self::OPTION_BREAK_ON_VALIDATOR_FAILURE => true,
-            self::OPTION_MESSAGES_PARAMS => [],
-            self::OPTION_VALIDATE_ON_EMPTY => false
+        self::OPTION_BREAK_ON_ITEM_FAILURE => false,
+        self::OPTION_BREAK_ON_VALIDATOR_FAILURE => true,
+        self::OPTION_MESSAGES_PARAMS => [],
+        self::OPTION_VALIDATE_ON_EMPTY => false
     ];
 
     /**
@@ -328,17 +328,17 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         // Jeżeli nie jest ustawiony walidator MustExist a klucz nie istnieje,
         // nie trzeba przeprowadzać walidacji
         if (
-            (
-            $value instanceof KeyNotExist &&
-            !$item->hasValidator(Validator\MustExist::class) &&
-            !$item->hasValidator(Validator\Required::class)
-            ) ||
-            (
-            $item->_options[self::OPTION_VALIDATE_ON_EMPTY] === false &&
-            !(new Validator\NotEmpty())->isValid($value) &&
-            !$item->hasValidator(Validator\NotEmpty::class) &&
-            !$item->hasValidator(Validator\Required::class)
-            )
+                (
+                $value instanceof KeyNotExist &&
+                !$item->hasValidator(Validator\MustExist::class) &&
+                !$item->hasValidator(Validator\Required::class)
+                ) ||
+                (
+                $item->_options[self::OPTION_VALIDATE_ON_EMPTY] === false &&
+                !(new Validator\NotEmpty())->isValid($value) &&
+                !$item->hasValidator(Validator\NotEmpty::class) &&
+                !$item->hasValidator(Validator\Required::class)
+                )
         ) {
             return true;
         }
@@ -365,8 +365,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     protected function _validateItemValidator($item, $validator, $value) {
         // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
         $params = array_merge(
-            [Validator\ValidatorBase::PRM_NAME => $item->getName()/* , Validator\ValidatorBase::PRM_VALUE => $value */]
-            , $item->_options[self::OPTION_MESSAGES_PARAMS]);
+                [Validator\ValidatorBase::PRM_NAME => $item->getName()/* , Validator\ValidatorBase::PRM_VALUE => $value */]
+                , $item->_options[self::OPTION_MESSAGES_PARAMS]);
 
         $validator->setMessagesParams($params);
 
@@ -473,9 +473,9 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             return ($l = @$this->_options[self::OPTION_MESSAGES_PARAMS]['label']) !== null ? $l : "";
         } else {
             $this->setOptions([
-                    self::OPTION_MESSAGES_PARAMS => [
-                            'label' => $label
-                    ]
+                self::OPTION_MESSAGES_PARAMS => [
+                    'label' => $label
+                ]
             ]);
         }
         return $this;
@@ -488,7 +488,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      */
     public function setMessagesParams(array $params) {
         $this->setOptions([
-                self::OPTION_MESSAGES_PARAMS => $params
+            self::OPTION_MESSAGES_PARAMS => $params
         ]);
 
         return $this;
@@ -534,9 +534,9 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      */
     public function each($validator, $errorMsg = null, $options = null) {
         $this->_eachValidators[] = [
-                'validator' => $validator,
-                'errorMsg' => $errorMsg,
-                'options' => $options
+            'validator' => $validator,
+            'errorMsg' => $errorMsg,
+            'options' => $options
         ];
 
         return $this;
@@ -831,15 +831,15 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * Przy odczycie takie klucze są pomijane.
      * 
      * @param mixed $data
+     * @param boolean $resetValidation
      * @return mixed
      */
-    public function value($data = null) {
+    public function value($data = null, $resetValidation = true) {
         if (func_num_args() > 0) {
             // Zapis nowej wartości dla bieżącego poziomu
 //            if (!isset($data)) {
 //                $data = new KeyNotExist();
 //            }
-
             // Przypisanie danych do bieżącego poziomu
             $this->_value = $data;
 
@@ -855,8 +855,10 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
                 }
             }
 
-            // Reset walidacji dla tego poziomu
-            $this->resetValidation(); 
+            if ($resetValidation) {
+                // Reset walidacji dla tego poziomu
+                $this->resetValidation();
+            }
 
             // Poniższy kod ma "naprawiać" puste wartości rodziców, które
             // powinny być tablicamy - takie dane powstają gdy nie ustawiamy
