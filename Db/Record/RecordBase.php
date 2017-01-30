@@ -1758,6 +1758,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * Stwierdza, czy podany w argumencie rekord jest dokładnie tym samym co bieżący.
      * 
      * @param \Skinny\Db\Record\RecordBase $record
+     * @return boolean
      */
     public function equals(RecordBase $record) {
         if (null === $record) {
@@ -1771,6 +1772,58 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         return
                 $this->_tableName == $record->_tableName &&
                 $this->getFullId() == $record->getFullId();
+    }
+
+    /**
+     * Stwierdza, czy dane podanego w argumencie rekordu są dokładnie takie same, co w bieżącym.
+     * 
+     * @param \Skinny\Db\Record\RecordBase $record
+     * @return boolean
+     */
+    public function dataEquals(RecordBase $record, $checkFilledColumns = false) {
+        if (null === $record) {
+            return false;
+        }
+
+        $columnsA = $this->getColumns($checkFilledColumns, false, false, true);
+        $columnsB = $record->getColumns($checkFilledColumns, false, false, true);
+
+        sort($columnsA);
+        sort($columnsB);
+
+        if ($columnsA !== $columnsB) {
+            return false;
+        }
+
+        foreach ($columnsA as $column) {
+            if (!(($isJson = $this->isJsonColumn($column)) == $record->isJsonColumn($column))) {
+                return false;
+            }
+
+            $dataA = $this->{$column};
+            $dataB = $record->{$column};
+
+            if ($isJson && is_array($dataA) && is_array($dataB)) {
+                sort($dataA);
+                sort($dataB);
+            }
+
+            if ($dataA != $dataB) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Stwierdza, czy podana kolumna jest zdefiniowana jako JSONowa.
+     * 
+     * @param string $column
+     * @return boolean
+     */
+    public function isJsonColumn($column) {
+        return array_key_exists($column, $this->_jsonColumns);
     }
 
     /**
