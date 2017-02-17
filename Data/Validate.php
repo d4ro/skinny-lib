@@ -810,6 +810,10 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      */
     public function setData(array $data = null, $extendExistingData = true) {
         if ($extendExistingData && ($dataBeforeMerge = $this->root()->value())) {
+            // todo deepMerge nie jest dobrym podejściem bo gdy mamy do czynienia
+            // z wartością która jest tablicą, przy uprzednim ustawieniu
+            // wartości początkowej i kolejnym ustawieniu danych, w takim polu
+            // dostaniemy sumę wartości zamiast jej podmiany...
             $this->root()->value(\Skinny\DataObject\ArrayWrapper::deepMerge($dataBeforeMerge, $data));
         } else {
             $this->root()->value($data);
