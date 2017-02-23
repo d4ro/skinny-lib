@@ -34,7 +34,6 @@ class Session extends DataObject\ArrayWrapper {
         $this->_config = $config;
         $this->_adapter = $adapter;
 //        $this->_adapter->setSessionConfig($this->_config);
-
         // zaślepka, ponieważ $_SESSION jeszcze nie istnieje
         $sessionData = array();
         parent::__construct($sessionData);
@@ -78,6 +77,7 @@ class Session extends DataObject\ArrayWrapper {
         try {
             return $this->_adapter->open($savePath, $sessionName);
         } catch (\Exception $e) {
+            header('Service Unavailable', true, 503);
             die('Session fatal error occured while opening session: ' . $e->getMessage());
         }
     }
@@ -86,6 +86,7 @@ class Session extends DataObject\ArrayWrapper {
         try {
             return $this->_adapter->close();
         } catch (\Exception $e) {
+            header('Service Unavailable', true, 503);
             die('Session fatal error occured while closing session: ' . $e->getMessage());
         }
     }
@@ -94,6 +95,7 @@ class Session extends DataObject\ArrayWrapper {
         try {
             return $this->_adapter->read($id);
         } catch (\Exception $e) {
+            header('Service Unavailable', true, 503);
             die('Session fatal error occured while reading data: ' . $e->getMessage());
         }
     }
@@ -102,6 +104,7 @@ class Session extends DataObject\ArrayWrapper {
         try {
             return $this->_adapter->write($id, $data);
         } catch (\Exception $e) {
+            header('Service Unavailable', true, 503);
             die('Session fatal error occured while writing data: ' . $e->getMessage());
         }
     }
@@ -110,6 +113,7 @@ class Session extends DataObject\ArrayWrapper {
         try {
             return $this->_adapter->destroy($id);
         } catch (\Exception $e) {
+            header('Service Unavailable', true, 503);
             die('Session fatal error occured while removing data: ' . $e->getMessage());
         }
     }
@@ -118,6 +122,7 @@ class Session extends DataObject\ArrayWrapper {
         try {
             return $this->_adapter->gc($maxlifetime);
         } catch (\Exception $e) {
+            header('Service Unavailable', true, 503);
             die('Session fatal error occured while collecting spoiled sessions: ' . $e->getMessage());
         }
     }
