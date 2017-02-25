@@ -9,7 +9,7 @@ use Skinny\Application\Request;
  *
  * @author Daro
  */
-abstract class Action extends Application\Components\ComponentsAware {
+abstract class Action {
 
     /**
      * Konstruktor akcji - nie przeciążamy! Od tego jest _init().
@@ -62,6 +62,29 @@ abstract class Action extends Application\Components\ComponentsAware {
      */
     public function onComplete() {
         
+    }
+
+    /**
+     * Pobiera obiekt komponentu z aplikacji.
+     * @param string $name
+     * @return mixed
+     */
+    public function getComponent($name) {
+        return Application\Components::get($name);
+    }
+
+    public function getConfig($key = null) {
+        return Application\Components::getConfig($key);
+    }
+
+    /**
+     * Nieistniejąca właściwość - pobranie komponentu aplikacji
+     * np. $this->view->... odwołuje się do komponentu "view".
+     * @param string $name
+     * @return mixed
+     */
+    public function __get($name) {
+        return $this->getComponent($name);
     }
 
     /* uzytkowe */
@@ -216,21 +239,9 @@ abstract class Action extends Application\Components\ComponentsAware {
     public function noAction() {
         $notFoundAction = $this->getConfig()->actions->notFound(null);
         if (null !== $notFoundAction) {
-            $this->forward($notFoundAction, ['error' => 'notFound', 'step' => $this->getRequest()->current()]);
+            $this->forward($notFoundAction, ['error' => 'notFound', 'requestStep' => $this->request->current()]);
         }
         // TODO: 404
-    }
-    
-    /**
-     * Forwarduje aplikację do akcji błędu z przekazaniem wybranych parametrów.
-     * 
-     * @param array $params Tablica parametrów
-     * @param string $type Typ błędu
-     */
-    public function error(array $params, $type = 'other') {
-        $errorAction = $this->_application->getConfig()->actions->error(null);
-        if (null !== $errorAction)
-            $this->forward($errorAction, array_merge(['error' => $type, 'step' => $this->getRequest()->current()], $params));
     }
 
 }

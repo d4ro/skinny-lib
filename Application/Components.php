@@ -10,12 +10,6 @@ use Skinny\DataObject\Store;
  * @author Daro
  */
 class Components implements \ArrayAccess {
-    
-    /**
-     * Przechowuje instancję komponentów
-     * @var Components
-     */
-    protected static $instance = null;
 
     /**
      * Konfiguracja kontenera
@@ -36,6 +30,12 @@ class Components implements \ArrayAccess {
     protected $_initializers;
 
     /**
+     * Instancja kontenera
+     * @var Components
+     */
+    protected static $_instance;
+
+    /**
      * Konstruktor kontenera komponentów
      * @param Store $config
      */
@@ -43,15 +43,32 @@ class Components implements \ArrayAccess {
         $this->_components = array();
         $this->_initializers = array();
         $this->_config = $config;
-        self::$instance = $this;
+
+        static::$_instance = $this;
     }
-    
+
     /**
-     * Zwraca instancję komponentów
-     * @return Components
+     * Pobiera komponent o podanej nazwie
+     * @param type $name
      */
-    public static function getInstance() {
-        return self::$instance;
+    public static function get($name) {
+        if (static::$_instance instanceof self) {
+            return static::$_instance->getComponent($name);
+        }
+
+        return null;
+    }
+
+    /**
+     * Pobiera konfigurację
+     * @param type $key
+     */
+    public static function getConfig($key = null) {
+        if (static::$_instance instanceof self) {
+            return static::$_instance->_getConfig($key);
+        }
+
+        return null;
     }
 
     /**
@@ -68,7 +85,7 @@ class Components implements \ArrayAccess {
      * @param string $key
      * @return mixed
      */
-    public function getConfig($key = null) {
+    protected function _getConfig($key = null) {
         if (null === $key) {
             return $this->_config;
         }

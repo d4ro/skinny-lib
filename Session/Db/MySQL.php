@@ -11,6 +11,10 @@ use Skinny\Session\AdapterBase;
  */
 class MySQL extends AdapterBase {
 
+    /**
+     *
+     * @var \Zend_Db_Adapter_Abstract
+     */
     protected $_db;
     protected $_savePath;
     protected $_sessionName;
@@ -77,11 +81,14 @@ class MySQL extends AdapterBase {
 
         $result = $this->getData($id);
         if (false === $result) {
-            $this->_db->insert($this->_config->table->name, array(
-                $this->_config->table->id => $id,
-                $this->_config->table->expires => $expires,
-                $this->_config->table->data => $data
-            ));
+            $sql = 'REPLACE INTO %s (%s, %s, %s) VALUES (%s, %s, %s);';
+            $sql = sprintf($sql, $this->_db->quoteIdentifier($this->_config->table->name), $this->_db->quoteIdentifier($this->_config->table->id), $this->_db->quoteIdentifier($this->_config->table->expires), $this->_db->quoteIdentifier($this->_config->table->data), $this->_db->quote($id), $this->_db->quote($expires), $this->_db->quote($data));
+            $this->_db->query($sql);
+//            $this->_db->inset($this->_config->table->name, array(
+//                $this->_config->table->id => $id,
+//                $this->_config->table->expires => $expires,
+//                $this->_config->table->data => $data
+//            ));
         } else {
             $this->_db->update($this->_config->table->name, array(
                 $this->_config->table->expires => $expires,

@@ -28,8 +28,6 @@ class ArrayWrapper extends DataBase implements \JsonSerializable, \ArrayAccess, 
     public function &get($name, $default = null) {
         if (array_key_exists($name, $this->_data)) {
             return $this->_data[$name];
-        $a = null;
-        return $a;
         }
 
         return $default;
@@ -227,4 +225,36 @@ class ArrayWrapper extends DataBase implements \JsonSerializable, \ArrayAccess, 
         return $result;
     }
 
+//    public static function forEachMultiDim(array $multidimensionalArray) {
+//        return new MultidimensionalIterator($multidimensionalArray);
+//    }
+
 }
+
+//class MultidimensionalIterator implements \Iterator {
+//
+//    public function __construct($array) {
+//        ;
+//    }
+//
+//    public function current() {
+//        return 'abc';
+//    }
+//
+//    public function key() {
+//        return [1, 2, 'a'];
+//    }
+//
+//    public function next() {
+//        
+//    }
+//
+//    public function rewind() {
+//        
+//    }
+//
+//    public function valid() {
+//        return true;
+//    }
+//
+//}

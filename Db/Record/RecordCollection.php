@@ -12,6 +12,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     const IDX_ID = 1;
     const IDX_TBL_ID = 2;
     const IDX_HASH = 3;
+    const IDX_CUSTOM = 4;
 
     /**
      * Połączenie do bazy danych
@@ -45,8 +46,14 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     protected $_idx;
 
     /**
+     * Indeks użytkownika - nazwa kolumny
+     * @var string
+     */
+    protected $_customIdx;
+
+    /**
      * Pobiera połączenie do bazy danych.
-     * 
+     *
      * @return \Zend_Db_Adapter_Pdo_Mysql
      */
     public static function getDb() {
@@ -55,7 +62,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Ustawia połączenie do bazy danych.
-     * 
+     *
      * @param \Zend_Db_Adapter_Pdo_Mysql $db
      */
     public static function setDb(\Zend_Db_Adapter_Pdo_Mysql $db) {
@@ -64,7 +71,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Konstruktor kolekcji. Przyjmuje opcjonalną tablicę rekordów, jako podstawa kolekcji.
-     * 
+     *
      * @param array $collection kolekcja początkowa
      * @param boolean $strictTypeCheck czy kolekcja wejściowa ma być sprawdzona pod kątem homogeniczności typu
      */
@@ -74,7 +81,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             self::IDX_ID => [],
             self::IDX_TBL_ID => [],
             self::IDX_HASH => [],
+            self::IDX_CUSTOM => [],
         ];
+
         $this->useIndex(self::IDX_PLAIN);
 
         $this->_isStrictTypeCheckEnabled = $strictTypeCheck;
@@ -85,7 +94,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Magiczne wywołanie metody na kolekcji wywołuje ją na każdym rekordzie z osobna.
-     * 
+     *
      * @param string $name nazwa metody
      * @param array $arguments argumenty metody
      * @return array tablica rezultatów metody
@@ -101,31 +110,90 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      *       self::IDX_ID       =>  indeks na podstawie ID rekordu,
      *       self::IDX_TBL_ID   =>  indeks na podstawie nazwy tabeli i ID rekordu,
      *       self::IDX_HASH     =>  indeks na podstawie unikalnego hasha rekordu.
-     * 
-     * @param int $index
+     *       self::IDX_CUSTOM   =>  indeks na podstawie wybranej przez uzytkownika kolumny.
+     *
+     * @param mixed $index
      * @todo walidacja parametrów
      */
     public function useIndex($index) {
-        $this->_useIndex = $index;
+        if (is_int($index)) {
+            $this->_useIndex = $index;
+        } else {
+            $this->_useIndex = self::IDX_CUSTOM;
+            $this->_customIdx = $index;
+            $this->_rebuildIndex(self::IDX_CUSTOM);
+        }
+
+        return $this;
+    }
+
+    protected function _rebuildIndex($index) {
+        // todo: dokumentacja, switch, walidacja
+        $this->_idx[$index] = [];
+
+        if ($index == self::IDX_PLAIN) {
+            foreach ($this->_data as $key => $record) {
+                $this->_idx[self::IDX_PLAIN][$key] = $key;
+            }
+        }
+
+        if ($index == self::IDX_ID) {
+            foreach ($this->_data as $key => $record) {
+                $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $key;
+            }
+        }
+
+        if ($index == self::IDX_TBL_ID) {
+            foreach ($this->_data as $key => $record) {
+                $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $key;
+            }
+        }
+
+        if ($index == self::IDX_HASH) {
+            foreach ($this->_data as $key => $record) {
+                $this->_idx[self::IDX_HASH][$record->createRandomString()] = $key;
+            }
+        }
+
+        if ($this->_customIdx && $index == self::IDX_CUSTOM) {
+            foreach ($this->_data as $key => $record) {
+                $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $key;
+            }
+        }
+
+        return $this;
     }
 
     /**
      * Konwertuje kolekcję na tablicę z zachowaniem indeksów aktualnie ustawionego typu.
-     * 
+     *
+     * @param boolean $modelToArray Czy modele maja byc zamienione na tablice.
      * @return array
      */
-    public function toArray() {
+    public function toArray($modelToArray = false) {
         $result = [];
+
         foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
             $record = $this->_data[$recordNum];
             $result[$key] = $record;
         }
+
+        if ($modelToArray) {
+            $tmp = array();
+
+            foreach ($result as $model) {
+                $tmp[] = $model->toArray();
+            }
+
+            return $tmp;
+        }
+
         return $result;
     }
 
     /**
      * Sprawdza, czy array zawiera prawidłowe obiekty rekordów.
-     * 
+     *
      * @param array $collection
      * @param boolean $strict sprawdza, czy wszystkie rekordy są tego samego typu
      * @param boolean $throw
@@ -166,7 +234,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Ustawia restrykcyjność homogeniczności typu rekordów.
-     * 
+     *
      * @param boolean $value czy homogeniczność ma zostać zachowana
      */
     public function setStrictTypeCheck($value) {
@@ -175,7 +243,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Pobiera ustawienie homogeniczności typu rekordów.
-     * 
+     *
      * @return boolean
      */
     public function getStrictTypeCheck() {
@@ -184,7 +252,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Pobiera nazwę klasy rekordów, dla których przeznaczona jest instancja kolekcji.
-     * 
+     *
      * @return string
      */
     public function getRecordClassName() {
@@ -193,7 +261,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Ustawia nazwę klasy rekordów, dla których przeznaczona jest instancja kolekcji.
-     * 
+     *
      * @param string $className
      */
     public function setRecordClassName($className) {
@@ -204,7 +272,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Dodaje rekordy do kolekcji.
-     * 
+     *
      * @param array|RecordCollection $records
      * @param boolean $throwOnBadType czy ma wyrzucić wyjątek, gdy typ rekordu nie zgadza się z typem kolekcji
      * @return boolean czy udało sie dodać rekordy do kolekcji
@@ -230,14 +298,17 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $this->_idx[self::IDX_PLAIN][$key] = $key;
             $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $key;
             $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $key;
-            $this->_idx[self::IDX_HASH][$record->createRandomHash()] = $key;
+            $this->_idx[self::IDX_HASH][$record->createRandomString()] = $key;
+            if ($this->_customIdx) {
+                $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $key;
+            }
         }
     }
 
     /**
      * Tworzy nowy rekord w kolekcji i zwraca do niego referencję.
      * Wymaga, aby typ rekordu w kolekcji został zdefiniowany.
-     * 
+     *
      * @param array $data
      * @return RecordBase stworzony rekord
      */
@@ -251,7 +322,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Pobiera identyfikatory wszystkich rekordów kolekcji.
-     * 
+     *
      * @return array
      */
     public function getIds() {
@@ -260,17 +331,24 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Zapisuje wszystkie rekordy.
+<<<<<<< Updated upstream
      * 
+     * @param boolean $refreshData czy po zapisaniu mają się uaktualnić dane w rekordzie
+||||||| merged common ancestors
+     * 
+=======
+     *
+>>>>>>> Stashed changes
      * @return array
      */
-    public function save() {
+    public function save($refreshData = true) {
         // TODO: optymalizacja - pobranie zapytań do bazy i wykonanie ich w jednym query
-        return $this->call('save');
+        return $this->call('save', [$refreshData]);
     }
 
     /**
      * Usuwa wszystkie rekordy z kolekcji, nie czyści z nich kolekcji.
-     * 
+     *
      * @return type
      */
     public function delete() {
@@ -280,7 +358,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Ustawia podaną właściwość każdemu rekordowi w kolekcji.
-     * 
+     *
      * @param string $property
      * @param mixed $value
      */
@@ -292,7 +370,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Uruchamia callback dla każdego rekordu w kolekcji. Przechytuje wartość zwracaną.
-     * 
+     *
      * @param \Closure $callback
      * @return array
      * @throws \BadFunctionCallException
@@ -312,7 +390,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Usuwa z wszystkich rekordów kolekcji kolumny o podanej nazwie.
-     * 
+     *
      * @param array $columnsToRemove Kolumny, które mają zostać usunięte z każdego rekordu kolekcji
      */
     public function removeColumns(array $columnsToRemove = []) {
@@ -324,9 +402,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     }
 
     /**
-     * Usuwa z wszystkich rekordów kolekcji wszystkie kolumny, oprócz tych 
+     * Usuwa z wszystkich rekordów kolekcji wszystkie kolumny, oprócz tych
      * podanych jako argument tej metody.
-     * 
+     *
      * @param array $columnsToLeave Kolumny, które mają zostać w rekordzie
      */
     public function removeColumnsExcept(array $columnsToLeave = []) {
@@ -341,7 +419,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Filtruje kolekcję usuwając z niej rekordy, przy których callback zwróci false.
-     * 
+     *
      * @param \Closure $callback
      * @return \static nowa, przefiltrowana kolekcja
      * @throws \BadFunctionCallException
@@ -358,6 +436,14 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $collection->_isStrictTypeCheckEnabled = $this->_isStrictTypeCheckEnabled;
             $collection->_recordClassName = $this->_recordClassName;
             $collection->_data = $result;
+            $collection->_rebuildIndex(self::IDX_PLAIN);
+            $collection->_rebuildIndex(self::IDX_ID);
+            $collection->_rebuildIndex(self::IDX_TBL_ID);
+            $collection->_rebuildIndex(self::IDX_HASH);
+            if ($this->_customIdx) {
+                $collection->_customIdx = $this->_customIdx;
+                $collection->_rebuildIndex(self::IDX_CUSTOM);
+            }
         } else {
             throw new \BadFunctionCallException('Argument is not callable.');
         }
@@ -366,7 +452,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Uruchamia metodę dla każdego rekordu.
-     * 
+     *
      * @param string $method
      * @param array $params
      * @return array
@@ -382,7 +468,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Przypisuje wartość każdemu rekordowi z kolekcji.
-     * 
+     *
      * @param string $name
      * @param mixed $value
      */
@@ -392,7 +478,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Pobiera wartość właściwości z każdego rekordu kolekcji i wzraca w postaci tablicy.
-     * 
+     *
      * @param string $name właściwość do pobrania
      * @return array
      */
@@ -407,7 +493,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Dodaje pojedynczy rekord do kolekcji.
-     * 
+     *
      * @param RecordBase $record
      */
     public function add(RecordBase $record) {
@@ -416,7 +502,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Wstawia rekord w podaną pozycję indeksu kolejnego (plain) kolekcji.
-     * 
+     *
      * @param \Skinny\Db\Record\RecordBase $record
      * @param int $offset
      */
@@ -427,14 +513,24 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
                     unset($this->_idx[self::IDX_ID][$key]);
                 }
             }
+
             foreach ($this->_idx[self::IDX_TBL_ID] as $key => $value) {
                 if ($value == $offset) {
                     unset($this->_idx[self::IDX_TBL_ID][$key]);
                 }
             }
+
             foreach ($this->_idx[self::IDX_HASH] as $key => $value) {
                 if ($value == $offset) {
                     unset($this->_idx[self::IDX_HASH][$key]);
+                }
+            }
+
+            if ($this->_customIdx) {
+                foreach ($this->_idx[self::IDX_CUSTOM] as $key => $value) {
+                    if ($value == $offset) {
+                        unset($this->_idx[self::IDX_CUSTOM][$key]);
+                    }
                 }
             }
         }
@@ -444,13 +540,16 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         $this->_idx[self::IDX_PLAIN][$offset] = $offset;
         $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $offset;
         $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $offset;
-        $this->_idx[self::IDX_HASH][$record->createRandomHash()] = $offset;
+        $this->_idx[self::IDX_HASH][$record->createRandomString()] = $offset;
+        if ($this->_customIdx) {
+            $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $offset;
+        }
     }
 
     /**
      * Pobiera do kolekcji wszystkie rekordy spełniające podane warunki.
      * Wymaga, aby nazwa klasy obsługiwanych rekordów była już ustawiona.
-     * 
+     *
      * @param string $where część zapytania WHERE
      * @param string $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
@@ -467,7 +566,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     /**
      * Tworzy nową kolekcję rekordów na podstawie rekordów znalezionych przy podanych warunkach.
      * Wymaga, aby nazwa klasy obsługiwanych rekordów była ustawiona przez konstruktor kolekcji.
-     * 
+     *
      * @param string $where część zapytania WHERE
      * @param string $order część zapytania ORDER BY
      * @param int $limit część zapytania LIMIT
@@ -482,7 +581,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Metoda używana przy isset($this[$offset]).
-     * 
+     *
      * @param mixed $offset
      * @return boolean
      */
@@ -492,7 +591,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Pobiera rekord z aktualnie używanego indeksu spod podanego klucza.
-     * 
+     *
      * @param int|string $name
      * @param mixed $default
      * @return RecordBase
@@ -507,7 +606,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Ustawia rekord pod podanym kluczem aktualnie używanego indeksu.
-     * 
+     *
      * @param string|int $name klucz indeksu
      * @param \Skinny\Db\Record\RecordBase $value
      * @throws InvalidRecordException
@@ -526,7 +625,10 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $this->_idx[self::IDX_PLAIN][$key] = $key;
             $this->_idx[self::IDX_ID][$value->getIdAsString(false, true)] = $key;
             $this->_idx[self::IDX_TBL_ID][$value->getIdAsString(true, true)] = $key;
-            $this->_idx[self::IDX_HASH][$value->createRandomHash()] = $key;
+            $this->_idx[self::IDX_HASH][$value->createRandomString()] = $key;
+            if ($this->_customIdx) {
+                $this->_idx[self::IDX_CUSTOM][$value->{$this->_customIdx}] = $key;
+            }
         } elseif ($this->_useIndex === self::IDX_PLAIN) {
             $this->insertRecord($value, $name);
         } else {
@@ -536,7 +638,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Metoda używana przy unset($this[$offset]).
-     * 
+     *
      * @param mixed $offset
      * @return boolean
      */
@@ -549,7 +651,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Pobiera rekord z podanej pozycji iterowanej od 0.
-     * 
+     *
      * @param int $offset
      * @return RecordBase
      */
@@ -559,7 +661,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Ustawia rekord na podanej pozycji.
-     * 
+     *
      * @param int $offset
      * @param RecordBase $value
      */
@@ -569,7 +671,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Usuwa rekord z kolekcji, z podanej pozycji.
-     * 
+     *
      * @param int $offset
      */
     public function unsetAt($offset) {
@@ -582,14 +684,24 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
                     unset($this->_idx[self::IDX_ID][$key]);
                 }
             }
+
             foreach ($this->_idx[self::IDX_TBL_ID] as $key => $value) {
                 if ($value == $offset) {
                     unset($this->_idx[self::IDX_TBL_ID][$key]);
                 }
             }
+
             foreach ($this->_idx[self::IDX_HASH] as $key => $value) {
                 if ($value == $offset) {
                     unset($this->_idx[self::IDX_HASH][$key]);
+                }
+            }
+
+            if ($this->_customIdx) {
+                foreach ($this->_idx[self::IDX_CUSTOM] as $key => $value) {
+                    if ($value == $offset) {
+                        unset($this->_idx[self::IDX_CUSTOM][$key]);
+                    }
                 }
             }
         }
@@ -597,7 +709,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Serializuje kolekcję do formatu JSON łącznie z rekordami w niej się znajdującymi.
-     * 
+     *
      * @return string
      */
     public function toJson() {

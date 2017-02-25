@@ -28,8 +28,8 @@ class Router extends Router\RouterBase {
         $this->_config = ($config instanceof Store) ? $config : new Store($config);
     }
 
-    protected function _setParam(&$params, $key, $value) {
-        $key = $this->_trueKey(urldecode($key));
+    protected static function _setParam(&$params, $key, $value) {
+        $key = static::_trueKey(urldecode($key));
         $key = explode('/', $key);
 
         $cursor = &$params;
@@ -153,7 +153,11 @@ class Router extends Router\RouterBase {
 
             $actionParts = array_slice($args, 0, $actionLength);
             $container->setActionParts($actionParts);
-            $actionClassName = '\\content\\' . implode('\\', $actionParts);
+
+            $args = array_slice($args, $actionLength);
+            $container->resetArgs($args);
+
+            $actionClassName = '\\' . $this->_config->baseNamespace('content') . '\\' . implode('\\', $actionParts);
 
             if (!class_exists($actionClassName, false)) {
                 $actionFile = Path::combine($this->_contentPath, $actionParts) . '.php';
@@ -170,20 +174,7 @@ class Router extends Router\RouterBase {
 
         onParamsResolved:
         // określamy parametry
-        $params = array();
-        for ($i = $actionLength; $i < count($args); $i += 2) {
-            if (empty($args[$i])) {
-                continue;
-            }
-
-            if (isset($args[$i + 1])) {
-                $this->_setParam($params, $args[$i], $args[$i + 1]);
-//                $params[$args[$i]] = $args[$i + 1];
-            } else if (count($args) == $i + 1) {
-                $this->_setParam($params, $args[$i], '');
-//                $params[$args[$i]] = '';
-            }
-        }
+        $params = self::resolveParams($args);
 
         if (!$this->_raiseEvent('onParamsResolved', [$requestUrl, $container, &$params])) {
             goto onParamsResolved;
@@ -205,11 +196,29 @@ class Router extends Router\RouterBase {
      * @param string $key
      * @return string
      */
-    public function getMultiDimensionalKeyPath($key) {
+    public static function getMultiDimensionalKeyPath($key) {
         if (!empty($key) && is_string($key)) {
-            return $this->_trueKey($key);
+            return static::_trueKey($key);
         }
+
         return '';
+    }
+
+    public static function resolveParams($args, $startAt = 0) {
+        $params = [];
+        for ($i = $startAt; $i < count($args); $i += 2) {
+            if (empty($args[$i])) {
+                continue;
+            }
+
+            if (isset($args[$i + 1])) {
+                static::_setParam($params, $args[$i], $args[$i + 1]);
+            } else if (count($args) == $i + 1) {
+                static::_setParam($params, $args[$i], '');
+            }
+        }
+
+        return $params;
     }
 
 }

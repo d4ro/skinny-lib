@@ -49,6 +49,11 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     const OPTION_BREAK_ON_VALIDATOR_FAILURE = 'optionBreakOnValidatorFailure';
 
     /**
+     * Waliduje nawet gdy nie ustawiono walidaotra "notEmpty" a wartość jest pusta.
+     */
+    const OPTION_VALIDATE_ON_EMPTY = 'optionValidateOnEmpty';
+
+    /**
      * Limit "głębokich" walidacji, których każde wywołanie powoduje utworzenie nowych podelementów dla dowolnego poziomu
      */
     const DEEP_VALIDATION_LIMIT = 100;
@@ -91,7 +96,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     protected $_options = [
         self::OPTION_BREAK_ON_ITEM_FAILURE => false,
         self::OPTION_BREAK_ON_VALIDATOR_FAILURE => true,
-        self::OPTION_MESSAGES_PARAMS => []
+        self::OPTION_MESSAGES_PARAMS => [],
+        self::OPTION_VALIDATE_ON_EMPTY => false
     ];
 
     /**
@@ -140,7 +146,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
 
         return $item;
     }
-    
+
     public function __isset($name) {
         return isset($this->_items[$name]);
     }
@@ -222,7 +228,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             foreach ($this->_items as $item) {
                 if (!$item->_validate($toCheck)) {
                     $this->_result = false;
-                    if ($this->_options[self::OPTION_BREAK_ON_ITEM_FAILURE] === true) {
+                    if ($item->_options[self::OPTION_BREAK_ON_ITEM_FAILURE] === true) {
                         break;
                     }
                 }
@@ -328,6 +334,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
                 !$item->hasValidator(Validator\Required::class)
                 ) ||
                 (
+                $item->_options[self::OPTION_VALIDATE_ON_EMPTY] === false &&
                 !(new Validator\NotEmpty())->isValid($value) &&
                 !$item->hasValidator(Validator\NotEmpty::class) &&
                 !$item->hasValidator(Validator\Required::class)
@@ -337,18 +344,9 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
 
         foreach ($item->_validators as $validator) {
-            // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
-            $params = array_merge(
-                    [Validator\ValidatorBase::PRM_NAME => $item->getName()/* , Validator\ValidatorBase::PRM_VALUE => $value */]
-                    , $item->_options[self::OPTION_MESSAGES_PARAMS]);
-
-            $validator->setMessagesParams($params);
-
-            // Walidacja
-            if (!$validator->isValid($value)) {
+            if (!$this->_validateItemValidator($item, $validator, $value)) {
                 $item->_result = false;
-
-                if ($this->_options[self::OPTION_BREAK_ON_VALIDATOR_FAILURE] === true) {
+                if ($item->_options[self::OPTION_BREAK_ON_VALIDATOR_FAILURE] === true) {
                     break;
                 }
             }
@@ -358,27 +356,50 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     }
 
     /**
+     * 
+     * @param type $item
+     * @param type $validator
+     * @param type $value
+     * @return type
+     */
+    protected function _validateItemValidator($item, $validator, $value) {
+        // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
+        $params = array_merge(
+                [Validator\ValidatorBase::PRM_NAME => $item->getName()/* , Validator\ValidatorBase::PRM_VALUE => $value */]
+                , $item->_options[self::OPTION_MESSAGES_PARAMS]);
+
+        $validator->setMessagesParams($params);
+
+        return $validator->isValid($value);
+    }
+
+    /**
      * Łączy bieżące opcje walidacji rozszerzając o te podane jako argument funkcji.
      * 
      * @param array $options Parametr łączy (merge) przekazane opcje z domyślnymi opcjami ustawionymi dla bieżącego pola walidacji. <br/>
      *                       Poprzez opcje można ustawić m.in. przerwanie walidacji w momencie wystąpienia błędu walidatora/pola 
      *                       oraz przekazać dodatkowe parametry do komunikatów.
+     * 
+     * @return \Skinny\Data\Validate
      */
     public function mergeOptions($options) {
         if (!empty($options) && is_array($options)) {
-//            $this->_options = array_merge($this->_options, $options);
             $this->_options = \Skinny\DataObject\ArrayWrapper::deepMerge($this->_options, $options);
         }
+        return $this;
     }
 
     /**
-     * Alias metody mergeOptions
+     * Alias metody mergeOptions.
+     * 
      * @param array $options
+     * @return \Skinny\Data\Validate
      */
     public function setOptions(array $options) {
         if (!empty($options)) {
             $this->mergeOptions($options);
         }
+        return $this;
     }
 
     /**
@@ -789,6 +810,10 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      */
     public function setData(array $data = null, $extendExistingData = true) {
         if ($extendExistingData && ($dataBeforeMerge = $this->root()->value())) {
+            // todo deepMerge nie jest dobrym podejściem bo gdy mamy do czynienia
+            // z wartością która jest tablicą, przy uprzednim ustawieniu
+            // wartości początkowej i kolejnym ustawieniu danych, w takim polu
+            // dostaniemy sumę wartości zamiast jej podmiany...
             $this->root()->value(\Skinny\DataObject\ArrayWrapper::deepMerge($dataBeforeMerge, $data));
         } else {
             $this->root()->value($data);
@@ -810,15 +835,15 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * Przy odczycie takie klucze są pomijane.
      * 
      * @param mixed $data
+     * @param boolean $resetValidation
      * @return mixed
      */
-    public function value($data = null) {
+    public function value($data = null, $resetValidation = true) {
         if (func_num_args() > 0) {
             // Zapis nowej wartości dla bieżącego poziomu
-            if (!isset($data)) {
-                $data = new KeyNotExist();
-            }
-
+//            if (!isset($data)) {
+//                $data = new KeyNotExist();
+//            }
             // Przypisanie danych do bieżącego poziomu
             $this->_value = $data;
 
@@ -826,16 +851,18 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             // przypisać odpowiednie wartości
             if (!empty($this->_items)) {
                 foreach ($this->_items as $item) {
-                    if (!isset($data[$item->getName()])) {
-                        $item->value(new KeyNotExist());
+                    if (is_array($data) && key_exists($item->getName(), $data)) {
+                        $item->value($data[$item->getName()]);
                     } else {
-                        $item->value($val = $data[$item->getName()]);
+                        $item->value(new KeyNotExist());
                     }
                 }
             }
 
-            // Reset walidacji dla tego poziomu
-            $this->resetValidation();
+            if ($resetValidation) {
+                // Reset walidacji dla tego poziomu
+                $this->resetValidation();
+            }
 
             // Poniższy kod ma "naprawiać" puste wartości rodziców, które
             // powinny być tablicamy - takie dane powstają gdy nie ustawiamy
@@ -929,9 +956,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         if (!empty($this->_validators)) {
             $errors['@errors'] = [];
             foreach ($this->_validators as $validator) {
-                if (($e = $validator->getErrors())) {
-                    $errors['@errors'] = array_merge($errors['@errors'], $e);
-                }
+                $this->_mergeValidatorErrors($errors, $validator);
             }
             if (empty($errors['@errors'])) {
                 unset($errors['@errors']);
@@ -951,6 +976,14 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
 
         return $errors;
+    }
+
+    protected function _mergeValidatorErrors(&$errors, $validator) {
+        if (($e = $validator->getErrors())) {
+            $errors['@errors'] = array_merge($errors['@errors'], $e);
+            return true;
+        }
+        return false;
     }
 
     /**

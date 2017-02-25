@@ -27,7 +27,7 @@ abstract class RouterBase implements RouterInterface {
 
     /**
      * Konfiguracja routera
-     * @var Store
+     * @var \Skinny\DataObject\Store
      */
     protected $_config;
 
@@ -89,7 +89,7 @@ abstract class RouterBase implements RouterInterface {
      * @param string $key
      * @return string
      */
-    protected function _trueKey($key) {
+    protected static function _trueKey($key) {
         $start = strpos($key, '[');
         if (false === $start) {
             return $key;

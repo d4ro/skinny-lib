@@ -75,7 +75,7 @@ class Store extends ObjectModelBase implements \JsonSerializable {
         if ($obj !== null) {
             if (!is_object($obj) && !is_array($obj)) {
                 require_once __DIR__ . '/IOException.php';
-                throw new IOException('Invalid input data');
+                throw new \Skinny\IOException('Invalid input data');
             } else {
                 $this->merge($obj);
             }
@@ -156,7 +156,7 @@ class Store extends ObjectModelBase implements \JsonSerializable {
 //        if (is_array($value)) {
 //            parent::__set($name, $this->_createObject()->merge($value));
 //        } else {
-            parent::__set($name, $value);
+        parent::__set($name, $value);
 //        }
     }
 
@@ -227,7 +227,7 @@ class Store extends ObjectModelBase implements \JsonSerializable {
 
         $obj = (array) $obj;
         foreach ($obj as $key => $value) {
-            if ($value instanceof self || is_array($value)) {
+            if ($value instanceof self || is_array($value) || $value instanceof \stdClass) {
                 if (isset($this->_items[$key]) && (is_array($this->_items[$key]) || $this->_items[$key] instanceof self)) {
                     if (is_array($this->_items[$key])) {
                         $this->_items[$key] = new self($this->_items[$key]);
@@ -242,6 +242,15 @@ class Store extends ObjectModelBase implements \JsonSerializable {
         }
 
         return $this;
+    }
+    
+    /**
+     * Zwraca klucze wszystkich podelementów
+     * 
+     * @return array
+     */
+    public function getKeys() {
+        return array_keys($this->_items);
     }
 
 }

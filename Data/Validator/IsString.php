@@ -23,6 +23,7 @@ class IsString extends ValidatorBase {
             $this->error(self::MSG_NOT_STRING);
             return false;
         }
+        
         return true;
     }
 

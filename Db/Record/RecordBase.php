@@ -15,7 +15,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @var \Zend_Db_Adapter_Pdo_Mysql
      * @todo Uniezależnienie od Zend_Db
      */
-    protected static $db;
+    protected $_db;
 
     /**
      * Nazwa głównej tabeli, w której przechowywany jest wiersz (rekord)
@@ -96,10 +96,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     protected $_exists;
 
     /**
-     * Czy rekord został zmodyfikowany po ostatniej synchronizacji z bazą
-     * @var boolean
+     * Które kolumny zostały zmodyfikowane po ostatniej synchronizacji z bazą
+     * @var array
      */
-    protected $_isModified;
+    protected $_columnsModified = [];
 
     /**
      * Czy rekord jest w trakcie procesu zapisywania
@@ -118,7 +118,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return array tablica obiektów rekordów będących rezultatem zapytania
      */
     private static function _select($select) {
-        $data = self::$db->fetchAll($select);
+        $static = new static();
+        $data = $static->getDb()->fetchAll($select);
 
         // czy są dane
         $result = array();
@@ -142,7 +143,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             // i przypisujemy ich wartości do obiektu
             $obj->_setData($row);
             $obj->_exists = true;
-            $obj->_isModified = false;
+            $obj->_columnsModified = [];
             $obj->_isSaving = false;
 
             $result[] = $obj;
@@ -150,13 +151,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         return $result;
     }
 
-    public static function getDb() {
-        return self::$db;
+    public function getDb() {
+        return $this->_db;
     }
 
-    public static function setDb($db) {
+    public function setDb($db) {
         // TODO: sprawdzenie typu
-        self::$db = $db;
+        $this->_db = $db;
     }
 
     /**
@@ -201,7 +202,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * - isAutoRefreshForbidden: czy ma być wyłączone automatyczne pobieranie rekordu z bazy po inserach oraz update'ach, domyślnie false
      */
     public function __construct($mainTable, $idColumns = 'id', $data = array(), $options = null) {
-        \Skinny\Exception::throwIf(self::$db === null, new \Skinny\Db\DbException('Database adaptor used by record is not set'));
+        \Skinny\Exception::throwIf(!is_string($mainTable));
+        \Skinny\Exception::throwIf($this->_db === null, new \Skinny\Db\DbException('Database adaptor used by record is not set'));
         \Skinny\Exception::throwIf($options !== null && !($options instanceof Store), new \InvalidArgumentException('Param $options is not instance of Store'));
 
         if (null === $options) {
@@ -210,7 +212,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $this->_config = $options;
         $this->_exists = false;
-        $this->_isModified = false;
+        $this->_columnsModified = [];
         $this->_isSaving = false;
 
         if (!is_array($idColumns)) {
@@ -266,8 +268,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         // nie mamy wartości w polu, return null
         if (!key_exists($column, $this->_data)) {
-            $r = null;
-            return $r;
+            $value = null;
+            return $value;
         }
 
         // pobranie wartośći z kolumny jsonowej
@@ -281,14 +283,16 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         }
 
         if (key_exists($column, $this->_filteredColumns) && isset($this->_filteredColumns[$column]['getter']) && ($this->_filteredColumns[$column]['getter'] instanceof \Closure)) {
-            return $this->_filteredColumns[$name]['getter'](parent::__get($column));
+            $value = $this->_filteredColumns[$column]['getter'](parent::__get($column));
+            return $value;
         }
 
         return parent::__get($column);
     }
 
     public function __set($name, $value) {
-        $this->_isModified = true;
+        // TODO: optymalizacja poprzez sprawdzenie poprzedniej wartości
+        $this->_columnsModified[$name] = true;
         $setData = true;
 
         if (key_exists($name, $this->_collectionColumns)) {
@@ -313,7 +317,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         }
 
         if (key_exists($name, $this->_jsonColumns)) {
-            $this->_jsonColumns[$name]['hasValue'] = false; //json_decode($value, true);
+            $this->_jsonColumns[$name]['hasValue'] = true;
+            $this->_jsonColumns[$name]['value'] = $value;
+            $value = json_encode($value);
         }
 
         if ($setData) {
@@ -467,6 +473,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                 $value = $this->_filteredColumns[$key]['setter']($value);
             }
 
+            // TODO: optymalizacja poprzez sprawdzenie poprzedniej wartości
+            $this->_columnsModified[$key] = true;
             $this->_data[$key] = $value;
         }
     }
@@ -491,8 +499,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string|array $columnNames
      */
     protected function _setJsonColumns($columnNames) {
-        $columnName = (array) $columnName;
-        foreach ($columnNames as $$columnName) {
+        $columnNames = (array) $columnNames;
+        foreach ($columnNames as $columnName) {
             if (!key_exists($columnName, $this->_jsonColumns)) {
                 $this->_jsonColumns[$columnName] = ['value' => null, 'hasValue' => false];
             }
@@ -582,15 +590,22 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * Uruchamiane są w sytuacji pobrania lub ustawienia wartości podanej kolumny.
      * Jeżeli getter nie jest ustawiony, a wartość jest pobierana, zachowanie jest standardowe.
      * Analogicznie sytuacja ma się z setterem przy ustawieniu wartości.
-     * @param string $columnName nazwa kolumny, któa ma posiadać specjalne filtrowanie
-     * @param \Closure $getter funkcja filtrująca pobierane dane z kolumny
-     * @param \Closure $setter funkcja filtrująca ustawiane dane do kolumny
+     * 
+     * @param string|array  $columnName     Nazwa kolumny, która ma posiadać specjalne filtrowanie
+     * @param \Closure      $getter         Funkcja filtrująca pobierane dane z kolumny
+     * @param \Closure      $setter         Funkcja filtrująca ustawiane dane do kolumny
      */
     protected function _setFilteredColumn($columnName, \Closure $getter = null, \Closure $setter = null) {
-        $this->_filteredColumns[$columnName] = [
-            'setter' => $setter,
-            'getter' => $getter
-        ];
+        if (!is_array($columnName)) {
+            $columnName = [$columnName];
+        }
+
+        foreach ($columnName as $name) {
+            $this->_filteredColumns[$name] = [
+                'setter' => $setter,
+                'getter' => $getter
+            ];
+        }
     }
 
     /**
@@ -649,7 +664,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return array
      */
     protected function _getTableStructure($tableName) {
-        return self::$db->describeTable($tableName);
+        return $this->_db->describeTable($tableName);
     }
 
     /**
@@ -781,7 +796,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             $select = $this->_getSelectWhere();
             $select->limit(1);
             $sql = "SELECT EXISTS($select)";
-            $result = self::$db->fetchOne($sql);
+            $result = $this->_db->fetchOne($sql);
             $this->_exists = (boolean) $result;
         }
 
@@ -789,14 +804,17 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Stwierdza, czy rekord został modyfikowany po ostatniej synchronizacji z bazą.
-     * Nowe rekordy, które nie zostały jeszcze wprowadzone do bazy są zawsze "zmodyfikowane".
+     * Stwierdza, czy kolumna rekordu została modyfikowany po ostatniej synchronizacji z bazą.
      * 
+     * @param string $column nazwa sprawdzaniej kolumny; null oznacza sprawdzenie całego rekordu
      * @return boolean
      */
-    public function isModified() {
-        // TODO: do przerobiena
-        return $this->_isModified;
+    public function isModified($column = null) {
+        if (null === $column) {
+            return !$this->_columnsModified;
+        }
+
+        return isset($this->_columnsModified[$column]);
     }
 
     /**
@@ -817,7 +835,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     public function getId() {
         if (count($this->_idColumns) === 1) {
-            return $this->_idValue[$this->_idColumns[0]];
+            return @$this->_idValue[$this->_idColumns[0]];
         } else {
             return $this->getFullId();
         }
@@ -854,7 +872,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $result = $includeTable ? '"' . $this->_tableName . '":' : '';
         foreach ($fullId as $val) {
             if (null === $val) {
-                $result .= ($randomHashAsNull ? $this->createRandomHash() : 'null') . ',';
+                $result .= ($randomHashAsNull ? $this->createRandomString() : 'null') . ',';
             } else {
                 $result .= '"' . htmlspecialchars($val) . '",';
             }
@@ -864,7 +882,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
     /**
      * Ustawia własny identyfikator (np. gdy id nie jest autoincrement).
-     * Umożliwia usyawienie części klucza.
+     * Umożliwia ustawienie części klucza.
      * 
      * @param mixed $id
      */
@@ -900,8 +918,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         return $array;
     }
 
-    public function createRandomHash() {
-        $length = 10;
+    /**
+     * Tworzy ciąg znaków o podanej długości (domyślnie 10 znaków) z losowych znaków ze zbioru [a-zA-Z0-9].
+     * 
+     * @param int $length długość ciągu wynikowego
+     * @return string rezultat - losowy ciąg
+     */
+    public function createRandomString($length = 10) {
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $charactersLength = strlen($characters);
         $randomString = '';
@@ -919,6 +942,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     public function insert($refreshData = true) {
         $data = $this->exportData();
+        $this->_validateData($data);
         return $this->_insert($data, $refreshData && !$this->_config->isAutoRefreshForbidden(false, true));
     }
 
@@ -931,7 +955,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     final protected function _insert($data, $refreshData) {
         $this->_isSaving = true;
-        self::$db->insert($this->_tableName, $data);
+        $this->_db->insert($this->_tableName, $data);
         /* @var $id array */
         $id = $this->getLastInsertId();
 
@@ -951,7 +975,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $this->_exists = true;
         $this->_isSaving = false;
-        $this->_isModified = false;
+        $this->_columnsModified = [];
 
         if ($refreshData) {
             // pobierz dane z bazy
@@ -974,11 +998,12 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return boolean informacja o powodzeniu
      */
     public function update($refreshData = true, $force = false) {
-        if (!$this->_isModified && !$force) {
+        if (!$this->_columnsModified && !$force) {
             return true;
         }
 
         $data = $this->exportData();
+        $this->_validateData($data);
         return $this->_update($data, $refreshData && !$this->_config->isAutoRefreshForbidden(false, true));
     }
 
@@ -998,37 +1023,35 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $this->_idValue = $this->_validateIdentifier($this->_idValue);
         $this->_isSaving = true;
 
-        $success = self::$db->update($this->_tableName, $data, $this->_getWhere());
+        $result = $this->_db->update($this->_tableName, $data, $this->_getWhere());
 
-        // bug: update może zwrócić 0, gdy wiersz w tabeli się nie zmienił
-//        if ($success === 0) {
-//            $this->_exists = false;
-//            return false;
-//        }
-
-        if ($success > 1) {
+        if ($result > 1) {
             throw new \Skinny\Db\DbException('Record identified by its primary key is ambiguous in table "' . $this->_tableName . '". Rows updated: ' . $success);
         }
+
+        $success = true;
 
         if ($refreshData) {
             $success = $this->_load($this->_idValue);
         }
 
-        $this->_exists = true;
+        $this->_exists = $success;
         $this->_isSaving = false;
-        $this->_isModified = false;
+        $this->_columnsModified = [];
 
-        return (boolean) $success;
+        return $success;
     }
 
     /**
      * Odświeża rekord pobierając dane z bazy.
      * 
+     * @param boolean $force przeładowuje, nawet, gdy w rekordzie jest informacja, że rekord nie istnieje w bazie
+     * 
      * @return boolean czy pobranie danych się udało;
      * może się nie udać, gdy rekord nie istnieje lub nie da się określić, który to jest w bazie
      */
-    public function reload() {
-        if (null === $this->_idValue || !$this->_exists) {
+    public function reload($force = false) {
+        if (!$force && (null === $this->_idValue || !$this->_exists)) {
             return false;
         }
 
@@ -1040,7 +1063,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $success = $this->_load($this->_idValue);
 
-        return (boolean) $success;
+        return $success;
     }
 
     /**
@@ -1100,7 +1123,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             return false;
         }
 
-        self::$db->delete($this->_tableName, $this->_getWhere());
+        $this->_db->delete($this->_tableName, $this->_getWhere());
         $this->_exists = false;
         return true;
     }
@@ -1118,7 +1141,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             return 0;
         }
 
-        return self::$db->delete($obj->_tableName, $where);
+        return $obj->getDb()->delete($obj->_tableName, $where);
     }
 
     /**
@@ -1137,9 +1160,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $where = [];
         foreach ($this->_idColumns as $col) {
             if (!isset($id[$col])) {
-                $where[] = self::$db->quoteIdentifier($this->_tableName) . '.' . self::$db->quoteIdentifier($col) . ' is null';
+                $where[] = $this->_db->quoteIdentifier($this->_tableName) . '.' . $this->_db->quoteIdentifier($col) . ' is null';
             } else {
-                $where[self::$db->quoteIdentifier($this->_tableName) . '.' . self::$db->quoteIdentifier($col) . ' = ?'] = $id[$col];
+                $where[$this->_db->quoteIdentifier($this->_tableName) . '.' . $this->_db->quoteIdentifier($col) . ' = ?'] = $id[$col];
             }
         }
         return $where;
@@ -1151,7 +1174,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return \Zend_Db_Select
      */
     protected function _getSelect() {
-        $select = self::$db->select()
+        $select = $this->_db->select()
                 ->from($this->_tableName, $this->getColumns());
         return $select;
     }
@@ -1210,7 +1233,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     /**
      * Dodaje do obiektu elementy znajdujące się w tablicy asocjacyjnej.
      * 
-     * @param array $data
+     * @param array     $data
+     * @param boolean   $useFiltering Używaj filtrowania do zapisu (setter)
      * @return boolean
      */
     public function importData(array $data, $useFiltering = false) {
@@ -1224,6 +1248,23 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
+     * Waliduje dane wejściowe do bazy danych pod kątem prawidłowego typu dla bazy.
+     * Nie sprawdza, czy wartości kolumn są zgodne z typami kolumn, do których mają być przypisane.
+     * 
+     * @param array $data dane wejściowe
+     * @return boolean
+     */
+    protected function _validateData(array $data) {
+        return array_walk($data, function ($value, $column) {
+            if (null === $value || is_string($value) || is_numeric($value) || $value instanceof \Zend_Db_Expr) {
+                return true;
+            }
+
+            throw new RecordException('Data type (' . gettype($value) . ') of column "' . $column . '" is invalid for the database.');
+        });
+    }
+
+    /**
      * Ładuje dane rekordu do obiektu używając podanego id.
      * 
      * @param mixed $id identyfikator rekordu (lub tablica asocjacyjna "kolumna => identyfikator" gdy primary key jest wielopolowy)
@@ -1233,17 +1274,17 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $this->_exists = false;
 
         $select = $this->_getSelectWhere($id);
-        $data = self::$db->fetchRow($select);
+        $data = $this->_db->fetchRow($select);
 
         if ($data) {
             // ustawiamy dane
             $this->_idValue = $id;
 
-            foreach ($this->_readingDisabledColumns as $column) {
-                unset($data[$column]);
-            }
-
             $this->_setData($data);
+
+            foreach ($this->_readingDisabledColumns as $column) {
+                unset($this->$column);
+            }
 
             $this->_exists = true;
         }
@@ -1473,7 +1514,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         static::_addWhereToSelect($select, $where);
 
-        return self::$db->fetchOne($select);
+        $static = new static();
+
+        return $static->getDb()->fetchOne($select);
     }
 
     /**
@@ -1708,13 +1751,14 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
           $tableName = $this->_tableName;
           } */
 
-        return self::$db->lastInsertId(/* $tableName */$this->_tableName, $idCol);
+        return $this->_db->lastInsertId(/* $tableName */$this->_tableName, $idCol);
     }
 
     /**
      * Stwierdza, czy podany w argumencie rekord jest dokładnie tym samym co bieżący.
      * 
      * @param \Skinny\Db\Record\RecordBase $record
+     * @return boolean
      */
     public function equals(RecordBase $record) {
         if (null === $record) {
@@ -1728,6 +1772,58 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         return
                 $this->_tableName == $record->_tableName &&
                 $this->getFullId() == $record->getFullId();
+    }
+
+    /**
+     * Stwierdza, czy dane podanego w argumencie rekordu są dokładnie takie same, co w bieżącym.
+     * 
+     * @param \Skinny\Db\Record\RecordBase $record
+     * @return boolean
+     */
+    public function dataEquals(RecordBase $record, $checkFilledColumns = false) {
+        if (null === $record) {
+            return false;
+        }
+
+        $columnsA = $this->getColumns($checkFilledColumns, false, false, true);
+        $columnsB = $record->getColumns($checkFilledColumns, false, false, true);
+
+        sort($columnsA);
+        sort($columnsB);
+
+        if ($columnsA !== $columnsB) {
+            return false;
+        }
+
+        foreach ($columnsA as $column) {
+            if (!(($isJson = $this->isJsonColumn($column)) == $record->isJsonColumn($column))) {
+                return false;
+            }
+
+            $dataA = $this->{$column};
+            $dataB = $record->{$column};
+
+            if ($isJson && is_array($dataA) && is_array($dataB)) {
+                sort($dataA);
+                sort($dataB);
+            }
+
+            if ($dataA != $dataB) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Stwierdza, czy podana kolumna jest zdefiniowana jako JSONowa.
+     * 
+     * @param string $column
+     * @return boolean
+     */
+    public function isJsonColumn($column) {
+        return array_key_exists($column, $this->_jsonColumns);
     }
 
     /**

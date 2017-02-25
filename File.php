@@ -57,8 +57,21 @@ class File {
         return null !== $this->_descriptor;
     }
 
+    public function isFile() {
+        return is_file($this->_path);
+    }
+
     public function getMode() {
         return $this->_mode;
+    }
+
+    /**
+     * Zwraca ustawioną ścieżkę pliku.
+     * 
+     * @return string
+     */
+    public function getPath() {
+        return $this->_path;
     }
 
     public function write($content) {
@@ -140,8 +153,42 @@ class File {
         return is_readable($this->_path);
     }
 
+    public function isHidden() {
+        return basename($this->_path)[0] == '.';
+    }
+
+    public function getName() {
+        return basename($this->_path);
+    }
+
+    public function getExtension() {
+        $path_parts = pathinfo($this->_path);
+
+//echo $path_parts['dirname'], "\n";
+//echo $path_parts['basename'], "\n";
+        return $path_parts['extension'];
+//echo $path_parts['filename'], "\n"; // od PHP 5.2.0
+//        return basename($this->_path);
+    }
+
+    /**
+     * Kopiuje plik do podanej ścieżki.
+     * 
+     * @param string $path
+     * @return boolean
+     */
     public function copyTo($path) {
         return copy($this->_path, $path);
+    }
+
+    /**
+     * Przenosi plik do podanej ścieżki.
+     * 
+     * @param string $path
+     * @return boolean
+     */
+    public function moveTo($path) {
+        return rename($this->_path, $path);
     }
 
     /**
@@ -169,6 +216,30 @@ class File {
         }
 
         return $mimeType;
+    }
+
+    public function rename($newName) {
+        rename($this->_path, $newName);
+        $this->_path = realpath($newName);
+    }
+
+    /**
+     * Czyta plik i ustawia go jako załącznik do pobrania.
+     */
+    public function output($outputFileName = null) {
+        if (!file_exists($this->getPath())) {
+            throw new Exception('File does not exist.');
+        }
+
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . ($outputFileName ? $outputFileName : basename($this->getPath())) . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($this->getPath()));
+        readfile($this->getPath());
+        exit;
     }
 
 }
