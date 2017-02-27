@@ -277,33 +277,6 @@ class Request {
     public function acceptJson() {
         return false !== strstr($_SERVER['HTTP_ACCEPT'], 'application/json');
     }
-    
-    public function getContentType() {
-        return @$_SERVER['CONTENT_TYPE'];
-    }
-
-    /**
-     * Stwierdza, czy żądanie do serwera zostało wykonane metodą POST.
-     * 
-     * @return boolean
-     */
-    public function hasPost() {
-        return ($_SERVER['REQUEST_METHOD'] === 'POST');
-    }
-
-    public function toBreadCrumbs() {
-        $s = '';
-        $i = $this->first();
-        while ($i) {
-            $s .= $i->getActionUrl() . ' (' . json_encode($i->getParams()) . ') > ';
-            $i = $i->next();
-        }
-        return $s;
-    }
-
-    public function getMethod() {
-        return $_SERVER['REQUEST_METHOD'];
-    }
 
     /**
      * Stwierdza, czy żądanie do serwera zostało wykonane metodą POST.
