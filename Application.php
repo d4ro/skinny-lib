@@ -126,6 +126,7 @@ class Application {
         $this->_components = new Components($this->_config);
         $this->_components->setInitializers($this->_config->components->toArray());
 
+        // router
         $router = $this->_config->router->class('Skinny\Application\Router', true);
         $this->_router = new $router(
             $this->_config->paths->content('content', true),
