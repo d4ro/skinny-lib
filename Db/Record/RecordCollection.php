@@ -331,14 +331,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
     /**
      * Zapisuje wszystkie rekordy.
-<<<<<<< Updated upstream
      * 
      * @param boolean $refreshData czy po zapisaniu mają się uaktualnić dane w rekordzie
-||||||| merged common ancestors
-     * 
-=======
-     *
->>>>>>> Stashed changes
      * @return array
      */
     public function save($refreshData = true) {
@@ -376,15 +370,16 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @throws \BadFunctionCallException
      */
     public function forEachRecord($callback) {
-        $result = array();
-        if ($callback instanceof \Closure) {
-            foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
-                $record = $this->_data[$recordNum];
-                $result[$key] = $callback($record, $key);
-            }
-        } else {
+        if (!is_callable($callback)) {
             throw new \BadFunctionCallException('Callback is not a function.');
         }
+
+        $result = array();
+        foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
+            $record = $this->_data[$recordNum];
+            $result[$key] = call_user_func($callback, $record, $key);
+        }
+
         return $result;
     }
 
@@ -420,33 +415,49 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     /**
      * Filtruje kolekcję usuwając z niej rekordy, przy których callback zwróci false.
      *
-     * @param \Closure $callback
-     * @return \static nowa, przefiltrowana kolekcja
-     * @throws \BadFunctionCallException
+     * @param \Closure  $callback
+     * @param boolean   $preservePlainIndex Zachowuje poza kolejnością rekordów także numer kolejny inseksu "plain".
+     * 
+     * @return \static  nowa, przefiltrowana kolekcja
+     * @throws \BadFunctionCallException    Argument $callback nie jest callable.
      */
-    public function filter($callback) {
-        $result = [];
-        if (is_callable($callback)) {
-            foreach ($this->_data as $id => $record) {
-                if (call_user_func($callback, $record)) {
-                    $result[$id] = $record;
-                }
-            }
-            $collection = new static();
-            $collection->_isStrictTypeCheckEnabled = $this->_isStrictTypeCheckEnabled;
-            $collection->_recordClassName = $this->_recordClassName;
-            $collection->_data = $result;
-            $collection->_rebuildIndex(self::IDX_PLAIN);
-            $collection->_rebuildIndex(self::IDX_ID);
-            $collection->_rebuildIndex(self::IDX_TBL_ID);
-            $collection->_rebuildIndex(self::IDX_HASH);
-            if ($this->_customIdx) {
-                $collection->_customIdx = $this->_customIdx;
-                $collection->_rebuildIndex(self::IDX_CUSTOM);
-            }
-        } else {
+    public function filter($callback, $preservePlainIndex = false) {
+        if (!is_callable($callback)) {
             throw new \BadFunctionCallException('Argument is not callable.');
         }
+
+        $result = [];
+        $oldIndex = $this->_useIndex;
+        $this->_useIndex = self::IDX_PLAIN;
+
+        foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
+            $record = $this->_data[$recordNum];
+            if (call_user_func($callback, $record, $key)) {
+                if ($preservePlainIndex) {
+                    $result[$key] = $record;
+                } else {
+                    $result[] = $record;
+                }
+            }
+        }
+
+        $this->_useIndex = $oldIndex;
+
+        $collection = new static();
+        $collection->_useIndex = $this->_useIndex;
+        $collection->_isStrictTypeCheckEnabled = $this->_isStrictTypeCheckEnabled;
+        $collection->_recordClassName = $this->_recordClassName;
+        $collection->_data = $result;
+        $collection->_rebuildIndex(self::IDX_PLAIN);
+        $collection->_rebuildIndex(self::IDX_ID);
+        $collection->_rebuildIndex(self::IDX_TBL_ID);
+        $collection->_rebuildIndex(self::IDX_HASH);
+
+        if ($this->_customIdx) {
+            $collection->_customIdx = $this->_customIdx;
+            $collection->_rebuildIndex(self::IDX_CUSTOM);
+        }
+
         return $collection;
     }
 
