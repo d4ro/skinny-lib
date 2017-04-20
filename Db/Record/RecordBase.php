@@ -1525,7 +1525,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return \Zend_Db_Select
      */
     protected static function _getCountSelect() {
-        return static::$db->select()->from(['t' => static::getTableName()], ['COUNT(1)']);
+        $static = new static();
+
+        return $static->getDb()->select()->from(['t' => static::getTableName()], ['COUNT(1)']);
     }
 
     /**
