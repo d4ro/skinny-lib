@@ -688,24 +688,142 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Pobiera dane rekordu do zapisu do bazy danych
-     * Koduje ustawione pola w _jsonColumns do JSONA
-     * Pomija kolumny niedozwolone
+     * Pobiera dane rekordu do zapisu do bazy danych.
+     * Koduje ustawione pola w _jsonColumns do JSONA.
+     * Pomija kolumny niedozwolone.
      * 
-     * @param boolean $includeFilledColumns czy ma nie pomijać kolumn spoza tabeli głównej
-     * @param boolean $rawData pobiera dane w postaci surowej (takie jakie przychodzą do bazy lub z niej)
-     * @param boolean $useFiltering czy ma używać metod filtrujących wartości przy ich odczycie
-     * @param boolean $includeWritingDisabled czy ma eksportować także kolumny określone jako nie-do-zapisu
-     * @param boolean $includeRecordColumns załącza kolumny rekordowe (wartością tych kolumn będą obiekty RecordCollection)
+     * Funkcja nie jest już wspierana i przekierowuje do exportDataRawOptions().
+     * Zaleca się użycie jednej z następujących: exportDataRawOptions(), exportDataFilteredOptions(), exportDataOptions().
+     * 
+     * @param boolean $includeFilledColumns     czy ma nie pomijać kolumn spoza tabeli głównej
+     * @param boolean $rawData                  pobiera dane w postaci surowej (takie jakie przychodzą do bazy lub z niej)
+     * @param boolean $useFiltering             czy ma używać metod filtrujących wartości przy ich odczycie
+     * @param boolean $includeWritingDisabled   czy ma eksportować także kolumny określone jako nie-do-zapisu
+     * @param boolean $includeRecordColumns     załącza kolumny rekordowe (wartością tych kolumn będą obiekty RecordCollection)
      * @param boolean $includeCollectionColumns załącza kolumny z kolekcjami (wartością tych kolumn będą obiekty Record)
-     * @param boolean $includeJsonColumns załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)
+     * @param boolean $includeJsonColumns       załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)
+     * 
+     * @deprecated since version 0.4
      * @return array dane
      */
     public function exportData($includeFilledColumns = false, $rawData = true, $useFiltering = false, $includeWritingDisabled = false, $includeRecordColumns = false, $includeCollectionColumns = false, $includeJsonColumns = false) {
+        return $this->exportDataRawOptions([
+                    'includeFilledColumns' => $includeFilledColumns,
+                    'rawData' => $rawData,
+                    'useFilering' => $useFiltering,
+                    'includeWritingDisabled' => $includeWritingDisabled,
+                    'includeRecordColumns' => $includeRecordColumns,
+                    'includeCollectionColumns' => $includeCollectionColumns,
+                    'includeJsonColumns' => $includeJsonColumns,
+                    'excludeColumns' => []
+        ]);
+//        $columns = $this->getColumns($includeFilledColumns, $includeRecordColumns, $includeCollectionColumns, $includeJsonColumns);
+//        if (!$includeWritingDisabled) {
+//            $columns = array_diff($columns, $this->_writingDisabledColumns);
+//        }
+//        return $this->exportColumns($columns, $rawData, $useFiltering);
+    }
+
+    /**
+     * Eksportuje dane z rekordu na podstawie opcji w formacie "surowym",
+     * czyli takim w jakim występują w bazie danych oraz są importowane do rekordu.
+     * 
+     * Możliwe klucze:
+     * includeFilledColumns     - czy ma nie pomijać kolumn spoza tabeli głównej                                (domyślnie nie)
+     * rawData                  - pobiera dane w postaci surowej (takie jakie przychodzą do bazy lub z niej)    (domyślnie tak)
+     * useFilering              - czy ma używać metod filtrujących wartości przy ich odczycie                   (domyślnie nie)
+     * includeWritingDisabled   - czy ma eksportować także kolumny określone jako nie-do-zapisu                 (domyślnie nie)
+     * includeRecordColumns     - załącza kolumny rekordowe (wartością tych kolumn będą obiekty RecordCollection) (domyślnie nie)
+     * includeCollectionColumns - załącza kolumny z kolekcjami (wartością tych kolumn będą obiekty Record)      (domyślnie nie)
+     * includeJsonColumns       - załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)            (domyślnie nie)
+     * excludeColumns           - talica nazwa kolumn, które mają zostać pominięte                              (domyślnie brak)
+     * 
+     * @param array $options
+     * @return array dane
+     */
+    public function exportDataRawOptions($options = []) {
+        $defaults = [
+            'includeFilledColumns' => false,
+            'rawData' => true,
+            'useFilering' => false,
+            'includeWritingDisabled' => false,
+            'includeRecordColumns' => false,
+            'includeCollectionColumns' => false,
+            'includeJsonColumns' => false,
+            'excludeColumns' => []
+        ];
+
+        return $this->exportDataOptions(array_merge($defaults, $options));
+    }
+
+    /**
+     * Eksportuje dane z rekordu na podstawie opcji w formacie przefiltrowanym,
+     * czyli takim w jakim występują poprzez pośrednie odwołania do danych w formacie $record->column.
+     * 
+     * Możliwe klucze:
+     * includeFilledColumns     - czy ma nie pomijać kolumn spoza tabeli głównej                                (domyślnie tak)
+     * rawData                  - pobiera dane w postaci surowej (takie jakie przychodzą do bazy lub z niej)    (domyślnie nie)
+     * useFilering              - czy ma używać metod filtrujących wartości przy ich odczycie                   (domyślnie tak)
+     * includeWritingDisabled   - czy ma eksportować także kolumny określone jako nie-do-zapisu                 (domyślnie tak)
+     * includeRecordColumns     - załącza kolumny rekordowe (wartością tych kolumn będą obiekty RecordCollection) (domyślnie tak)
+     * includeCollectionColumns - załącza kolumny z kolekcjami (wartością tych kolumn będą obiekty Record)      (domyślnie tak)
+     * $includeJsonColumns      - załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)            (domyślnie tak)
+     * excludeColumns           - talica nazwa kolumn, które mają zostać pominięte                              (domyślnie brak)
+     * 
+     * @param array $options
+     * @return array dane
+     */
+    public function exportDataFilteredOptions($options = []) {
+        $defaults = [
+            'includeFilledColumns' => true,
+            'rawData' => false,
+            'useFilering' => true,
+            'includeWritingDisabled' => true,
+            'includeRecordColumns' => true,
+            'includeCollectionColumns' => true,
+            'includeJsonColumns' => true,
+            'excludeColumns' => []
+        ];
+
+        return $this->exportDataOptions(array_merge($defaults, $options));
+    }
+
+    /**
+     * Eksportuje dane z rekordu na podstawie opcji.
+     * 
+     * Możliwe klucze:
+     * includeFilledColumns     - czy ma nie pomijać kolumn spoza tabeli głównej                                
+     * rawData                  - pobiera dane w postaci surowej (takie jakie przychodzą do bazy lub z niej)    
+     * useFilering              - czy ma używać metod filtrujących wartości przy ich odczycie                 
+     * includeWritingDisabled   - czy ma eksportować także kolumny określone jako nie-do-zapisu               
+     * includeRecordColumns     - załącza kolumny rekordowe (wartością tych kolumn będą obiekty RecordCollection) 
+     * includeCollectionColumns - załącza kolumny z kolekcjami (wartością tych kolumn będą obiekty Record) 
+     * $includeJsonColumns      - załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)        
+     * excludeColumns           - talica nazwa kolumn, które mają zostać pominięte                         
+     * 
+     * @param array $options
+     * @return array dane
+     */
+    public function exportDataOptions(array $options) {
+        // TODO: uniwersalizacja getColumns oraz exportColumns
+        $includeFilledColumns = @$options['includeFilledColumns'];
+        $rawData = @$options['rawData'];
+        $useFiltering = @$options['useFiltering'];
+        $includeWritingDisabled = @$options['includeWritingDisabled'];
+        $includeRecordColumns = @$options['includeRecordColumns'];
+        $includeCollectionColumns = @$options['includeCollectionColumns'];
+        $includeJsonColumns = @$options['includeJsonColumns'];
+        $excludeColumns = @$options['excludeColumns'];
+
         $columns = $this->getColumns($includeFilledColumns, $includeRecordColumns, $includeCollectionColumns, $includeJsonColumns);
         if (!$includeWritingDisabled) {
             $columns = array_diff($columns, $this->_writingDisabledColumns);
         }
+
+        if ($excludeColumns) {
+            $columns = array_diff($columns, $excludeColumns);
+        }
+
         return $this->exportColumns($columns, $rawData, $useFiltering);
     }
 
