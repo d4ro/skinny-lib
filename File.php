@@ -232,7 +232,7 @@ class File {
         }
 
         header('Content-Description: File Transfer');
-        header('Content-Type: application/octet-stream');
+        header('Content-Type: ' . $this->getMimeType());
         header('Content-Disposition: attachment; filename="' . ($outputFileName ? $outputFileName : basename($this->getPath())) . '"');
         header('Expires: 0');
         header('Cache-Control: must-revalidate');
