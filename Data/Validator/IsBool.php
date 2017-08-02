@@ -33,7 +33,7 @@ class IsBool extends ValidatorBase {
      * true, false, 1, 0. <br/>
      * Domyślnie "false".
      */
-    const OPT_STRICT = 'optStrict';
+    const OPT_STRICT   = 'optStrict';
     const MSG_NOT_BOOL = 'msgNotBool';
 
     public function __construct($options = null) {
@@ -54,27 +54,27 @@ class IsBool extends ValidatorBase {
         }
 
         if (
-                $value !== true &&
-                $value !== false &&
-                $value !== 1 &&
-                $value !== 0
+            $value !== true &&
+            $value !== false &&
+            $value !== 1 &&
+            $value !== 0
         ) {
             if (
-                    $this->_options[self::OPT_STRICT] === false &&
-                    is_string($value) && (
-                    ($lower = strtolower($value)) === 'true' ||
-                    $lower === 'false' ||
-                    $lower === 'yes' ||
-                    $lower === 'no' ||
-                    $lower === 'on' ||
-                    $lower === 'y' ||
-                    $lower === 'n' ||
-                    $lower === 'tak' ||
-                    $lower === 'nie' ||
-                    $lower === 't' ||
-                    $lower === "0" ||
-                    $lower === "1"
-                    )
+                $this->_options[self::OPT_STRICT] === false &&
+                is_string($value) && (
+                ($lower = strtolower($value)) === 'true' ||
+                $lower === 'false' ||
+                $lower === 'yes' ||
+                $lower === 'no' ||
+                $lower === 'on' ||
+                $lower === 'y' ||
+                $lower === 'n' ||
+                $lower === 'tak' ||
+                $lower === 'nie' ||
+                $lower === 't' ||
+                $lower === "0" ||
+                $lower === "1"
+                )
             ) {
                 return true;
             }

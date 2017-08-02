@@ -42,14 +42,14 @@ class IsPesel extends ValidatorBase {
 
         // tablica z odpowiednimi wagami
         $arrSteps = array(1, 3, 7, 9, 1, 3, 7, 9, 1, 3);
-        $intSum = 0;
+        $intSum   = 0;
         for ($i = 0; $i < 10; $i++) {
             // mnożymy każdy ze znaków przez wagę i sumujemy wszystko
             $intSum += $arrSteps[$i] * $value[$i];
         }
 
         // obliczamy sumę kontrolną
-        $int = 10 - $intSum % 10;
+        $int          = 10 - $intSum % 10;
         $intControlNr = ($int == 10) ? 0 : $int;
 
         // TODO: brak konwencji w zwracaniu wyników raz jest sprawdzenie czy nie ok

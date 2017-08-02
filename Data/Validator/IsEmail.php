@@ -24,7 +24,7 @@ class IsEmail extends IsString {
         if (!parent::isValid($value)) {
             return false;
         }
-        
+
         if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
             return $this->error(self::MSG_NOT_EMAIL);
         }

@@ -24,10 +24,10 @@ class Required extends ValidatorBase {
         if (!parent::isValid($value)) {
             return false;
         }
-        
+
         if (
-                $value instanceof \Skinny\Data\KeyNotExist ||
-                false === (new NotEmpty())->isValid($value)
+            $value instanceof \Skinny\Data\KeyNotExist ||
+            false === (new NotEmpty())->isValid($value)
         ) {
             $this->error(self::MSG_REQUIRED);
             return false;

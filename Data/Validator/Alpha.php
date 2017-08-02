@@ -10,7 +10,7 @@ namespace Skinny\Data\Validator;
  */
 class Alpha extends IsString {
 
-    const MSG_NOT_ALPHA = 'msgNotAlpha';
+    const MSG_NOT_ALPHA        = 'msgNotAlpha';
     const OPT_ALLOW_WHITESPACE = 'optAllowWhiteSpace';
 
     /**
@@ -23,7 +23,7 @@ class Alpha extends IsString {
      */
     public function __construct($options = null) {
         // ustawienie domyślnej opcji jeśli nie przekazano
-        if(empty($options) || !isset($options[self::OPT_ALLOW_WHITESPACE])) {
+        if (empty($options) || !isset($options[self::OPT_ALLOW_WHITESPACE])) {
             $options[self::OPT_ALLOW_WHITESPACE] = false;
         }
 

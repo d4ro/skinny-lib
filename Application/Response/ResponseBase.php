@@ -23,7 +23,7 @@ abstract class ResponseBase implements ResponseInterface {
         if (null !== $code) {
             $this->setCode($code);
         }
-        
+
         $this->_headers[$name] = $value;
     }
 

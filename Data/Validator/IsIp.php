@@ -25,7 +25,7 @@ class IsIp extends IsString {
         if (!parent::isValid($value)) {
             return false;
         }
-        
+
         $pattern = '/^((([01]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))[.]){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))$/';
         if (!preg_match($pattern, $value)) {
             return $this->error(self::MSG_NOT_IP);

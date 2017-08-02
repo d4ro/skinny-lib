@@ -91,7 +91,7 @@ class StringLength extends IsString {
         // Ustawienie komunikatów
         $this->_setMessagesTemplates([
             self::MSG_TOO_SHORT => "Tekst jest za krótki. Minimalna ilość znaków: " . self::PRM_MIN,
-            self::MSG_TOO_LONG => "String jest za długi. Maksymalna ilość znaków: " . self::PRM_MAX
+            self::MSG_TOO_LONG  => "String jest za długi. Maksymalna ilość znaków: " . self::PRM_MAX
         ]);
     }
 
@@ -108,8 +108,8 @@ class StringLength extends IsString {
         $this->setMessagesParams(['currentLength' => $this->_currentLength]); // Ustawienie bieżącej długości stringa
         // Sprawdzenie minimalnej długości stringa
         if (
-                isset($this->_options[self::OPT_MIN]) &&
-                $this->_currentLength < $this->_options[self::OPT_MIN]
+            isset($this->_options[self::OPT_MIN]) &&
+            $this->_currentLength < $this->_options[self::OPT_MIN]
         ) {
             $this->error(self::MSG_TOO_SHORT);
 
@@ -120,8 +120,8 @@ class StringLength extends IsString {
 
         // Sprawdzenie maksymalnej długości stringa
         if (
-                isset($this->_options[self::OPT_MAX]) &&
-                $this->_currentLength > $this->_options[self::OPT_MAX]
+            isset($this->_options[self::OPT_MAX]) &&
+            $this->_currentLength > $this->_options[self::OPT_MAX]
         ) {
             $this->error(self::MSG_TOO_LONG);
 

@@ -25,8 +25,8 @@ class IsUrl extends ValidatorBase {
         if (!parent::isValid($value)) {
             return false;
         }
-        
-        if(!filter_var($value, FILTER_VALIDATE_URL)) {
+
+        if (!filter_var($value, FILTER_VALIDATE_URL)) {
             $this->error(self::MSG_NOT_URL);
             return false;
         }

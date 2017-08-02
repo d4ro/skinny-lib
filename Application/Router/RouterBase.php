@@ -42,9 +42,9 @@ abstract class RouterBase implements RouterInterface {
      * @return array
      */
     protected static function _readActionsDir($dirPath) {
-        $dir = dir($dirPath);
+        $dir     = dir($dirPath);
         $actions = [];
-        while ($item = $dir->read()) {
+        while ($item    = $dir->read()) {
             $path = $dirPath . DIRECTORY_SEPARATOR . $item;
             if ($item[0] == '.') {
                 continue;
@@ -74,7 +74,7 @@ abstract class RouterBase implements RouterInterface {
             throw new IOException('Could not read application content directory.');
         }
 
-        $actions = self::_readActionsDir($this->_contentPath);
+        $actions     = self::_readActionsDir($this->_contentPath);
         $actionsPath = Path::combine($this->_cachePath, 'actions.php');
 
         $file = new \Skinny\File($actionsPath);
@@ -115,14 +115,14 @@ abstract class RouterBase implements RouterInterface {
      * @return integer ilość zgodnych argumentów
      */
     public function findAction(array $args) {
-        $x = Path::combine($this->_cachePath, 'actions.php');
+        $x       = Path::combine($this->_cachePath, 'actions.php');
         $actions = file_exists($x) ? include $x : null;
 
         if (empty($actions) || !$this->_config->actionCache->enabled(true, true)) {
             $actions = $this->_resolveActions();
         }
 
-        $i = 0;
+        $i     = 0;
         $found = -1;
         $count = count($args);
         $match = false;

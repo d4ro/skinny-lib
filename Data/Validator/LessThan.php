@@ -27,7 +27,7 @@ class LessThan extends ValidatorBase {
         if (!parent::isValid($value)) {
             return false;
         }
-        
+
         /**
          * BUG!
          * Zostawione die i niezabezpieczone dane, wygląda jakby to było nieskończone
@@ -35,9 +35,8 @@ class LessThan extends ValidatorBase {
          * DO POPRAWIENIA
          * TODO 
          */
-        
         throw new Exception('Walidator błędnie skonstruowany - do poprawy');
-        
+
         parent::__construct($options);
 
         $this->_options = $options;
@@ -47,7 +46,7 @@ class LessThan extends ValidatorBase {
         }
 
         $this->_setMessagesTemplates([
-            self::MSG_NOT_LESS_THAN => 'Wprowadzana wartość jest większa niż powinna',
+            self::MSG_NOT_LESS_THAN  => 'Wprowadzana wartość jest większa niż powinna',
             self::MSG_IS_NOT_NUMERIC => 'Wprowadzona wartość nie jest numeryczna'
         ]);
     }

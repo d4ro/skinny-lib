@@ -18,11 +18,11 @@ class NotEmpty extends ValidatorBase {
         if (!parent::isValid($value)) {
             return false;
         }
-        
+
         if (
-                $value === null ||
-                (is_string($value) && strlen($value) === 0) ||
-                (is_array($value) && count($value) === 0)
+            $value === null ||
+            (is_string($value) && strlen($value) === 0) ||
+            (is_array($value) && count($value) === 0)
         ) {
             $this->error(self::IS_EMPTY);
             return false;

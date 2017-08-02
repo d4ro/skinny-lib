@@ -42,13 +42,13 @@ class IsNip extends ValidatorBase {
 
         // tablica z odpowiednimi wagami
         $arrSteps = array(6, 5, 7, 2, 3, 4, 5, 6, 7);
-        $intSum = 0;
+        $intSum   = 0;
         for ($i = 0; $i < 9; $i++) {
             // mnożymy każdy ze znaków przez wagę i sumujemy wszystko
             $intSum += $arrSteps[$i] * $value[$i];
         }
 
-        $int = $intSum % 11;
+        $int          = $intSum % 11;
         $intControlNr = ($int == 10) ? 0 : $int;
 
         // sprawdzamy czy taka sama suma kontrolna jest w ciągu

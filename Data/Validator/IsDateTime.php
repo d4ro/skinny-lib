@@ -42,7 +42,7 @@ class IsDateTime extends IsString {
          * TODO
          */
         $datetimeExplode = explode(" ", $value);
-        $dateExplode = explode("-", $datetimeExplode[0]);
+        $dateExplode     = explode("-", $datetimeExplode[0]);
         if (!checkdate($dateExplode[1], $dateExplode[2], $dateExplode[0])) {
             $this->error(self::MSG_NOT_DATETIME);
             return false;

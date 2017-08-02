@@ -23,8 +23,8 @@ class IsInt extends ValidatorBase {
         }
 
         if (
-                !is_int($value) &&
-                (!is_string($value) || !preg_match('/^-?[0-9]{1,}$/', $value))
+            !is_int($value) &&
+            (!is_string($value) || !preg_match('/^-?[0-9]{1,}$/', $value))
         ) {
             return $this->error(self::MSG_NOT_INT);
         }

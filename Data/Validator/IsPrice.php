@@ -23,7 +23,7 @@ class IsPrice extends ValidatorBase {
         $this->_setMessagesTemplates([
             self::MSG_NOT_PRICE => "Niepoprawna kwota"
         ]);
-        
+
         if (key_exists(self::OPT_SEPARATOR, $this->_options)) {
             if ($this->_options[self::OPT_SEPARATOR] != "," && $this->_options[self::OPT_SEPARATOR] != ".") {
                 throw new exception("Podano zły separator");
@@ -37,15 +37,14 @@ class IsPrice extends ValidatorBase {
         if (!parent::isValid($value)) {
             return false;
         }
-        
+
         /**
          * BUG!
          * TODO DO POPRAWIENIA
          * Warning w przypadku gdy value nie jest string
          */
-
         $separator = ($this->_options[self::OPT_SEPARATOR] == '.' ? '\.' : $this->_options[self::OPT_SEPARATOR]);
-        $pattern = '/^(?:0|[1-9]\d*)(?:' . $separator . '\d{0,2})?$/';
+        $pattern   = '/^(?:0|[1-9]\d*)(?:' . $separator . '\d{0,2})?$/';
         if (!preg_match($pattern, $value)) {
             return $this->error(self::MSG_NOT_PRICE);
         }

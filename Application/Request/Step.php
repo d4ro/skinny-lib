@@ -42,11 +42,11 @@ class Step extends Router\Container\ContainerBase {
     protected $_resolved;
 
     public function __construct($requestUrl, $params = array()) {
-        $this->_requestUrl = $requestUrl;
-        $this->_params = $params;
+        $this->_requestUrl  = $requestUrl;
+        $this->_params      = $params;
         $this->_actionMatch = true;
-        $this->_resolved = false;
-        $this->_processed = false;
+        $this->_resolved    = false;
+        $this->_processed   = false;
     }
 
     public function next(Step $step = null) {
@@ -58,7 +58,7 @@ class Step extends Router\Container\ContainerBase {
 
     public function previous(Step $step = null) {
         if (null !== $step) {
-            $this->_first = null;
+            $this->_first    = null;
             $this->_previous = $step;
         }
         return $this->_previous;
@@ -66,7 +66,7 @@ class Step extends Router\Container\ContainerBase {
 
     public function first() {
         if (null == $this->_first) {
-            $first = $previous = $this;
+            $first    = $previous = $this;
             while ($previous = $previous->previous()) {
                 $first = $previous;
             }

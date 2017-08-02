@@ -21,7 +21,7 @@ class IsArray extends ValidatorBase {
         if (!parent::isValid($value)) {
             return false;
         }
-        
+
         if (!is_array($value)) {
             return $this->error(self::MSG_NOT_ARRAY);
         }

@@ -8,10 +8,10 @@ namespace Skinny\Db\Record;
  */
 class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
-    const IDX_PLAIN = 0;
-    const IDX_ID = 1;
+    const IDX_PLAIN  = 0;
+    const IDX_ID     = 1;
     const IDX_TBL_ID = 2;
-    const IDX_HASH = 3;
+    const IDX_HASH   = 3;
     const IDX_CUSTOM = 4;
 
     /**
@@ -77,10 +77,10 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      */
     public function __construct(array $collection = array(), $strictTypeCheck = true) {
         $this->_idx = [
-            self::IDX_PLAIN => [],
-            self::IDX_ID => [],
+            self::IDX_PLAIN  => [],
+            self::IDX_ID     => [],
             self::IDX_TBL_ID => [],
-            self::IDX_HASH => [],
+            self::IDX_HASH   => [],
             self::IDX_CUSTOM => [],
         ];
 
@@ -119,7 +119,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         if (is_int($index)) {
             $this->_useIndex = $index;
         } else {
-            $this->_useIndex = self::IDX_CUSTOM;
+            $this->_useIndex  = self::IDX_CUSTOM;
             $this->_customIdx = $index;
             $this->_rebuildIndex(self::IDX_CUSTOM);
         }
@@ -174,7 +174,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         $result = [];
 
         foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
-            $record = $this->_data[$recordNum];
+            $record       = $this->_data[$recordNum];
             $result[$key] = $record;
         }
 
@@ -201,7 +201,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      */
     protected function _checkArrayType(array $collection, $strict = true, $throw = false) {
         $exception = new InvalidRecordException('Record Collection contains elements of invalid type');
-        $error = false;
+        $error     = false;
 
         if (!empty($collection)) {
             $first = $collection[key($collection)];
@@ -265,7 +265,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @param string $className
      */
     public function setRecordClassName($className) {
-        \Skinny\Exception::throwIf(isset($this->_recordClassName), new \Skinny\Db\DbException('Record type has been already set for this collection'));
+        \Skinny\Exception::throwIf(isset($this->_recordClassName),
+            new \Skinny\Db\DbException('Record type has been already set for this collection'));
 
         $this->_recordClassName = $className;
     }
@@ -293,12 +294,12 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     protected function _addToIndex(array $records) {
         foreach ($records as $record) {
             /* @var $record RecordBase */
-            $this->_data[] = $record;
-            $key = \Skinny\DataObject\ArrayWrapper::lastInsertKey($this->_data);
-            $this->_idx[self::IDX_PLAIN][$key] = $key;
-            $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $key;
+            $this->_data[]                                                    = $record;
+            $key                                                              = \Skinny\DataObject\ArrayWrapper::lastInsertKey($this->_data);
+            $this->_idx[self::IDX_PLAIN][$key]                                = $key;
+            $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)]    = $key;
             $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $key;
-            $this->_idx[self::IDX_HASH][$record->createRandomString()] = $key;
+            $this->_idx[self::IDX_HASH][$record->createRandomString()]        = $key;
             if ($this->_customIdx) {
                 $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $key;
             }
@@ -313,7 +314,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @return RecordBase stworzony rekord
      */
     public function create(array $data = []) {
-        \Skinny\Exception::throwIf(null === $this->_recordClassName, new RecordException('Record class name is not defined'));
+        \Skinny\Exception::throwIf(null === $this->_recordClassName,
+            new RecordException('Record class name is not defined'));
 
         $record = new $this->_recordClassName($data);
         $this->addRecords([$record]);
@@ -376,7 +378,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
         $result = array();
         foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
-            $record = $this->_data[$recordNum];
+            $record       = $this->_data[$recordNum];
             $result[$key] = call_user_func($callback, $record, $key);
         }
 
@@ -426,8 +428,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             throw new \BadFunctionCallException('Argument is not callable.');
         }
 
-        $result = [];
-        $oldIndex = $this->_useIndex;
+        $result          = [];
+        $oldIndex        = $this->_useIndex;
         $this->_useIndex = self::IDX_PLAIN;
 
         foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
@@ -443,11 +445,11 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
         $this->_useIndex = $oldIndex;
 
-        $collection = new static();
-        $collection->_useIndex = $this->_useIndex;
+        $collection                            = new static();
+        $collection->_useIndex                 = $this->_useIndex;
         $collection->_isStrictTypeCheckEnabled = $this->_isStrictTypeCheckEnabled;
-        $collection->_recordClassName = $this->_recordClassName;
-        $collection->_data = $result;
+        $collection->_recordClassName          = $this->_recordClassName;
+        $collection->_data                     = $result;
         $collection->_rebuildIndex(self::IDX_PLAIN);
         $collection->_rebuildIndex(self::IDX_ID);
         $collection->_rebuildIndex(self::IDX_TBL_ID);
@@ -471,7 +473,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     public function call($method, array $params = array()) {
         $result = array();
         foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
-            $record = $this->_data[$recordNum];
+            $record       = $this->_data[$recordNum];
             $result[$key] = call_user_func_array([$record, $method], $params);
         }
         return $result;
@@ -496,7 +498,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     public function &__get($name) {
         $result = array();
         foreach ($this->_idx[$this->_useIndex] as $key => $recordNum) {
-            $record = $this->_data[$recordNum];
+            $record       = $this->_data[$recordNum];
             $result[$key] = $record->$name;
         }
         return $result;
@@ -548,10 +550,10 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
         $this->_data[$offset] = $record;
 
-        $this->_idx[self::IDX_PLAIN][$offset] = $offset;
-        $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)] = $offset;
+        $this->_idx[self::IDX_PLAIN][$offset]                             = $offset;
+        $this->_idx[self::IDX_ID][$record->getIdAsString(false, true)]    = $offset;
         $this->_idx[self::IDX_TBL_ID][$record->getIdAsString(true, true)] = $offset;
-        $this->_idx[self::IDX_HASH][$record->createRandomString()] = $offset;
+        $this->_idx[self::IDX_HASH][$record->createRandomString()]        = $offset;
         if ($this->_customIdx) {
             $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $offset;
         }
@@ -568,7 +570,8 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      * @return int ilość dodanych do kolekcji rekordów
      */
     public function addFind($where = null, $order = null, $limit = null, $offset = null) {
-        \Skinny\Exception::throwIf(empty($this->_recordClassName), new RecordException('Record class name has not been set for this record collection so find() cannot operate.'));
+        \Skinny\Exception::throwIf(empty($this->_recordClassName),
+            new RecordException('Record class name has not been set for this record collection so find() cannot operate.'));
         $records = call_user_func([$this->_recordClassName, 'findArray'], $where, $order, $limit, $offset);
         $this->addRecords($records);
         return count($records);
@@ -630,13 +633,13 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         }
 
         if (key_exists($name, $this->_idx[$this->_useIndex])) {
-            $key = $this->_idx[$this->_useIndex][$name];
+            $key               = $this->_idx[$this->_useIndex][$name];
             $this->_data[$key] = $value;
 
-            $this->_idx[self::IDX_PLAIN][$key] = $key;
-            $this->_idx[self::IDX_ID][$value->getIdAsString(false, true)] = $key;
+            $this->_idx[self::IDX_PLAIN][$key]                               = $key;
+            $this->_idx[self::IDX_ID][$value->getIdAsString(false, true)]    = $key;
             $this->_idx[self::IDX_TBL_ID][$value->getIdAsString(true, true)] = $key;
-            $this->_idx[self::IDX_HASH][$value->createRandomString()] = $key;
+            $this->_idx[self::IDX_HASH][$value->createRandomString()]        = $key;
             if ($this->_customIdx) {
                 $this->_idx[self::IDX_CUSTOM][$value->{$this->_customIdx}] = $key;
             }
