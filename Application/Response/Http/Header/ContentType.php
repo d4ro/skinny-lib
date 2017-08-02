@@ -17,7 +17,7 @@ class ContentType extends HeaderBase {
     public function __construct($contentType) {
         parent::__construct();
 
-        $this->_name = 'Content-Type';
+        $this->_name  = 'Content-Type';
         $this->_value = $contentType;
     }
 
@@ -49,4 +49,5 @@ class ContentType extends HeaderBase {
     public static function EVENT_STREAM() {
         return new ContentType('text/event-stream');
     }
+
 }

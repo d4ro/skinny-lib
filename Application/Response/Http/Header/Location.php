@@ -10,9 +10,9 @@ namespace Skinny\Application\Response\Http\Header;
 class Location extends HeaderBase {
 
     public function __construct($url, $code = 302) {
-        $this->_name = 'Location';
+        $this->_name  = 'Location';
         $this->_value = $url;
-        $this->_code = $code;
+        $this->_code  = $code;
     }
 
 }

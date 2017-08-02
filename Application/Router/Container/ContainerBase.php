@@ -79,15 +79,15 @@ abstract class ContainerBase implements ContainerInterface {
      * Konstruktor inicjujący wartości domyślne.
      */
     public function __construct() {
-        $this->_action = null;
-        $this->_actionUrl = '';
+        $this->_action      = null;
+        $this->_actionUrl   = '';
         $this->_actionParts = array();
         $this->_actionDepth = 0;
         $this->_actionMatch = false;
-        $this->_args = array();
-        $this->_argCount = 0;
-        $this->_params = array();
-        $this->_paramCount = 0;
+        $this->_args        = array();
+        $this->_argCount    = 0;
+        $this->_params      = array();
+        $this->_paramCount  = 0;
     }
 
     public function getBaseUrl() {
@@ -214,7 +214,7 @@ abstract class ContainerBase implements ContainerInterface {
      */
     public function setActionParts(array $actionParts) {
         $this->_actionParts = $actionParts;
-        $this->_actionUrl = implode('/', $actionParts);
+        $this->_actionUrl   = implode('/', $actionParts);
         $this->_actionDepth = count($actionParts);
     }
 
@@ -223,17 +223,17 @@ abstract class ContainerBase implements ContainerInterface {
     }
 
     public function resetArgs(array $args) {
-        $this->_args = $args;
+        $this->_args     = $args;
         $this->_argCount = count($args);
     }
 
     public function setParams(array $params) {
-        $this->_params = array_merge($this->_params, $params);
+        $this->_params     = array_merge($this->_params, $params);
         $this->_paramCount = count($this->_params);
     }
 
     public function resetParams(array $params = array()) {
-        $this->_params = $params;
+        $this->_params     = $params;
         $this->_paramCount = count($this->_params);
     }
 
