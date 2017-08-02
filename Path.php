@@ -70,7 +70,7 @@ class Path {
      * @return string
      */
     public static function combine($path) {
-        $args = func_get_args();
+        $args       = func_get_args();
         $targetPath = '';
         foreach ($args as $arg) {
             if (is_array($arg)) {
@@ -87,7 +87,8 @@ class Path {
             }
         }
 
-        return preg_replace('|' . DIRECTORY_SEPARATOR . '+|', DIRECTORY_SEPARATOR, rtrim($targetPath, DIRECTORY_SEPARATOR));
+        return preg_replace('|' . DIRECTORY_SEPARATOR . '+|', DIRECTORY_SEPARATOR,
+            rtrim($targetPath, DIRECTORY_SEPARATOR));
     }
 
     /**

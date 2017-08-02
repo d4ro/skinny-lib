@@ -39,9 +39,8 @@ class Bindable extends Assemblable implements BindableInterface {
             $key = key($expression);
             if (is_string($key)) {
                 $this->_expression = $key;
-                $this->_values[] = $expression[$key];
-            }
-            else
+                $this->_values[]   = $expression[$key];
+            } else
                 $this->_expression = $expression[$key];
         }
     }
@@ -66,4 +65,5 @@ class Bindable extends Assemblable implements BindableInterface {
     public static function randomName() {
         // TODO: generowanie randomowej nazwy paramu: same litery i cyfry o stałej długości >=8
     }
+
 }

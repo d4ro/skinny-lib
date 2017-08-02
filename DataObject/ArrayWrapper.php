@@ -228,7 +228,6 @@ class ArrayWrapper extends DataBase implements \JsonSerializable, \ArrayAccess, 
 //    public static function forEachMultiDim(array $multidimensionalArray) {
 //        return new MultidimensionalIterator($multidimensionalArray);
 //    }
-
 }
 
 //class MultidimensionalIterator implements \Iterator {

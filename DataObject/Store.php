@@ -181,8 +181,8 @@ class Store extends ObjectModelBase implements \JsonSerializable {
             }
         }
 
-        $default = isset($arguments[0]) ? $arguments[0] : null;
-        $create = isset($arguments[1]) ? $arguments[1] : false;
+        $default        = isset($arguments[0]) ? $arguments[0] : null;
+        $create         = isset($arguments[1]) ? $arguments[1] : false;
         $return_default = isset($arguments[2]) ? $arguments[2] : isset($arguments[0]);
 
         if ($create) {
@@ -243,7 +243,7 @@ class Store extends ObjectModelBase implements \JsonSerializable {
 
         return $this;
     }
-    
+
     /**
      * Zwraca klucze wszystkich podelementów
      * 

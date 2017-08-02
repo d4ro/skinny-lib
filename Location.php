@@ -18,7 +18,7 @@ class Location {
      */
     public static function isRemote() {
         if (!isset(self::$_isRemote)) {
-            $sapi = php_sapi_name();
+            $sapi            = php_sapi_name();
             self::$_isRemote = $sapi != 'cli' && substr($sapi, 0, 3) != 'cgi';
         }
         return self::$_isRemote;
@@ -126,21 +126,21 @@ class Location {
      * @param integer $responseCode [opcjonalny] kod odpowiedzi HTTP - domyślnie 302 Found
      */
     protected static function _redirect($protocol = null, $url = null, array $params = array(), $responseCode = 302) {
-        $host = null;
+        $host    = null;
         $matches = null;
 
         // wycięcię z URL protokołu, jeżeli istnieje - URL ma być postaci: "/*", np. "/", "/tekst", "/abc/xyz"
         if (preg_match('@^(https?|ftp)://@', $url, $matches)) {
             $protocol2 = $matches[1] . '://';
-            $url = substr($url, strlen($protocol2) - 1);
+            $url       = substr($url, strlen($protocol2) - 1);
             if (null === $protocol)
-                $protocol = $protocol2;
+                $protocol  = $protocol2;
         }
 
         // wycięcie adresu hosta z URL
         if (preg_match('|^//([-_a-zA-Z0-9.~:/?#[\]@!$&\'()*+,;=]+)/?|', $url, $matches)) {
             $host = $matches[1];
-            $url = substr($url, strlen($host) + 2);
+            $url  = substr($url, strlen($host) + 2);
         }
 
         // domyslny protokół aktualny
@@ -196,9 +196,10 @@ class Location {
     public static function _addParams($url, array $params) {
         // TODO: możliwy bug, gdy URL kończy się parametrami PHP w stylu ?a=b&c=d
         $url = rtrim($url, '/');
-        array_walk($params, function ($value, $key) use (&$url) {
-                    $url .= "/$key/$value";
-                });
+        array_walk($params,
+            function ($value, $key) use (&$url) {
+            $url .= "/$key/$value";
+        });
         return $url;
     }
 
@@ -225,7 +226,7 @@ class Location {
     public static function sendHeader($header, $replace = true, $responseCode = null) {
         self::areHeadersSent(true);
         if ($header instanceof Response\Http\Header\HeaderInterface) {
-            $code = $header->getCode();
+            $code   = $header->getCode();
             $header = $header->toString();
         }
         if (empty($code))

@@ -24,26 +24,26 @@ class Router extends Router\RouterBase {
      */
     public function __construct($contentPath, $cachePath, $config = array()) {
         $this->_contentPath = $contentPath;
-        $this->_cachePath = $cachePath;
-        $this->_config = ($config instanceof Store) ? $config : new Store($config);
+        $this->_cachePath   = $cachePath;
+        $this->_config      = ($config instanceof Store) ? $config : new Store($config);
     }
 
     protected static function _setParam(&$params, $key, $value) {
         $key = static::_trueKey(urldecode($key));
         $key = explode('/', $key);
 
-        $cursor = &$params;
+        $cursor    = &$params;
         $keyLength = count($key);
         for ($i = 0; $i < $keyLength; $i++) {
-            $keyPart = $key[$i];
+            $keyPart  = $key[$i];
             $lastPart = !($i + 1 < $keyLength);
 
             // czy część klucza jest pusta - jeżeli tak, ma być numerem kolejnym
             if (empty($keyPart)) {
-                $cursor[] = $lastPart ? $value : [];
+                $cursor[]      = $lastPart ? $value : [];
                 end($cursor);
                 $lastInsertKey = key($cursor);
-                $cursor = &$cursor[$lastInsertKey];
+                $cursor        = &$cursor[$lastInsertKey];
                 continue;
             }
 
@@ -99,8 +99,8 @@ class Router extends Router\RouterBase {
         onQuestionMarkParams:
         // obsługa parametrów po "?"
         $questionMarkParams = [];
-        if (false !== ($questionMarkIndex = strpos($requestUrl, '?'))) {
-            $apString = substr($requestUrl, $questionMarkIndex + 1);
+        if (false !== ($questionMarkIndex  = strpos($requestUrl, '?'))) {
+            $apString   = substr($requestUrl, $questionMarkIndex + 1);
             $requestUrl = substr($requestUrl, 0, $questionMarkIndex);
             parse_str($apString, $questionMarkParams);
         }
@@ -163,7 +163,8 @@ class Router extends Router\RouterBase {
                 $actionFile = Path::combine($this->_contentPath, $actionParts) . '.php';
                 include $actionFile;
             }
-            \Skinny\Exception::throwIf(!class_exists($actionClassName, false), new ActionException("Action '$actionClassName' is defined but its class is not found."));
+            \Skinny\Exception::throwIf(!class_exists($actionClassName, false),
+                new ActionException("Action '$actionClassName' is defined but its class is not found."));
             $container->setAction(new $actionClassName());
         }
 

@@ -37,7 +37,7 @@ class File {
 
         if (($f = @fopen($this->_path, $mode))) {
             $this->_descriptor = $f;
-            $this->_mode = $mode;
+            $this->_mode       = $mode;
             return true;
         } else {
             return false;
@@ -50,7 +50,7 @@ class File {
         }
 
         $this->_descriptor = null;
-        $this->_mode = null;
+        $this->_mode       = null;
     }
 
     public function isOpened() {
@@ -199,7 +199,7 @@ class File {
     public function getMimeType() {
         if (class_exists('finfo', false)) {
             $const = defined('FILEINFO_MIME_TYPE') ? FILEINFO_MIME_TYPE : FILEINFO_MIME;
-            $mime = @finfo_open($const);
+            $mime  = @finfo_open($const);
 
             if (!empty($mime))
                 $mimeType = finfo_file($mime, $this->_path);

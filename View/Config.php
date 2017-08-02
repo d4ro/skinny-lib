@@ -24,9 +24,9 @@ class Config extends \Skinny\DataObject\Store {
     public function __construct($obj = null) {
         // Domyślna konfiguracja
         $this->applicationPath = getcwd();
-        $this->baseUrl = '/';
-        $this->jsExtension = '.js';
-        $this->cssExtension = '.css';
+        $this->baseUrl         = '/';
+        $this->jsExtension     = '.js';
+        $this->cssExtension    = '.css';
 
         // Czy widok ma być domyślnie renderowany przy pomocy ustawionego renderera
         $this->isRenderAllowed = true;

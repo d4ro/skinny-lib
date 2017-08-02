@@ -24,7 +24,7 @@ class Loader {
      */
     public function __construct($paths) {
         $this->_loaders = array();
-        $this->_paths = $paths;
+        $this->_paths   = $paths;
     }
 
     /**
@@ -50,7 +50,7 @@ class Loader {
         $p = $priority * self::CAPACITY;
         for ($i = $p; $i < $p + self::CAPACITY; $i++) {
             if (!isset($this->_loaders[$i])) {
-                $this->_loaders[$i] = $loader;
+                $this->_loaders[$i]  = $loader;
                 $this->_names[$name] = $i;
                 return;
             }
@@ -121,7 +121,7 @@ class Loader {
                 require_once $file;
             }
             $class_name = array_shift($parts);
-            $class = new $class_name($this->_paths, $config);
+            $class      = new $class_name($this->_paths, $config);
             $this->putLoader($class, $name, $priority);
         }
     }

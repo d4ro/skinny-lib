@@ -21,7 +21,7 @@ class Files implements \IteratorAggregate {
      * @var string 
      */
     protected $_baseUrl;
-    
+
     /**
      * Ścieżka aplikacji (katalog public)
      * @var string
@@ -68,10 +68,10 @@ class Files implements \IteratorAggregate {
             throw new Exception('Argument $extension (' . $extension . ') is invalid');
         }
 
-        $this->_baseUrl = $baseUrl;
+        $this->_baseUrl         = $baseUrl;
         $this->_applicationPath = $applicationPath;
-        $this->_filesPath = $filesPath;
-        $this->_extension = $extension;
+        $this->_filesPath       = $filesPath;
+        $this->_extension       = $extension;
     }
 
     /**
@@ -92,7 +92,7 @@ class Files implements \IteratorAggregate {
                 throw new Exception("File '$filePath' doesn't exist.");
             }
         } else {
-            $url = $this->_getFileUrl($file);
+            $url                = $this->_getFileUrl($file);
             $this->_items[$url] = $url;
         }
 
@@ -113,13 +113,13 @@ class Files implements \IteratorAggregate {
             }
         } else {
             // dodanie elementu na początek tablicy asocjacyjnej
-            $url = $this->_getFileUrl($file);
+            $url          = $this->_getFileUrl($file);
             $this->_items = [$url => $url] + $this->_items;
         }
 
         return $this;
     }
-    
+
     /**
      * Sprawdza istnienie pliku pod podaną ścieżką.
      * UWAGA - w przypadku adresu URL funkcja zwraca TRUE.
@@ -128,7 +128,7 @@ class Files implements \IteratorAggregate {
      * @return boolean
      */
     public function fileExists($filePath) {
-        if(\Skinny\Url::hasProtocol($filePath)) {
+        if (\Skinny\Url::hasProtocol($filePath)) {
             return true; // TODO ewentualne sprawdzanie istnienia pliku pod adresem URL
         } else {
             return file_exists($filePath);
@@ -158,7 +158,7 @@ class Files implements \IteratorAggregate {
             if (!$this->hasExtensionAlready($file)) {
                 $file .= $this->_extension;
             }
-            
+
             return $file;
         }
     }
@@ -177,12 +177,12 @@ class Files implements \IteratorAggregate {
             if (!\Skinny\Path::isAbsolute($file)) {
                 $file = \Skinny\Path::combine($this->_baseUrl, $this->_filesPath, $file);
             }
-            
+
             // dołączenie odpowiedniego rozszerzenia jeśli nie ustawione
             if (!$this->hasExtensionAlready($file)) {
                 $file .= $this->_extension;
             }
-            
+
             return $file;
         }
     }
@@ -209,7 +209,7 @@ class Files implements \IteratorAggregate {
     public function hasExtensionAlready($file) {
         return false !== strrpos($file, $this->_extension);
     }
-    
+
     public function clear() {
         $this->_items = [];
     }

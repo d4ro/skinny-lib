@@ -94,10 +94,10 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @var array
      */
     protected $_options = [
-        self::OPTION_BREAK_ON_ITEM_FAILURE => false,
+        self::OPTION_BREAK_ON_ITEM_FAILURE      => false,
         self::OPTION_BREAK_ON_VALIDATOR_FAILURE => true,
-        self::OPTION_MESSAGES_PARAMS => [],
-        self::OPTION_VALIDATE_ON_EMPTY => false
+        self::OPTION_MESSAGES_PARAMS            => [],
+        self::OPTION_VALIDATE_ON_EMPTY          => false
     ];
 
     /**
@@ -140,7 +140,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             $item->mergeOptions($this->_options);
 
             // Budowanie kluczy od roota tak aby był do nich szybki dostęp (do danych)
-            $item->_keysFromRoot = array_merge([], $this->_keysFromRoot);
+            $item->_keysFromRoot   = array_merge([], $this->_keysFromRoot);
             $item->_keysFromRoot[] = $name;
         }
 
@@ -159,10 +159,10 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @return \self
      */
     protected function _createObject($name) {
-        $item = new self();
-        $item->_name = $name;
+        $item          = new self();
+        $item->_name   = $name;
         $item->_parent = $this;
-        $item->_root = $this->_root;
+        $item->_root   = $this->_root;
         return $item;
     }
 
@@ -328,17 +328,17 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         // Jeżeli nie jest ustawiony walidator MustExist a klucz nie istnieje,
         // nie trzeba przeprowadzać walidacji
         if (
-                (
-                $value instanceof KeyNotExist &&
-                !$item->hasValidator(Validator\MustExist::class) &&
-                !$item->hasValidator(Validator\Required::class)
-                ) ||
-                (
-                $item->_options[self::OPTION_VALIDATE_ON_EMPTY] === false &&
-                !(new Validator\NotEmpty())->isValid($value) &&
-                !$item->hasValidator(Validator\NotEmpty::class) &&
-                !$item->hasValidator(Validator\Required::class)
-                )
+            (
+            $value instanceof KeyNotExist &&
+            !$item->hasValidator(Validator\MustExist::class) &&
+            !$item->hasValidator(Validator\Required::class)
+            ) ||
+            (
+            $item->_options[self::OPTION_VALIDATE_ON_EMPTY] === false &&
+            !(new Validator\NotEmpty())->isValid($value) &&
+            !$item->hasValidator(Validator\NotEmpty::class) &&
+            !$item->hasValidator(Validator\Required::class)
+            )
         ) {
             return true;
         }
@@ -365,8 +365,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     protected function _validateItemValidator($item, $validator, $value) {
         // Ustawienie customowych komunikatów wraz z przekazaniem name oraz value
         $params = array_merge(
-                [Validator\ValidatorBase::PRM_NAME => $item->getName()/* , Validator\ValidatorBase::PRM_VALUE => $value */]
-                , $item->_options[self::OPTION_MESSAGES_PARAMS]);
+            [Validator\ValidatorBase::PRM_NAME => $item->getName()/* , Validator\ValidatorBase::PRM_VALUE => $value */]
+            , $item->_options[self::OPTION_MESSAGES_PARAMS]);
 
         $validator->setMessagesParams($params);
 
@@ -448,9 +448,9 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         if ($validator instanceof Validator\Simple) {
             // przekazanie obecnego poziomu do walidatora simple w celu możliwości 
             // pobrania nazwy pola i dodawania kolejnych podpoziomów (np. przy walidatorach each)
-            $validator->item = $this;
+            $validator->item   = $this;
             $validator->parent = $this->parent();
-            $validator->root = $this->root();
+            $validator->root   = $this->root();
         }
 
         $this->mergeOptions($options);
@@ -535,8 +535,8 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     public function each($validator, $errorMsg = null, $options = null) {
         $this->_eachValidators[] = [
             'validator' => $validator,
-            'errorMsg' => $errorMsg,
-            'options' => $options
+            'errorMsg'  => $errorMsg,
+            'options'   => $options
         ];
 
         return $this;
@@ -630,7 +630,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
 
         $toFind = count($validators);
-        $found = 0;
+        $found  = 0;
         if (!empty($this->_validators)) {
             foreach ($validators as $validatorToFind) {
                 foreach ($this->_validators as $v) {
@@ -760,7 +760,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             $this->value($data);
         }
 
-        $i = 0;
+        $i      = 0;
         $result = null;
 
         /**
@@ -784,10 +784,10 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
             if ($this->isRoot()) {
                 $dataToValidate = $this->value();
             } else {
-                $dataToValidate = [];
+                $dataToValidate                   = [];
                 $dataToValidate[$this->getName()] = $this->value();
             }
-            $result = $this->_validate($dataToValidate);
+            $result     = $this->_validate($dataToValidate);
             $itemsAfter = $this->count();
 
             $i++;
@@ -993,7 +993,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * @return array
      */
     public function getResults(&$results = []) {
-        $name = $this->isRoot() ? 'root' : $this->getName();
+        $name           = $this->isRoot() ? 'root' : $this->getName();
         $results[$name] = ['__result__' => $this->_result];
 
         if (!empty($this->_items)) {
@@ -1084,7 +1084,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      */
     public function resetData() {
         $this->root()->__allData = [];
-        $this->_value = null;
+        $this->_value            = null;
         if (!empty($this->_items)) {
             foreach ($this->_items as $item) {
                 $item->resetData();

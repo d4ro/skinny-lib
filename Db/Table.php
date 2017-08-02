@@ -14,7 +14,7 @@ class Table extends DatabaseAware {
     protected $_table;
 
     public function __construct(Db $db, $table) {
-        $this->_db = $db;
+        $this->_db    = $db;
         $this->_table = $table;
     }
 

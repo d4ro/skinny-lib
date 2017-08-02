@@ -91,7 +91,7 @@ class StoreOld implements \JsonSerializable, \IteratorAggregate {
     // isset lub empty na nieistniejącej właściwości
     public function __isset($name) {
         return isset($this->items[$name]) &&
-                (!($this->items[$name] instanceof self) || ($this->items[$name] instanceof self) && !$this->items[$name]->isEmpty());
+            (!($this->items[$name] instanceof self) || ($this->items[$name] instanceof self) && !$this->items[$name]->isEmpty());
     }
 
     // unsetowanie nieistniejącej właściwości
@@ -184,8 +184,8 @@ class StoreOld implements \JsonSerializable, \IteratorAggregate {
             }
         }
 
-        $default = isset($arguments[0]) ? $arguments[0] : null;
-        $create = isset($arguments[1]) ? $arguments[1] : false;
+        $default        = isset($arguments[0]) ? $arguments[0] : null;
+        $create         = isset($arguments[1]) ? $arguments[1] : false;
         $return_default = isset($arguments[2]) ? $arguments[2] : isset($arguments[0]);
 
         if ($create) {

@@ -14,11 +14,12 @@ class Standard extends LoaderBase {
     public function register() {
         // ustaw ścieżki include
         set_include_path(
-                implode(PATH_SEPARATOR, array(
-                    implode(PATH_SEPARATOR, $this->_config->paths->toArray()),
-                    implode(PATH_SEPARATOR, $this->_paths->toArray()),
-                    get_include_path()
-                ))
+            implode(PATH_SEPARATOR,
+                array(
+            implode(PATH_SEPARATOR, $this->_config->paths->toArray()),
+            implode(PATH_SEPARATOR, $this->_paths->toArray()),
+            get_include_path()
+            ))
         );
 
         // zarejestruj standardowy loader

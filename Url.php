@@ -37,12 +37,12 @@ class Url {
             array_shift($args);
             // TODO: sprawdzić, czy nie potrzeba zamiast 0 dać key($args)
             $args[0] = $path;
-            $path = call_user_func_array(array(__CLASS__, __METHOD__), $args);
+            $path    = call_user_func_array(array(__CLASS__, __METHOD__), $args);
         }
 
         return $path;
     }
-    
+
     /**
      * Sprawdza czy na początku url'a znajduje się protokół.
      * 
@@ -60,7 +60,8 @@ class Url {
     public static function isCorrect($url) {
         // TODO: sprawdzić poprawność algorytmu
         // TODO: ERROR - url nie jest poprawny dla zapisu: "//onet.pl"
-        return (bool) preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i", $url);
+        return (bool) preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i",
+                $url);
     }
 
 }

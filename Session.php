@@ -31,11 +31,11 @@ class Session extends DataObject\ArrayWrapper {
     protected $_adapter;
 
     public function __construct($config, $adapter) {
-        $this->_config = $config;
+        $this->_config  = $config;
         $this->_adapter = $adapter;
 //        $this->_adapter->setSessionConfig($this->_config);
         // zaślepka, ponieważ $_SESSION jeszcze nie istnieje
-        $sessionData = array();
+        $sessionData    = array();
         parent::__construct($sessionData);
     }
 
@@ -58,14 +58,15 @@ class Session extends DataObject\ArrayWrapper {
         $defaulName = session_name();
         session_name($this->_config->name($defaulName));
 
-        $result = session_start();
+        $result      = session_start();
         $this->_data = &$_SESSION;
         return $result;
     }
 
     protected function registerCallbacks() {
         $result = session_set_save_handler(
-                array($this, 'open'), array($this, 'close'), array($this, 'read'), array($this, 'write'), array($this, 'destroy'), array($this, 'gc')
+            array($this, 'open'), array($this, 'close'), array($this, 'read'), array($this, 'write'),
+            array($this, 'destroy'), array($this, 'gc')
         );
 
         register_shutdown_function('session_write_close');

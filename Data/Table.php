@@ -25,7 +25,7 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
      * @var string
      */
     protected $_attributesType = null;
-    
+
     /**
      * Przechowuje typ kontrolki wyszukiwarki dla aktualnego pola.
      * @var string
@@ -49,7 +49,7 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
      * @var string
      */
     protected $_attributesControlPath = null;
-    
+
     /**
      * Ścieżka kontrolki wyszukiwarki.
      * @var string
@@ -72,7 +72,7 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
      * Dane tabel niezbędne do wyświetlenia :)
      */
     protected $_data;
-    
+
     /**
      * Parametry z linka i/lub z POST'a.
      * @var array
@@ -81,8 +81,8 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
 
     public function __construct() {
         $this
-                ->type(self::$_config->default->table->control) // domyślna kontrolka tabeli
-                ->attributesType(self::$_config->default->table->attributesControl) // domyślna kontrolka atrybutów dla tabeli
+            ->type(self::$_config->default->table->control) // domyślna kontrolka tabeli
+            ->attributesType(self::$_config->default->table->attributesControl) // domyślna kontrolka atrybutów dla tabeli
         ;
     }
 
@@ -101,8 +101,8 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
         // jeżeli obiekt jest na nowo tworzony należy przypisać mu standardową konfigurację
         if ($new) {
             $item
-                    ->type(self::$_config->default->field->control) // domyślna kontrolka dla pól tabeli
-                    ->attributesType(self::$_config->default->field->attributesControl) // domyślna kontrolka atrybutów dla pól tabeli
+                ->type(self::$_config->default->field->control) // domyślna kontrolka dla pól tabeli
+                ->attributesType(self::$_config->default->field->attributesControl) // domyślna kontrolka atrybutów dla pól tabeli
             ;
         }
 
@@ -143,11 +143,11 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
         } else {
             if (!$this->isRoot()) {
                 // Mamy do czynienia z polem
-                $path = \Skinny\Path::combine(self::$_config->templatesPath, 'control', $type . '.tpl');
+                $path        = \Skinny\Path::combine(self::$_config->templatesPath, 'control', $type . '.tpl');
                 $controlPath = realpath($path);
             } else {
                 // Mamy do czynienia z obiektem głównym - więc szablonem
-                $path = \Skinny\Path::combine(self::$_config->templatesPath, 'template', $type . '.tpl');
+                $path        = \Skinny\Path::combine(self::$_config->templatesPath, 'template', $type . '.tpl');
                 $controlPath = realpath($path);
             }
 
@@ -155,7 +155,7 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
                 throw new Exception("Control \"$path\" does not exist");
             }
 
-            $this->_type = $type;
+            $this->_type        = $type;
             $this->_controlPath = $controlPath;
 
             return $this;
@@ -186,14 +186,14 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
                 return $this->_attributesType;
             }
         } else {
-            $path = \Skinny\Path::combine(self::$_config->templatesPath, 'attribute', $type . '.tpl');
+            $path        = \Skinny\Path::combine(self::$_config->templatesPath, 'attribute', $type . '.tpl');
             $controlPath = realpath($path);
 
             if (!file_exists($controlPath)) {
                 throw new Exception("Attributes control \"$path\" does not exist");
             }
 
-            $this->_attributesType = $type;
+            $this->_attributesType        = $type;
             $this->_attributesControlPath = $controlPath;
 
             return $this;
@@ -235,7 +235,7 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
 
         return $this->_attributesControlPath;
     }
-    
+
     /**
      * Zwraca ścieżkę aktualnej kontrolki wyszukiwarki.
      * 
@@ -249,7 +249,7 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
 
         return $this->_searchControlPath;
     }
-    
+
     public function getSearchData() {
         return [];
     }
@@ -449,7 +449,7 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
     public function getData() {
         return $this->_data;
     }
-    
+
     /**
      * Ustawia dodatkowe parametry dla tabeli.
      * 
@@ -458,7 +458,7 @@ abstract class Table extends \Skinny\DataObject\ObjectModelBase {
     public function setParams(array $params) {
         $this->_params = $params;
     }
-    
+
     /**
      * Pobiera dodatkowe parametry tabeli.
      * 

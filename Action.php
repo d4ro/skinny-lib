@@ -1,5 +1,5 @@
 <?php
- 
+
 namespace Skinny;
 
 use Skinny\Application\Request;

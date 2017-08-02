@@ -16,7 +16,7 @@ abstract class Assemblable extends DatabaseAware implements AssemblableInterface
     public function assemble(Db $db = null) {
         // TODO: walidacja $db
         if (null !== $db)
-            $this->_db = $db;
+            $this->_db        = $db;
         $this->_assembled = $this->_assemble();
     }
 

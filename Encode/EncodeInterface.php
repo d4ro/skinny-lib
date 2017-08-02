@@ -12,4 +12,3 @@ interface EncodeInterface {
 
     public static function decode($string);
 }
-

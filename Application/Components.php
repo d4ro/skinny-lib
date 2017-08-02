@@ -40,9 +40,9 @@ class Components implements \ArrayAccess {
      * @param Store $config
      */
     public function __construct(Store $config) {
-        $this->_components = array();
+        $this->_components   = array();
         $this->_initializers = array();
-        $this->_config = $config;
+        $this->_config       = $config;
 
         static::$_instance = $this;
     }
@@ -197,7 +197,8 @@ class Components implements \ArrayAccess {
             return false;
         }
 
-        $file = new \Skinny\File($filename = \Skinny\Path::combine($this->_config->paths->components('component/init', true), $name . '.php'));
+        $file     = new \Skinny\File($filename = \Skinny\Path::combine($this->_config->paths->components('component/init',
+                    true), $name . '.php'));
 
         if (!$file->isReadable()) {
             return false;
@@ -229,7 +230,7 @@ class Components implements \ArrayAccess {
             }
 
             $initializer = $this->_initializers[$component];
-            $result = $initializer();
+            $result      = $initializer();
             if (null === $result) {
                 throw new \BadFunctionCallException('Component name "' . $component . '" initializer does not return object.');
             }

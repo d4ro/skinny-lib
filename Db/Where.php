@@ -38,7 +38,7 @@ class Where extends Bindable {
      * @param array $values
      */
     public function __construct($expression, array $values = array()) {
-        $args = func_get_args();
+        $args              = func_get_args();
         $this->_expression = array_shift($args);
 
         if (count($args) == 1)

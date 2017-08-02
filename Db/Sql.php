@@ -42,11 +42,11 @@ class Sql extends Bindable {
     protected $_limit;
 
     public function __construct(Db $db, $method = null, $table = null) {
-        $this->_db = $db;
+        $this->_db    = $db;
         $this->setMethod($method);
         $this->_table = $table;
     }
-    
+
     protected function _assemble() {
         // TODO: skonstruowanie całego zapytania do $_expression bez bindowania parametrów z $_values ale z bindowaniem wszystkich komponentów, które są Bindable
         return parent::_assemble();
@@ -105,37 +105,37 @@ class Sql extends Bindable {
 
     public function select($columns = null) {
         return $this
-                        ->setMethod('SELECT')
-                        ->setColumns($columns);
+                ->setMethod('SELECT')
+                ->setColumns($columns);
     }
 
     public function update($data = null) {
         return $this
-                        ->setMethod('UPDATE')
-                        ->setData($data);
+                ->setMethod('UPDATE')
+                ->setData($data);
     }
 
     public function insert($data = null) {
         return $this
-                        ->setMethod('INSERT')
-                        ->setInsertData($data);
+                ->setMethod('INSERT')
+                ->setInsertData($data);
     }
 
     public function delete() {
         return $this
-                        ->setMethod('DELETE');
+                ->setMethod('DELETE');
     }
 
     public function orInsert($data = null) {
         return $this
-                        ->setMethod('ORINSERT')
-                        ->setInsertData($data);
+                ->setMethod('ORINSERT')
+                ->setInsertData($data);
     }
 
     public function reset($part) {
         switch (strtolower($part)) {
             case 'where':
-                $this->_where = null;
+                $this->_where   = null;
                 break;
             case 'order':
             case 'orderby':
