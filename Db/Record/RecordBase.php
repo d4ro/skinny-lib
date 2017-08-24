@@ -1673,7 +1673,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     protected static function _getCountSelect() {
         $static = new static();
 
-        return $static->getDb()->select()->from(['t' => static::getTableName()], ['COUNT(1)']);
+        return $static->getDb()->select()->from(['t' => $static->_getSelect()], ['COUNT(1)']);
     }
 
     /**
