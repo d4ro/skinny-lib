@@ -181,6 +181,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         if ($modelToArray) {
             $tmp = array();
 
+            /* @var $model RecordBase */
             foreach ($result as $model) {
                 $tmp[] = $model->toArray();
             }
