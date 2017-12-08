@@ -120,6 +120,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     private static function _select($select) {
         $static = new static();
         $data   = $static->getDb()->fetchAll($select);
+        
+        var_dump($data);
+        die($select);
 
         // czy są dane
         $result = array();
