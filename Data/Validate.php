@@ -734,12 +734,12 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
     /**
      * Uruchamia walidację dla bieżącego pola (lub całej walidacji).
      * 
-     * @param   array $data Metoda wymaga aby walidowane dane były w formie tablicy asocjacyjnej,
+     * @param   array $value Metoda wymaga aby walidowane dane były w formie tablicy asocjacyjnej,
      *                      gdzie klucz oznacza nazwę walidowanego pola a wartość - dane do walidacji dla tego pola.
      * @return  boolean
      * @todo Sprawdzenie czy działa walidacja dla pojedynczego pola i podanych danych wejściowych
      */
-    public function isValid($data = null) {
+    public function isValid($value = null) {
         if ($this->_status === self::STATUS_VALIDATION_IN_PROGRESS) {
 //            throw new Validate\Exception("Validation is in progress");
         }
@@ -757,7 +757,7 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
         }
 
         if (func_num_args() > 0) {
-            $this->value($data);
+            $this->value($value);
         }
 
         $i      = 0;
@@ -834,25 +834,25 @@ class Validate extends \Skinny\DataObject\ObjectModelBase {
      * Nieistniejące klucze są zapisywane jako obiekt KeyNotExist. 
      * Przy odczycie takie klucze są pomijane.
      * 
-     * @param mixed $data
+     * @param mixed $value
      * @param boolean $resetValidation
      * @return mixed
      */
-    public function value($data = null, $resetValidation = true) {
+    public function value($value = null, $resetValidation = true) {
         if (func_num_args() > 0) {
             // Zapis nowej wartości dla bieżącego poziomu
 //            if (!isset($data)) {
 //                $data = new KeyNotExist();
 //            }
             // Przypisanie danych do bieżącego poziomu
-            $this->_value = $data;
+            $this->_value = $value;
 
             // Jeżeli istnieją jakieś podelementy dla tego poziomu to dla nich również należy
             // przypisać odpowiednie wartości
             if (!empty($this->_items)) {
                 foreach ($this->_items as $item) {
-                    if (is_array($data) && key_exists($item->getName(), $data)) {
-                        $item->value($data[$item->getName()]);
+                    if (is_array($value) && key_exists($item->getName(), $value)) {
+                        $item->value($value[$item->getName()]);
                     } else {
                         $item->value(new KeyNotExist());
                     }
