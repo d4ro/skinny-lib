@@ -730,5 +730,34 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     public function toJson() {
         return json_encode($this->_data);
     }
+    
+    /**
+     * Redukuje kolekcję iterując przez wszystkie rekordy wykorzystując podaną funkcję zwrotną.
+     * Działa analogicznie jak funkcja array_reduce.
+     * 
+     * @param \Closure $closure Pierwszym argumentem jest wartość zwrócona w poprzedniej iteracji lub wartość startowa,
+     *                          drugim jest aktualnie przetwarzany rekord.
+     *                          Funkcja musi zwracać wynik dla kolejnej iteracji.
+     * 
+     * @param type $initialValue Wartość początkowa, która będzie przetwarzana ostatecznie zwrócona
+     * 
+     * @return mixed Zwraca przetworzoną wartość początkową
+     */
+    public function reduce(\Closure $closure, $initialValue) {
+        return array_reduce($this->toArray(), $closure, $initialValue);
+    }
+    
+    /**
+     * Redukuje kolekcję do tablicy zawierającej rekordy w postaci tablicy.
+     * Każdy rekord eksportowany jest przy pomocy metody $record->toArray().
+     * 
+     * @return array
+     */
+    public function reduceToArray() {
+        return $this->reduce(function($initial, $record) {
+            $initial[] = $record->toArray();
+            return $initial;
+        }, []);
+    }
 
 }
