@@ -25,23 +25,7 @@ class IsDateTime extends IsString {
             return false;
         }
 
-        /**
-         * BUG!
-         * Wartość może być czymkolwiek, np. tablicą i explode nie zadziała,
-         * tzn. zostanie zrzucony NOTICE.
-         * 
-         * Walidator powinien dziedziczyć po isString (Poprawiłem)
-         * 
-         * Poza tym jeżeli nawet jest stringiem to należałoby sprawdzić czy tablica
-         * po explode zawiera 3 wartości (i to raczej dokładnie 3),
-         * w przeciwnym wypadku coś z wartością jest jednak nie tak...
-         * 
-         * Analogicznie z czasem...
-         * 
-         * DO POPRAWIENIA
-         * TODO
-         */
-        $pattern = '/^\d\d\d\d-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01]) (00|[0-9]|1[0-9]|2[0-3]):([0-9]|[0-5][0-9]):([0-9]|[0-5][0-9])$/';
+        $pattern = '/^\d\d\d\d-(0?[1-9]|1[0-2])-(0?[1-9]|[1-2][0-9]|3[0-1]) ([0-1]?[0-9]|2[0-3]):([0-5]?[0-9]):([0-5]?[0-9])$/';
 
         if (!preg_match($pattern, $value)) {
             $this->error(self::MSG_NOT_DATETIME);
@@ -62,7 +46,7 @@ class IsDateTime extends IsString {
             $this->error(self::MSG_NOT_DATETIME);
             return false;
         }
-        $timePattern = '/^([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/';
+        $timePattern = '/^([0-1]?[0-9]|2[0-3]):([0-5]?[0-9]):([0-5]?[0-9])$/';
         if (!preg_match($timePattern, $datetimeExplode[1])) {
             return $this->error(self::MSG_NOT_DATETIME);
         }
