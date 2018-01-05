@@ -1683,18 +1683,21 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string|array $where warunki WHERE zapytania
      */
     protected static function _addWhereToSelect(\Zend_Db_Select $select, $where) {
-        if ($where) {
-            if (is_array($where)) {
-                foreach ($where as $k => $v) {
-                    if (!is_numeric($k)) {
-                        $select->where($k, $v);
-                    } else {
-                        $select->where($v);
-                    }
+        if (!$where) {
+            // brak warunków, nie robimy nic
+            return;
+        }
+
+        if (is_array($where)) {
+            foreach ($where as $k => $v) {
+                if (!is_numeric($k)) {
+                    $select->where($k, $v);
+                } else {
+                    $select->where($v);
                 }
-            } else {
-                $select->where($where);
             }
+        } else {
+            $select->where($where);
         }
     }
 
