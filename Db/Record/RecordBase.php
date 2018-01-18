@@ -1662,7 +1662,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $static = new static();
 
-        return $static->getDb()->fetchOne($select);
+        return (int) $static->getDb()->fetchOne($select);
     }
 
     /**
