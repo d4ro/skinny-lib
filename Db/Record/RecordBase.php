@@ -188,7 +188,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * Konstruktor rekordu
      * Klasa rozszerzająca musi podać rozszerzając nazwę tabeli głównej, w której znajduje się rekord.
      * Klasa rozszerzająca musi udostępnić bezargumentowy konstruktor o dostępności public.
-     * 
+     *
      * @param string $mainTable nazwa tabeli, w której znajdują się główne dane rekordu
      * @param string|array $idColumns nazwa kolumny przechowującej id w tabeli głównej
      * - Jeżeli $idColumn jest stringiem oznacza to, że klucz główny dla tej tabeli ma domyślną wartość (np. autoincrement)
@@ -200,6 +200,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param Store $options opcje:
      * - isIdAutoincrement: czy jednokolumnowy klucz główny ma być traktowany jako auto ID, domyślnie true
      * - isAutoRefreshForbidden: czy ma być wyłączone automatyczne pobieranie rekordu z bazy po inserach oraz update'ach, domyślnie false
+     * @throws \Skinny\Exception
      */
     public function __construct($mainTable, $idColumns = 'id', $data = array(), $options = null) {
         \Skinny\Exception::throwIf(!is_string($mainTable));
@@ -565,7 +566,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      *   - string rozpoczynający się od ' - traktowany jest jako ostateczna wartość wstawiona do zapytania, a pierwszy znak jest usuwany
      *   - każdy pozostały string - traktowany jest nazwa kolumny z bieżącego rekordu, do zapytania wstawiana jest jego aktualna wartość w momencie pobierania kolekcji
      *   - Closure - uruchamiany jest w momencie pobierania kolekcji, a wartość, którą zwróci wstawiana jest do zapytania
-     * 
+     *
      * @param string $columnName nazwa nieistniejącego (wirtualnego) pola rekordu, które ma być obsługiwane jako kolekcja rekordów
      * @param array $join warunki złączenia JOIN
      * @param array $where warunek zapytania dla pobrania rekordów kolekcji
@@ -576,6 +577,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $offset opcjonalne przesunięcie wyników
      * @param string $groupby opcjonalna część zapytania GROUP BY
      * @param string $having opcjonalna część zapytania HAVING
+     * @throws \Skinny\Db\DbException
      */
     protected function _setCollectionColumnJoin($columnName, array $join, array $where, $recordClassName = null,
         $collectionClassName = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
