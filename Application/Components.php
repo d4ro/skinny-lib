@@ -49,7 +49,7 @@ class Components implements \ArrayAccess {
 
     /**
      * Pobiera komponent o podanej nazwie
-     * @param type $name
+     * @param string $name
      */
     public static function get($name) {
         if (static::$_instance instanceof self) {
