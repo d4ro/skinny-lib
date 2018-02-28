@@ -1352,9 +1352,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
     /**
      * Zwraca obiekt reprezentujący rekord o podanym identyfikatorze.
-     * 
+     *
      * @param int|string|array $id
-     * @return record
+     * @return static
+     * @throws \Skinny\Exception
      */
     public static function get($id) {
         $obj = new static();
