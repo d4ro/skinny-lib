@@ -8,8 +8,7 @@ namespace Skinny;
  * oparcje ogólne takie, jak usuwanie, przenoszenie, kopiowanie oraz
  * dostarcza informacje o pliku takie, jak rozmiar, ścieżka, itp.
  */
-class File
-{
+class File {
 
     /**
      * Deskryptor otwartego pliku; pozostaje null, gdy plik nie został otwarty
@@ -29,13 +28,11 @@ class File
      */
     protected $_path;
 
-    public function __construct($path)
-    {
+    public function __construct($path) {
         $this->_path = $path;
     }
 
-    public function open($mode)
-    {
+    public function open($mode) {
         $this->close();
 
         if (($f = @fopen($this->_path, $mode))) {
@@ -47,8 +44,7 @@ class File
         }
     }
 
-    public function close()
-    {
+    public function close() {
         if ($this->isOpened()) {
             fclose($this->_descriptor);
         }
@@ -57,18 +53,15 @@ class File
         $this->_mode       = null;
     }
 
-    public function isOpened()
-    {
+    public function isOpened() {
         return null !== $this->_descriptor;
     }
 
-    public function isFile()
-    {
+    public function isFile() {
         return is_file($this->_path);
     }
 
-    public function getMode()
-    {
+    public function getMode() {
         return $this->_mode;
     }
 
@@ -77,13 +70,11 @@ class File
      * 
      * @return string
      */
-    public function getPath()
-    {
+    public function getPath() {
         return $this->_path;
     }
 
-    public function write($content)
-    {
+    public function write($content) {
         $close = !$this->isOpened();
         if ($close && !$this->open('wb')) {
             throw new IOException('Could not open file "' . $this->_path . '" to write.');
@@ -99,8 +90,7 @@ class File
         }
     }
 
-    public function read($length = null)
-    {
+    public function read($length = null) {
         $close = !$this->isOpened();
         if ($close && !$this->open('r')) {
             throw new IOException('Could not open file "' . $this->_path . '" to read.');
@@ -115,28 +105,23 @@ class File
         return $content;
     }
 
-    public function size()
-    {
+    public function size() {
         return filesize($this->_path);
     }
 
-    public function delete()
-    {
+    public function delete() {
         unlink($this->_path);
     }
 
-    public function exists()
-    {
+    public function exists() {
         return file_exists($this->_path);
     }
 
-    public function create()
-    {
+    public function create() {
         touch($this->_path);
     }
 
-    public function append($content)
-    {
+    public function append($content) {
         $close = !$this->isOpened();
         if ($close && !$this->open('ab')) {
             throw new IOException('Could not open file "' . $this->_path . '" to append.');
@@ -152,38 +137,31 @@ class File
         }
     }
 
-    public function chmod($val)
-    {
+    public function chmod($val) {
         return chmod($this->_path, $val);
     }
 
-    public function lock($mode)
-    {
+    public function lock($mode) {
         return flock($this->_descriptor, $mode);
     }
 
-    public function unlock()
-    {
+    public function unlock() {
         return $this->lock(LOCK_UN);
     }
 
-    public function isReadable()
-    {
+    public function isReadable() {
         return is_readable($this->_path);
     }
 
-    public function isHidden()
-    {
+    public function isHidden() {
         return basename($this->_path)[0] == '.';
     }
 
-    public function getName()
-    {
+    public function getName() {
         return basename($this->_path);
     }
 
-    public function getExtension()
-    {
+    public function getExtension() {
         $path_parts = pathinfo($this->_path);
 
 //echo $path_parts['dirname'], "\n";
@@ -199,8 +177,7 @@ class File
      * @param string $path
      * @return boolean
      */
-    public function copyTo($path)
-    {
+    public function copyTo($path) {
         return copy($this->_path, $path);
     }
 
@@ -210,8 +187,7 @@ class File
      * @param string $path
      * @return boolean
      */
-    public function moveTo($path)
-    {
+    public function moveTo($path) {
         return rename($this->_path, $path);
     }
 
@@ -220,8 +196,7 @@ class File
      * 
      * @return string
      */
-    public function getMimeType()
-    {
+    public function getMimeType() {
         if (class_exists('finfo', false)) {
             $const = defined('FILEINFO_MIME_TYPE') ? FILEINFO_MIME_TYPE : FILEINFO_MIME;
             $mime  = @finfo_open($const);
@@ -243,8 +218,7 @@ class File
         return $mimeType;
     }
 
-    public function rename($newName)
-    {
+    public function rename($newName) {
         rename($this->_path, $newName);
         $this->_path = realpath($newName);
     }
@@ -252,8 +226,7 @@ class File
     /**
      * Czyta plik i ustawia go jako załącznik do pobrania.
      */
-    public function output($outputFileName = null)
-    {
+    public function output($outputFileName = null) {
         if (!file_exists($this->getPath())) {
             throw new Exception('File does not exist.');
         }
@@ -286,8 +259,7 @@ class File
      * @return string Zwraca wygenerowaną nazwę pliku
      * @throws Exception
      */
-    public function moveUniqueSha1(string $targetPath): string
-    {
+    public function moveUniqueSha1(string $targetPath) {
         // walidacja istnienia ścieżki docelowej
         if (!file_exists($targetPath)) {
             throw new Exception('Target path does not exist');
@@ -325,8 +297,7 @@ class File
      * @return array Zwraca dwuelementową tablicę zawierającą kolejno wygenerowaną nazwę (sha1) oraz pełną ścieżkę
      * @throws Exception
      */
-    static public function getTargetsUniqueHashPath(string $targetPath): array
-    {
+    static public function getTargetsUniqueHashPath(string $targetPath) {
         // walidacja istnienia ścieżki docelowej
         if (!file_exists($targetPath)) {
             throw new Exception('Target path does not exist');
