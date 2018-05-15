@@ -864,6 +864,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                     $this->_buildCollectionColumn($column);
                 }
 
+//                echo "$column: eksportujemy kolumny z kolekcjami<br>\r\n";
                 $data[$column] = $this->_collectionColumns[$column]['value'];
                 continue;
             }
@@ -885,6 +886,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                 }
 
                 if (!$rawData) {
+//                    echo "$column: eksportujemy kolumny z rekordami<br>\r\n";
                     $data[$column] = $this->_recordColumns[$column]['value'];
                     continue;
                 }
@@ -903,6 +905,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                 }
 
                 if (!$rawData) {
+//                    echo "$column: konwertujemy kolumny jsonowe, gdy jest w nich wartość<br>\r\n";
                     $data[$column] = $this->_jsonColumns[$column]['value'];
                     continue;
                 }
@@ -917,6 +920,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                     $value = $this->_data[$column];
                 }
 
+//                echo "$column: dane raw<br>\r\n";
                 $data[$column] = $value;
             }
         }
