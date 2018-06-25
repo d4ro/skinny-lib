@@ -1500,8 +1500,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * W przeciwnym wypadku funckje zapisujące rekord się nie powiodą.
      * UWAGA! To sprawa programisty, czy select wybiera właściwe kolumny z właściwych tabel. Nie ma co do tego żadnej walidacji!
      * 
-     * @param string|Zend_Db_Select $select zapytanie SELECT do bazy
-     * @return array tablica obiektów rekordów będących rezultatem zapytania
+     * @param   string|Zend_Db_Select   $select     zapytanie SELECT do bazy
+     * @return  array                   tablica obiektów rekordów będących rezultatem zapytania
      */
     public static function selectArray($select) {
         return static::_select($select);
@@ -1510,14 +1510,14 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     /**
      * Pobiera tablicę wszystkich rekordów spełniających podane warunki.
      * 
-     * @param array $join warunki złączenia JOIN
-     * @param string $where część zapytania WHERE
-     * @param string|array $order część zapytania ORDER BY
-     * @param int $limit część zapytania LIMIT
-     * @param int $offset część zapytania OFFSET
-     * @param string $groupby część zapytania GROUP BY
-     * @param string $having część zapytania HAVING
-     * @return array tablica rekordów będących rezultatem zapytania
+     * @param   array           $join       warunki złączenia JOIN
+     * @param   string          $where      część zapytania WHERE
+     * @param   string|array    $order      część zapytania ORDER BY
+     * @param   int             $limit      część zapytania LIMIT
+     * @param   int             $offset     część zapytania OFFSET
+     * @param   string          $groupby    część zapytania GROUP BY
+     * @param   string          $having     część zapytania HAVING
+     * @return  array           tablica rekordów będących rezultatem zapytania
      */
     protected static function _find(array $join, $where, $order, $limit, $offset, $groupby, $having) {
         $obj = new static();
