@@ -1991,6 +1991,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     public function jsonSerialize() {
         return $this->_data;
+        return $this->exportData(true, true, true, true, true, true, true);
     }
 
     /**
