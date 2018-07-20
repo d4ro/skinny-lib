@@ -3,5 +3,10 @@
   "license": "",
   "type": "library",
   "description": "",
-  "require": {}
+  "require": {},
+  "autoload": {
+    "psr-4": {
+      "Skinny\\": ""
+    }
+  }
 }
