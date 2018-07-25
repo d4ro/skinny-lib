@@ -65,7 +65,8 @@ class Session extends DataObject\ArrayWrapper {
 
     protected function registerCallbacks() {
         $result = session_set_save_handler(
-            array($this, 'open'), array($this, 'close'), array($this, 'read'), array($this, 'write'),
+            array($this, 'open'), array($this, 'close'),
+            array($this, 'read'), array($this, 'write'),
             array($this, 'destroy'), array($this, 'gc')
         );
 
