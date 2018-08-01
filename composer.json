@@ -1,0 +1,12 @@
+{
+  "name": "skinny/skinny",
+  "license": "",
+  "type": "library",
+  "description": "",
+  "require": {},
+  "autoload": {
+    "psr-4": {
+      "Skinny\\": ""
+    }
+  }
+}
