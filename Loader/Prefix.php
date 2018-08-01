@@ -2,16 +2,16 @@
 
 namespace Skinny\Loader;
 
-require_once 'Skinny/Loader/LoaderBase.php';
-
 /**
  * Description of Prefix
  *
  * @author Daro
  */
-class Prefix extends LoaderBase {
+class Prefix extends LoaderBase
+{
 
-    public function load($className) {
+    public function load($className)
+    {
         foreach ($this->_config->toArray() as $prefix => $path) {
             if (strpos($className, $prefix) !== 0) {
                 continue;

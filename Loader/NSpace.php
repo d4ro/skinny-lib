@@ -2,18 +2,18 @@
 
 namespace Skinny\Loader;
 
-require_once 'Skinny/Loader/LoaderBase.php';
-
 /**
  * Description of NSpace
  *
  * @author Daro
  */
-class NSpace extends LoaderBase {
+class NSpace extends LoaderBase
+{
 
-    public function load($className) {
+    public function load($className)
+    {
         $className = trim($className, '\\');
-        
+
         foreach ($this->_config->toArray() as $namespace => $path) {
             if (strpos($className, $namespace) !== 0) {
                 continue;
