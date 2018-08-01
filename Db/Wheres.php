@@ -9,7 +9,7 @@ namespace Skinny\Db;
  */
 class Wheres extends Assemblable implements BindableInterface {
 
-    const T_OR = 0;
+    const T_OR  = 0;
     const T_AND = 1;
 
     protected $_db;
@@ -28,7 +28,7 @@ class Wheres extends Assemblable implements BindableInterface {
      * @param type $segments
      */
     public function __construct($type, array $segments = null) {
-        $this->_type = $type;
+        $this->_type     = $type;
         $this->_segments = (array) $segments;
     }
 
@@ -42,7 +42,7 @@ class Wheres extends Assemblable implements BindableInterface {
             $segments_all = (array) $segments;
 
         while ($segments_all) {
-            $segment = array_shift($segments_all);
+            $segment           = array_shift($segments_all);
             if (is_array($segment))
                 $this->add($segment);
             else

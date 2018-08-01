@@ -55,9 +55,12 @@ class View extends DataObject\ArrayWrapper {
 
         $this->setConfig($config);
 
-        $this->js = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->jsPath, $this->_config->jsExtension);
-        $this->jsHead = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->jsPath, $this->_config->jsExtension);
-        $this->css = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->cssPath, $this->_config->cssExtension);
+        $this->js     = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->jsPath,
+            $this->_config->jsExtension);
+        $this->jsHead = new View\Files($this->_config->baseUrl, $this->_config->applicationPath, $this->_config->jsPath,
+            $this->_config->jsExtension);
+        $this->css    = new View\Files($this->_config->baseUrl, $this->_config->applicationPath,
+            $this->_config->cssPath, $this->_config->cssExtension);
     }
 
     /**
@@ -160,11 +163,11 @@ class View extends DataObject\ArrayWrapper {
     public function getCurrentLayoutPath() {
         $v = new Data\Validate();
         $v->layout
-                ->required()
-                ->add(new Data\Validator\NotEmpty(), "Layout file has not been set");
+            ->required()
+            ->add(new Data\Validator\NotEmpty(), "Layout file has not been set");
         $v->layoutsPath
-                ->required()
-                ->add(new Data\Validator\NotEmpty(), "Layouts path has not been set");
+            ->required()
+            ->add(new Data\Validator\NotEmpty(), "Layouts path has not been set");
 
         // Walidacja konfiguracji
         if (!$v->isValid($this->_config->toArray())) {
@@ -172,8 +175,8 @@ class View extends DataObject\ArrayWrapper {
         }
 
         if (
-                !\Skinny\Path::isAbsolute($this->_config->layout('')) &&
-                !\Skinny\Url::hasProtocol($this->_config->layout(''))
+            !\Skinny\Path::isAbsolute($this->_config->layout('')) &&
+            !\Skinny\Url::hasProtocol($this->_config->layout(''))
         ) {
             $file = \Skinny\Path::combine($this->_config->layoutsPath(''), $this->_config->layout(''));
         }

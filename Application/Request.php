@@ -46,10 +46,10 @@ class Request {
      * @param Router\RouterInterface $router instancja routera do rozwiązywania żądania
      */
     public function __construct($router = null) {
-        $this->_steps = array();
+        $this->_steps     = array();
         $this->_stepCount = 0;
-        $this->_current = -1;
-        $this->_router = $router;
+        $this->_current   = -1;
+        $this->_router    = $router;
 //        $this->log('Konstruktor');
     }
 
@@ -192,7 +192,7 @@ class Request {
     public function isStepToProceed() {
 //        $this->log('isStepToProceed()');
         $current = $this->current();
-        $result = (null !== $current && !$current->isProcessed() || (null !== $current && null !== $current->next() && $this->proceed()));
+        $result  = (null !== $current && !$current->isProcessed() || (null !== $current && null !== $current->next() && $this->proceed()));
 //        $this->log('result isStepToProceed() == ' . ($result ? 'true' : 'false'));
         return $result;
     }
@@ -277,7 +277,7 @@ class Request {
     public function acceptJson() {
         return false !== strstr($_SERVER['HTTP_ACCEPT'], 'application/json');
     }
-    
+
     public function getContentType() {
         return @$_SERVER['CONTENT_TYPE'];
     }

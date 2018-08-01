@@ -49,7 +49,6 @@ class Form extends Validate implements \JsonSerializable {
      * @var string
      */
     protected $_controlPath = null;
-    
     protected $_controlDir = null;
 
     /**
@@ -72,10 +71,10 @@ class Form extends Validate implements \JsonSerializable {
 
     public function __construct() {
         $this
-                ->type(self::$_config->default->form->control) // domyślna kontrolka formularza
-                ->method(self::$_config->default->form->method) // domyślna metoda - atrybut
-                ->action(self::$_config->default->form->action) // domyślna akcja  - atrybut
-                ->attributesType(self::$_config->default->form->attributesControl) // domyślna kontrolka atrybutów dla formularza
+            ->type(self::$_config->default->form->control) // domyślna kontrolka formularza
+            ->method(self::$_config->default->form->method) // domyślna metoda - atrybut
+            ->action(self::$_config->default->form->action) // domyślna akcja  - atrybut
+            ->attributesType(self::$_config->default->form->attributesControl) // domyślna kontrolka atrybutów dla formularza
         ;
     }
 
@@ -94,8 +93,8 @@ class Form extends Validate implements \JsonSerializable {
         // jeżeli obiekt jest na nowo tworzony należy przypisać mu standardową konfigurację
         if ($new) {
             $item
-                    ->type(self::$_config->default->field->control) // domyślna kontrolka dla pól formularza
-                    ->attributesType(self::$_config->default->field->attributesControl) // domyślna kontrolka atrybutów dla pól formularza
+                ->type(self::$_config->default->field->control) // domyślna kontrolka dla pól formularza
+                ->attributesType(self::$_config->default->field->attributesControl) // domyślna kontrolka atrybutów dla pól formularza
             ;
         }
 
@@ -168,13 +167,13 @@ class Form extends Validate implements \JsonSerializable {
         } else {
             if (!$this->isRoot()) {
                 // Mamy do czynienia z polem
-                $controlDir = \Skinny\Path::combine(self::$_config->templatesPath, 'control');
-                $path = \Skinny\Path::combine(self::$_config->templatesPath, 'control', $type . '.tpl');
+                $controlDir  = \Skinny\Path::combine(self::$_config->templatesPath, 'control');
+                $path        = \Skinny\Path::combine(self::$_config->templatesPath, 'control', $type . '.tpl');
                 $controlPath = realpath($path);
             } else {
                 // Mamy do czynienia z obiektem głównym - więc szablonem
-                $controlDir = \Skinny\Path::combine(self::$_config->templatesPath, 'template');
-                $path = \Skinny\Path::combine(self::$_config->templatesPath, 'template', $type . '.tpl');
+                $controlDir  = \Skinny\Path::combine(self::$_config->templatesPath, 'template');
+                $path        = \Skinny\Path::combine(self::$_config->templatesPath, 'template', $type . '.tpl');
                 $controlPath = realpath($path);
             }
 
@@ -182,9 +181,9 @@ class Form extends Validate implements \JsonSerializable {
                 throw new Exception("Control \"$path\" does not exist");
             }
 
-            $this->_type = $type;
+            $this->_type        = $type;
             $this->_controlPath = $controlPath;
-            $this->_controlDir = realpath($controlDir);
+            $this->_controlDir  = realpath($controlDir);
 
             return $this;
         }
@@ -214,14 +213,14 @@ class Form extends Validate implements \JsonSerializable {
                 return $this->_attributesType;
             }
         } else {
-            $path = \Skinny\Path::combine(self::$_config->templatesPath, 'attribute', $type . '.tpl');
+            $path        = \Skinny\Path::combine(self::$_config->templatesPath, 'attribute', $type . '.tpl');
             $controlPath = realpath($path);
 
             if (!file_exists($controlPath)) {
                 throw new Exception("Attributes control \"$path\" does not exist");
             }
 
-            $this->_attributesType = $type;
+            $this->_attributesType        = $type;
             $this->_attributesControlPath = $controlPath;
 
             return $this;
@@ -249,7 +248,7 @@ class Form extends Validate implements \JsonSerializable {
 
         return $this->_controlPath;
     }
-    
+
     public function getControlDir() {
         return $this->_controlDir;
     }
@@ -528,7 +527,7 @@ class Form extends Validate implements \JsonSerializable {
                 $json[$name]['items'] = $item;
             } else {
                 // Przypisanie ustawionej wartości dla bieżącego pola jeżeli jest liściem
-                $json[$name]['value'] = $item->value();
+                $json[$name]['value']        = $item->value();
                 $json[$name]['keysFromRoot'] = $item->_keysFromRoot;
             }
 

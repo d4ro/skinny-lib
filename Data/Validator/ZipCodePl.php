@@ -24,7 +24,7 @@ class ZipCodePl extends ValidatorBase {
         if (!parent::isValid($value)) {
             return false;
         }
-        
+
         /**
          * BUG!
          * Znowu analogiczna sytuacja - preg_match operuje na stringu a tu wartość
@@ -32,7 +32,6 @@ class ZipCodePl extends ValidatorBase {
          * DO POPRAWIENIA
          * TODO
          */
-
         if (!(preg_match('/^[0-9]{5}$/', $value)) && !(preg_match('/^([0-9]{2})-([0-9]{3})$/', $value))) {
             return $this->error(self::MSG_NOT_ZIP_CODE);
         }

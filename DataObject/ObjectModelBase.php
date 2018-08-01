@@ -141,10 +141,10 @@ abstract class ObjectModelBase implements \IteratorAggregate {
      * @return \static
      */
     protected function _createObject($name) {
-        $item = new static();
-        $item->_name = $name;
+        $item          = new static();
+        $item->_name   = $name;
         $item->_parent = $this;
-        $item->_root = $this->_root;
+        $item->_root   = $this->_root;
         return $item;
     }
 

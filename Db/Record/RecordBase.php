@@ -6,8 +6,8 @@ use Skinny\DataObject\Store;
 
 abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSerializable, \ArrayAccess, \IteratorAggregate {
 
-    const FIND_JOIN = 'join';
-    const FIND_JOINLEFT = 'joinLeft';
+    const FIND_JOIN      = 'join';
+    const FIND_JOINLEFT  = 'joinLeft';
     const FIND_JOINRIGHT = 'joinRight';
 
     /**
@@ -119,7 +119,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     private static function _select($select) {
         $static = new static();
-        $data = $static->getDb()->fetchAll($select);
+        $data   = $static->getDb()->fetchAll($select);
 
         // czy są dane
         $result = array();
@@ -129,7 +129,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         foreach ($data as $row) {
             // nowy obiekt z id
-            $obj = new static();
+            $obj           = new static();
             $obj->_idValue = [];
             foreach ($obj->_idColumns as $column) {
                 $obj->_idValue[$column] = $row[$column];
@@ -142,9 +142,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
             // i przypisujemy ich wartości do obiektu
             $obj->_setData($row);
-            $obj->_exists = true;
+            $obj->_exists          = true;
             $obj->_columnsModified = [];
-            $obj->_isSaving = false;
+            $obj->_isSaving        = false;
 
             $result[] = $obj;
         }
@@ -188,7 +188,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * Konstruktor rekordu
      * Klasa rozszerzająca musi podać rozszerzając nazwę tabeli głównej, w której znajduje się rekord.
      * Klasa rozszerzająca musi udostępnić bezargumentowy konstruktor o dostępności public.
-     * 
+     *
      * @param string $mainTable nazwa tabeli, w której znajdują się główne dane rekordu
      * @param string|array $idColumns nazwa kolumny przechowującej id w tabeli głównej
      * - Jeżeli $idColumn jest stringiem oznacza to, że klucz główny dla tej tabeli ma domyślną wartość (np. autoincrement)
@@ -200,20 +200,23 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param Store $options opcje:
      * - isIdAutoincrement: czy jednokolumnowy klucz główny ma być traktowany jako auto ID, domyślnie true
      * - isAutoRefreshForbidden: czy ma być wyłączone automatyczne pobieranie rekordu z bazy po inserach oraz update'ach, domyślnie false
+     * @throws \Skinny\Exception
      */
     public function __construct($mainTable, $idColumns = 'id', $data = array(), $options = null) {
         \Skinny\Exception::throwIf(!is_string($mainTable));
-        \Skinny\Exception::throwIf($this->_db === null, new \Skinny\Db\DbException('Database adaptor used by record is not set'));
-        \Skinny\Exception::throwIf($options !== null && !($options instanceof Store), new \InvalidArgumentException('Param $options is not instance of Store'));
+        \Skinny\Exception::throwIf($this->_db === null,
+            new \Skinny\Db\DbException('Database adaptor used by record is not set'));
+        \Skinny\Exception::throwIf($options !== null && !($options instanceof Store),
+            new \InvalidArgumentException('Param $options is not instance of Store'));
 
         if (null === $options) {
             $options = new Store();
         }
 
-        $this->_config = $options;
-        $this->_exists = false;
+        $this->_config          = $options;
+        $this->_exists          = false;
         $this->_columnsModified = [];
-        $this->_isSaving = false;
+        $this->_isSaving        = false;
 
         if (!is_array($idColumns)) {
             $idColumns = [$idColumns];
@@ -226,7 +229,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $this->_tableName = (string) $mainTable;
 
         if (!empty($data)) {
-            $this->importData($data);
+            $this->importData($data, true);
         }
     }
 
@@ -254,10 +257,11 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                 $identifier = $this->_buildWhere($this->_recordColumns[$column]['identifier']);
 
                 try {
-                    $this->_recordColumns[$column]['value'] = null;
+                    $this->_recordColumns[$column]['value']    = null;
                     $this->_recordColumns[$column]['hasValue'] = true;
 //                    $identifier = $this->_validateIdentifier($identifier);
-                    $this->_recordColumns[$column]['value'] = call_user_func(array($this->_recordColumns[$column]['recordClassName'], 'get'), $identifier);
+                    $this->_recordColumns[$column]['value']    = call_user_func(array($this->_recordColumns[$column]['recordClassName'],
+                        'get'), $identifier);
                 } catch (Exception $ex) {
                     // niepowodzenie pobrania danych
                 }
@@ -275,7 +279,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         // pobranie wartośći z kolumny jsonowej
         if (key_exists($column, $this->_jsonColumns)) {
             if (!$this->_jsonColumns[$column]['hasValue']) {
-                $this->_jsonColumns[$column]['value'] = json_decode($this->_data[$column], true);
+                $this->_jsonColumns[$column]['value']    = json_decode($this->_data[$column], true);
                 $this->_jsonColumns[$column]['hasValue'] = true;
             }
 
@@ -293,7 +297,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     public function __set($name, $value) {
         // TODO: optymalizacja poprzez sprawdzenie poprzedniej wartości
         $this->_columnsModified[$name] = true;
-        $setData = true;
+        $setData                       = true;
 
         if (key_exists($name, $this->_collectionColumns)) {
             $setData = false;
@@ -301,9 +305,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         if (key_exists($name, $this->_recordColumns)) {
             if ($value instanceof self) {
-                $this->_recordColumns[$name]['value'] = $value;
+                $this->_recordColumns[$name]['value']    = $value;
                 $this->_recordColumns[$name]['hasValue'] = true;
-                $setData = false;
+                $setData                                 = false;
 
                 $identifier = $this->_recordColumns[$name]['identifier'];
                 foreach ($identifier as $remoteCol => $localCol) {
@@ -318,8 +322,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         if (key_exists($name, $this->_jsonColumns)) {
             $this->_jsonColumns[$name]['hasValue'] = true;
-            $this->_jsonColumns[$name]['value'] = $value;
-            $value = json_encode($value);
+            $this->_jsonColumns[$name]['value']    = $value;
+            $value                                 = json_encode($value);
         }
 
         if ($setData) {
@@ -403,13 +407,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $name nazwa wirtualnej kolumny
      */
     private function _buildCollectionColumn($name) {
-        $recordClassName = $this->_collectionColumns[$name]['recordClassName'];
+        $recordClassName       = $this->_collectionColumns[$name]['recordClassName'];
         $customCollectionClass = !empty($this->_collectionColumns[$name]['collectionClassName']);
 
         // instancjowanie kolekcji rekordów
         if ($customCollectionClass) {
             // TODO instancjowanie konkretnej kolekcji
-            $collection = new $this->_collectionColumns[$name]['collectionClassName']();
+            $collection      = new $this->_collectionColumns[$name]['collectionClassName']();
             $recordClassName = $collection->getRecordClassName();
         }
 
@@ -420,14 +424,20 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         // przypisanie rekordów
         if ($customCollectionClass) {
             /* @var $records RecordCollection */
-            $records = call_user_func([$recordClassName, 'findArrayJoin'], $this->_collectionColumns[$name]['join'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset'], $this->_collectionColumns[$name]['groupby'], $this->_collectionColumns[$name]['having']);
+            $records = call_user_func([$recordClassName, 'findArrayJoin'], $this->_collectionColumns[$name]['join'],
+                $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'],
+                $this->_collectionColumns[$name]['offset'], $this->_collectionColumns[$name]['groupby'],
+                $this->_collectionColumns[$name]['having']);
             $collection->addRecords($records);
         } else {
             /* @var $records RecordCollection */
-            $collection = call_user_func([$recordClassName, 'findJoin'], $this->_collectionColumns[$name]['join'], $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'], $this->_collectionColumns[$name]['offset'], $this->_collectionColumns[$name]['groupby'], $this->_collectionColumns[$name]['having']);
+            $collection = call_user_func([$recordClassName, 'findJoin'], $this->_collectionColumns[$name]['join'],
+                $where, $this->_collectionColumns[$name]['order'], $this->_collectionColumns[$name]['limit'],
+                $this->_collectionColumns[$name]['offset'], $this->_collectionColumns[$name]['groupby'],
+                $this->_collectionColumns[$name]['having']);
         }
 
-        $this->_collectionColumns[$name]['value'] = $collection;
+        $this->_collectionColumns[$name]['value']    = $collection;
         $this->_collectionColumns[$name]['hasValue'] = true;
     }
 
@@ -449,7 +459,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
             if (key_exists($key, $this->_recordColumns)) {
                 if ($value instanceof self) {
-                    $this->_recordColumns[$key]['value'] = $value;
+                    $this->_recordColumns[$key]['value']    = $value;
                     $this->_recordColumns[$key]['hasValue'] = true;
 
                     $identifier = $this->_recordColumns[$key]['identifier'];
@@ -475,7 +485,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
             // TODO: optymalizacja poprzez sprawdzenie poprzedniej wartości
             $this->_columnsModified[$key] = true;
-            $this->_data[$key] = $value;
+            $this->_data[$key]            = $value;
         }
     }
 
@@ -515,7 +525,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param array $identifier identyfikator zdalnego rekordu na podstawie danych bieżącego rekordu w formacie priKey1 => col1, priKey2 => col2
      */
     protected function _setRecordColumn($columnName, $recordClassName, array $identifier) {
-        $this->_recordColumns[$columnName] = ['value' => null, 'hasValue' => false, 'recordClassName' => $recordClassName, 'identifier' => $identifier];
+        $this->_recordColumns[$columnName] = ['value'           => null, 'hasValue'        => false, 'recordClassName' => $recordClassName,
+            'identifier'      => $identifier];
     }
 
     /**
@@ -539,8 +550,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $groupby opcjonalna część zapytania GROUP BY
      * @param string $having opcjonalna część zapytania HAVING
      */
-    protected function _setCollectionColumn($columnName, array $where, $recordClassName = null, $collectionClassName = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
-        return $this->_setCollectionColumnJoin($columnName, [], $where, $recordClassName, $collectionClassName, $order, $limit, $offset, $groupby, $having);
+    protected function _setCollectionColumn($columnName, array $where, $recordClassName = null,
+        $collectionClassName = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
+        return $this->_setCollectionColumnJoin($columnName, [], $where, $recordClassName, $collectionClassName, $order,
+                $limit, $offset, $groupby, $having);
     }
 
     /**
@@ -553,7 +566,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      *   - string rozpoczynający się od ' - traktowany jest jako ostateczna wartość wstawiona do zapytania, a pierwszy znak jest usuwany
      *   - każdy pozostały string - traktowany jest nazwa kolumny z bieżącego rekordu, do zapytania wstawiana jest jego aktualna wartość w momencie pobierania kolekcji
      *   - Closure - uruchamiany jest w momencie pobierania kolekcji, a wartość, którą zwróci wstawiana jest do zapytania
-     * 
+     *
      * @param string $columnName nazwa nieistniejącego (wirtualnego) pola rekordu, które ma być obsługiwane jako kolekcja rekordów
      * @param array $join warunki złączenia JOIN
      * @param array $where warunek zapytania dla pobrania rekordów kolekcji
@@ -564,24 +577,26 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $offset opcjonalne przesunięcie wyników
      * @param string $groupby opcjonalna część zapytania GROUP BY
      * @param string $having opcjonalna część zapytania HAVING
+     * @throws \Skinny\Db\DbException
      */
-    protected function _setCollectionColumnJoin($columnName, array $join, array $where, $recordClassName = null, $collectionClassName = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
+    protected function _setCollectionColumnJoin($columnName, array $join, array $where, $recordClassName = null,
+        $collectionClassName = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
         if (null === $recordClassName && null === $collectionClassName) {
             throw new \Skinny\Db\DbException('Invalid arguments while declaring collection virtual column "' . $columnName . '". Arguments $recordClassName and/or $collectionClassName must be set.');
         }
 
         $this->_collectionColumns[$columnName] = [
-            'value' => null,
-            'hasValue' => false,
-            'recordClassName' => $recordClassName,
-            'join' => $join,
-            'where' => $where,
+            'value'               => null,
+            'hasValue'            => false,
+            'recordClassName'     => $recordClassName,
+            'join'                => $join,
+            'where'               => $where,
             'collectionClassName' => $collectionClassName,
-            'order' => $order,
-            'limit' => $limit,
-            'offset' => $offset,
-            'groupby' => $groupby,
-            'having' => $having
+            'order'               => $order,
+            'limit'               => $limit,
+            'offset'              => $offset,
+            'groupby'             => $groupby,
+            'having'              => $having
         ];
     }
 
@@ -602,8 +617,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         foreach ($columnName as $name) {
             $this->_filteredColumns[$name] = [
-                'setter' => $setter,
-                'getter' => $getter
+                'getter' => $getter,
+                'setter' => $setter
             ];
         }
     }
@@ -617,32 +632,34 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param boolean $includeJsonColumns czy ma pobrać także kolumny JSONowe
      * @return array
      */
-    public function getColumns($includeFilledColumns = false, $includeRecordColumns = false, $includeCollectionColumns = false, $includeJsonColumns = false) {
+    public function getColumns($includeFilledColumns = false, $includeRecordColumns = false,
+        $includeCollectionColumns = false, $includeJsonColumns = false) {
         $columns = $this->_columns;
         if (null === $this->_columns) {
-            $structure = $this->_getTableStructure($this->_tableName);
-            $this->_columns = $columns = array_keys($structure);
-            user_error('Performance issue: Record columns have not been specified. Had to describe table: ' . $this->_tableName . '.', E_USER_NOTICE);
+            $structure      = $this->_getTableStructure($this->_tableName);
+            $this->_columns = $columns        = array_keys($structure);
+            user_error('Performance issue: Record columns have not been specified. Had to describe table: ' . $this->_tableName . '.',
+                E_USER_NOTICE);
         }
 
         if ($includeFilledColumns) {
             $filledColumns = array_keys($this->_data);
-            $columns = array_merge($columns, $filledColumns);
+            $columns       = array_merge($columns, $filledColumns);
         }
 
         if ($includeRecordColumns) {
             $recordColumns = array_keys($this->_recordColumns);
-            $columns = array_merge($columns, $recordColumns);
+            $columns       = array_merge($columns, $recordColumns);
         }
 
         if ($includeCollectionColumns) {
             $collectionColumns = array_keys($this->_collectionColumns);
-            $columns = array_merge($columns, $collectionColumns);
+            $columns           = array_merge($columns, $collectionColumns);
         }
 
         if ($includeJsonColumns) {
             $jsonColumns = array_keys($this->_jsonColumns);
-            $columns = array_merge($columns, $jsonColumns);
+            $columns     = array_merge($columns, $jsonColumns);
         }
 
         return $columns;
@@ -674,8 +691,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return array
      */
     protected function _getIdValuesFormRecordColumn($name) {
-        $result = [];
-        $value = $this->_recordColumns[$name]['value'];
+        $result     = [];
+        $value      = $this->_recordColumns[$name]['value'];
         $identifier = $this->_recordColumns[$name]['identifier'];
 
         foreach ($identifier as $remoteCol => $localCol) {
@@ -688,24 +705,145 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     }
 
     /**
-     * Pobiera dane rekordu do zapisu do bazy danych
-     * Koduje ustawione pola w _jsonColumns do JSONA
-     * Pomija kolumny niedozwolone
+     * Pobiera dane rekordu do zapisu do bazy danych.
+     * Koduje ustawione pola w _jsonColumns do JSONA.
+     * Pomija kolumny niedozwolone.
      * 
-     * @param boolean $includeFilledColumns czy ma nie pomijać kolumn spoza tabeli głównej
-     * @param boolean $rawData pobiera dane w postaci surowej (takie jakie przychodzą do bazy lub z niej)
-     * @param boolean $useFiltering czy ma używać metod filtrujących wartości przy ich odczycie
-     * @param boolean $includeWritingDisabled czy ma eksportować także kolumny określone jako nie-do-zapisu
-     * @param boolean $includeRecordColumns załącza kolumny rekordowe (wartością tych kolumn będą obiekty RecordCollection)
+     * Funkcja nie jest już wspierana i przekierowuje do exportDataRawOptions().
+     * Zaleca się użycie jednej z następujących: exportDataRawOptions(), exportDataFilteredOptions(), exportDataOptions().
+     * 
+     * @param boolean $includeFilledColumns     czy ma nie pomijać kolumn spoza tabeli głównej
+     * @param boolean $rawData                  pobiera dane w postaci surowej (takie jakie przychodzą do bazy lub z niej)
+     * @param boolean $useFiltering             czy ma używać metod filtrujących wartości przy ich odczycie
+     * @param boolean $includeWritingDisabled   czy ma eksportować także kolumny określone jako nie-do-zapisu
+     * @param boolean $includeRecordColumns     załącza kolumny rekordowe (wartością tych kolumn będą obiekty RecordCollection)
      * @param boolean $includeCollectionColumns załącza kolumny z kolekcjami (wartością tych kolumn będą obiekty Record)
-     * @param boolean $includeJsonColumns załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)
+     * @param boolean $includeJsonColumns       załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)
+     * 
+     * @deprecated since version 0.4
      * @return array dane
      */
-    public function exportData($includeFilledColumns = false, $rawData = true, $useFiltering = false, $includeWritingDisabled = false, $includeRecordColumns = false, $includeCollectionColumns = false, $includeJsonColumns = false) {
-        $columns = $this->getColumns($includeFilledColumns, $includeRecordColumns, $includeCollectionColumns, $includeJsonColumns);
+    public function exportData($includeFilledColumns = false, $rawData = true, $useFiltering = false,
+        $includeWritingDisabled = false, $includeRecordColumns = false, $includeCollectionColumns = false,
+        $includeJsonColumns = false) {
+        return $this->exportDataRawOptions([
+                'includeFilledColumns'     => $includeFilledColumns,
+                'rawData'                  => $rawData,
+                'useFilering'              => $useFiltering,
+                'includeWritingDisabled'   => $includeWritingDisabled,
+                'includeRecordColumns'     => $includeRecordColumns,
+                'includeCollectionColumns' => $includeCollectionColumns,
+                'includeJsonColumns'       => $includeJsonColumns,
+                'excludeColumns'           => []
+        ]);
+//        $columns = $this->getColumns($includeFilledColumns, $includeRecordColumns, $includeCollectionColumns, $includeJsonColumns);
+//        if (!$includeWritingDisabled) {
+//            $columns = array_diff($columns, $this->_writingDisabledColumns);
+//        }
+//        return $this->exportColumns($columns, $rawData, $useFiltering);
+    }
+
+    /**
+     * Eksportuje dane z rekordu na podstawie opcji w formacie "surowym",
+     * czyli takim w jakim występują w bazie danych oraz są importowane do rekordu.
+     * 
+     * Możliwe klucze:
+     * includeFilledColumns     - czy ma nie pomijać kolumn spoza tabeli głównej                                (domyślnie nie)
+     * rawData                  - pobiera dane w postaci surowej (takie jakie przychodzą do bazy lub z niej)    (domyślnie tak)
+     * useFilering              - czy ma używać metod filtrujących wartości przy ich odczycie                   (domyślnie nie)
+     * includeWritingDisabled   - czy ma eksportować także kolumny określone jako nie-do-zapisu                 (domyślnie nie)
+     * includeRecordColumns     - załącza kolumny rekordowe (wartością tych kolumn będą obiekty RecordCollection) (domyślnie nie)
+     * includeCollectionColumns - załącza kolumny z kolekcjami (wartością tych kolumn będą obiekty Record)      (domyślnie nie)
+     * includeJsonColumns       - załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)            (domyślnie nie)
+     * excludeColumns           - talica nazwa kolumn, które mają zostać pominięte                              (domyślnie brak)
+     * 
+     * @param array $options
+     * @return array dane
+     */
+    public function exportDataRawOptions($options = []) {
+        $defaults = [
+            'includeFilledColumns'     => false,
+            'rawData'                  => true,
+            'useFilering'              => false,
+            'includeWritingDisabled'   => false,
+            'includeRecordColumns'     => false,
+            'includeCollectionColumns' => false,
+            'includeJsonColumns'       => false,
+            'excludeColumns'           => []
+        ];
+
+        return $this->exportDataOptions(array_merge($defaults, $options));
+    }
+
+    /**
+     * Eksportuje dane z rekordu na podstawie opcji w formacie przefiltrowanym,
+     * czyli takim w jakim występują poprzez pośrednie odwołania do danych w formacie $record->column.
+     * 
+     * Możliwe klucze:
+     * includeFilledColumns     - czy ma nie pomijać kolumn spoza tabeli głównej                                (domyślnie tak)
+     * rawData                  - pobiera dane w postaci surowej (takie jakie przychodzą do bazy lub z niej)    (domyślnie nie)
+     * useFilering              - czy ma używać metod filtrujących wartości przy ich odczycie                   (domyślnie tak)
+     * includeWritingDisabled   - czy ma eksportować także kolumny określone jako nie-do-zapisu                 (domyślnie tak)
+     * includeRecordColumns     - załącza kolumny rekordowe (wartością tych kolumn będą obiekty RecordCollection) (domyślnie tak)
+     * includeCollectionColumns - załącza kolumny z kolekcjami (wartością tych kolumn będą obiekty Record)      (domyślnie tak)
+     * $includeJsonColumns      - załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)            (domyślnie tak)
+     * excludeColumns           - talica nazwa kolumn, które mają zostać pominięte                              (domyślnie brak)
+     * 
+     * @param array $options
+     * @return array dane
+     */
+    public function exportDataFilteredOptions($options = []) {
+        $defaults = [
+            'includeFilledColumns'     => true,
+            'rawData'                  => false,
+            'useFilering'              => true,
+            'includeWritingDisabled'   => true,
+            'includeRecordColumns'     => true,
+            'includeCollectionColumns' => true,
+            'includeJsonColumns'       => true,
+            'excludeColumns'           => []
+        ];
+
+        return $this->exportDataOptions(array_merge($defaults, $options));
+    }
+
+    /**
+     * Eksportuje dane z rekordu na podstawie opcji.
+     * 
+     * Możliwe klucze:
+     * includeFilledColumns     - czy ma nie pomijać kolumn spoza tabeli głównej                                
+     * rawData                  - pobiera dane w postaci surowej (takie jakie przychodzą do bazy lub z niej)    
+     * useFilering              - czy ma używać metod filtrujących wartości przy ich odczycie                 
+     * includeWritingDisabled   - czy ma eksportować także kolumny określone jako nie-do-zapisu               
+     * includeRecordColumns     - załącza kolumny rekordowe (wartością tych kolumn będą obiekty RecordCollection) 
+     * includeCollectionColumns - załącza kolumny z kolekcjami (wartością tych kolumn będą obiekty Record) 
+     * $includeJsonColumns      - załącza kolumny JSONowe (wartości tych kolumn będą obiektami JSON)        
+     * excludeColumns           - talica nazwa kolumn, które mają zostać pominięte                         
+     * 
+     * @param array $options
+     * @return array dane
+     */
+    public function exportDataOptions(array $options) {
+        // TODO: uniwersalizacja getColumns oraz exportColumns
+        $includeFilledColumns     = @$options['includeFilledColumns'];
+        $rawData                  = @$options['rawData'];
+        $useFiltering             = @$options['useFiltering'];
+        $includeWritingDisabled   = @$options['includeWritingDisabled'];
+        $includeRecordColumns     = @$options['includeRecordColumns'];
+        $includeCollectionColumns = @$options['includeCollectionColumns'];
+        $includeJsonColumns       = @$options['includeJsonColumns'];
+        $excludeColumns           = @$options['excludeColumns'];
+
+        $columns = $this->getColumns($includeFilledColumns, $includeRecordColumns, $includeCollectionColumns,
+            $includeJsonColumns);
         if (!$includeWritingDisabled) {
             $columns = array_diff($columns, $this->_writingDisabledColumns);
         }
+
+        if ($excludeColumns) {
+            $columns = array_diff($columns, $excludeColumns);
+        }
+
         return $this->exportColumns($columns, $rawData, $useFiltering);
     }
 
@@ -726,6 +864,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                     $this->_buildCollectionColumn($column);
                 }
 
+//                echo "$column: eksportujemy kolumny z kolekcjami<br>\r\n";
                 $data[$column] = $this->_collectionColumns[$column]['value'];
                 continue;
             }
@@ -736,16 +875,18 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                     $identifier = $this->_buildWhere($this->_recordColumns[$column]['identifier']);
 
                     try {
-                        $this->_recordColumns[$column]['value'] = null;
+                        $this->_recordColumns[$column]['value']    = null;
                         $this->_recordColumns[$column]['hasValue'] = true;
 //                    $identifier = $this->_validateIdentifier($identifier);
-                        $this->_recordColumns[$column]['value'] = call_user_func(array($this->_recordColumns[$column]['recordClassName'], 'get'), $identifier);
+                        $this->_recordColumns[$column]['value']    = call_user_func(array($this->_recordColumns[$column]['recordClassName'],
+                            'get'), $identifier);
                     } catch (Exception $ex) {
                         // niepowodzenie pobrania danych
                     }
                 }
 
                 if (!$rawData) {
+//                    echo "$column: eksportujemy kolumny z rekordami<br>\r\n";
                     $data[$column] = $this->_recordColumns[$column]['value'];
                     continue;
                 }
@@ -759,11 +900,12 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             // konwertujemy kolumny jsonowe, gdy jest w nich wartość
             if (key_exists($column, $this->_jsonColumns)) {
                 if (!$this->_jsonColumns[$column]['hasValue']) {
-                    $this->_jsonColumns[$column]['value'] = json_decode($this->_data[$column], true);
+                    $this->_jsonColumns[$column]['value']    = json_decode($this->_data[$column], true);
                     $this->_jsonColumns[$column]['hasValue'] = true;
                 }
 
                 if (!$rawData) {
+//                    echo "$column: konwertujemy kolumny jsonowe, gdy jest w nich wartość<br>\r\n";
                     $data[$column] = $this->_jsonColumns[$column]['value'];
                     continue;
                 }
@@ -778,6 +920,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                     $value = $this->_data[$column];
                 }
 
+//                echo "$column: dane raw<br>\r\n";
                 $data[$column] = $value;
             }
         }
@@ -793,10 +936,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     public function exists($checkInDatabase = false) {
         if ($checkInDatabase) {
-            $select = $this->_getSelectWhere();
+            $select        = $this->_getSelectWhere();
             $select->limit(1);
-            $sql = "SELECT EXISTS($select)";
-            $result = $this->_db->fetchOne($sql);
+            $sql           = "SELECT EXISTS($select)";
+            $result        = $this->_db->fetchOne($sql);
             $this->_exists = (boolean) $result;
         }
 
@@ -925,9 +1068,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return string rezultat - losowy ciąg
      */
     public function createRandomString($length = 10) {
-        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $characters       = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $charactersLength = strlen($characters);
-        $randomString = '';
+        $randomString     = '';
         for ($i = 0; $i < $length; $i++) {
             $randomString .= $characters[rand(0, $charactersLength - 1)];
         }
@@ -957,7 +1100,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $this->_isSaving = true;
         $this->_db->insert($this->_tableName, $data);
         /* @var $id array */
-        $id = $this->getLastInsertId();
+        $id              = $this->getLastInsertId();
 
         foreach ($this->_idColumns as $col) {
             if (key_exists($col, $id)) {
@@ -973,8 +1116,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $this->_idValue = $this->_validateIdentifier($id);
 
-        $this->_exists = true;
-        $this->_isSaving = false;
+        $this->_exists          = true;
+        $this->_isSaving        = false;
         $this->_columnsModified = [];
 
         if ($refreshData) {
@@ -1020,13 +1163,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             return false;
         }
 
-        $this->_idValue = $this->_validateIdentifier($this->_idValue);
+        $this->_idValue  = $this->_validateIdentifier($this->_idValue);
         $this->_isSaving = true;
 
         $result = $this->_db->update($this->_tableName, $data, $this->_getWhere());
 
         if ($result > 1) {
-            throw new \Skinny\Db\DbException('Record identified by its primary key is ambiguous in table "' . $this->_tableName . '". Rows updated: ' . $success);
+            throw new \Skinny\Db\DbException('Record identified by its primary key is ambiguous in table "' . $this->_tableName . '". Rows updated: ' . $result);
         }
 
         $success = true;
@@ -1035,8 +1178,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             $success = $this->_load($this->_idValue);
         }
 
-        $this->_exists = $success;
-        $this->_isSaving = false;
+        $this->_exists          = $success;
+        $this->_isSaving        = false;
         $this->_columnsModified = [];
 
         return $success;
@@ -1165,6 +1308,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
                 $where[$this->_db->quoteIdentifier($this->_tableName) . '.' . $this->_db->quoteIdentifier($col) . ' = ?'] = $id[$col];
             }
         }
+
         return $where;
     }
 
@@ -1175,7 +1319,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     protected function _getSelect() {
         $select = $this->_db->select()
-                ->from($this->_tableName, $this->getColumns());
+            ->from($this->_tableName, $this->getColumns());
+
         return $select;
     }
 
@@ -1211,9 +1356,10 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
     /**
      * Zwraca obiekt reprezentujący rekord o podanym identyfikatorze.
-     * 
+     *
      * @param int|string|array $id
-     * @return record
+     * @return static
+     * @throws \Skinny\Exception
      */
     public static function get($id) {
         $obj = new static();
@@ -1255,7 +1401,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return boolean
      */
     protected function _validateData(array $data) {
-        return array_walk($data, function ($value, $column) {
+        return array_walk($data,
+            function ($value, $column) {
             if (null === $value || is_string($value) || is_numeric($value) || $value instanceof \Zend_Db_Expr) {
                 return true;
             }
@@ -1274,7 +1421,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         $this->_exists = false;
 
         $select = $this->_getSelectWhere($id);
-        $data = $this->_db->fetchRow($select);
+        $data   = $this->_db->fetchRow($select);
 
         if ($data) {
             // ustawiamy dane
@@ -1303,7 +1450,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $having część zapytania HAVING
      * @return \Zend_Db_Select
      */
-    public function prepareSelect($where = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
+    public function prepareSelect($where = null, $order = null, $limit = null, $offset = null, $groupby = null,
+        $having = null) {
         $select = $this->_getSelectWhere(null, $where);
         if (null !== $order) {
             $select->order($order);
@@ -1352,8 +1500,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * W przeciwnym wypadku funckje zapisujące rekord się nie powiodą.
      * UWAGA! To sprawa programisty, czy select wybiera właściwe kolumny z właściwych tabel. Nie ma co do tego żadnej walidacji!
      * 
-     * @param string|Zend_Db_Select $select zapytanie SELECT do bazy
-     * @return array tablica obiektów rekordów będących rezultatem zapytania
+     * @param   string|Zend_Db_Select   $select     zapytanie SELECT do bazy
+     * @return  array                   tablica obiektów rekordów będących rezultatem zapytania
      */
     public static function selectArray($select) {
         return static::_select($select);
@@ -1362,14 +1510,14 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
     /**
      * Pobiera tablicę wszystkich rekordów spełniających podane warunki.
      * 
-     * @param array $join warunki złączenia JOIN
-     * @param string $where część zapytania WHERE
-     * @param string|array $order część zapytania ORDER BY
-     * @param int $limit część zapytania LIMIT
-     * @param int $offset część zapytania OFFSET
-     * @param string $groupby część zapytania GROUP BY
-     * @param string $having część zapytania HAVING
-     * @return array tablica rekordów będących rezultatem zapytania
+     * @param   array           $join       warunki złączenia JOIN
+     * @param   string          $where      część zapytania WHERE
+     * @param   string|array    $order      część zapytania ORDER BY
+     * @param   int             $limit      część zapytania LIMIT
+     * @param   int             $offset     część zapytania OFFSET
+     * @param   string          $groupby    część zapytania GROUP BY
+     * @param   string          $having     część zapytania HAVING
+     * @return  array           tablica rekordów będących rezultatem zapytania
      */
     protected static function _find(array $join, $where, $order, $limit, $offset, $groupby, $having) {
         $obj = new static();
@@ -1395,7 +1543,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $having część zapytania HAVING
      * @return array tablica obiektów rekordów będących rezultatem zapytania
      */
-    public static function findArray($where = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
+    public static function findArray($where = null, $order = null, $limit = null, $offset = null, $groupby = null,
+        $having = null) {
         return static::_find([], $where, $order, $limit, $offset, $groupby, $having);
     }
 
@@ -1410,8 +1559,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $having część zapytania HAVING
      * @return RecordCollection kolekcja rekordów będących rezultatem zapytania
      */
-    public static function find($where = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
-        $records = static::_find([], $where, $order, $limit, $offset, $groupby, $having);
+    public static function find($where = null, $order = null, $limit = null, $offset = null, $groupby = null,
+        $having = null) {
+        $records    = static::_find([], $where, $order, $limit, $offset, $groupby, $having);
         $collection = new RecordCollection($records);
 
         return $collection;
@@ -1435,7 +1585,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $having część zapytania HAVING
      * @return array tablica obiektów rekordów będących rezultatem zapytania
      */
-    public static function findArrayJoin(array $join, $where = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
+    public static function findArrayJoin(array $join, $where = null, $order = null, $limit = null, $offset = null,
+        $groupby = null, $having = null) {
         return static::_find($join, $where, $order, $limit, $offset, $groupby, $having);
     }
 
@@ -1457,8 +1608,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $having część zapytania HAVING
      * @return RecordCollection kolekcja obiektów rekordów będących rezultatem zapytania
      */
-    public static function findJoin(array $join, $where = null, $order = null, $limit = null, $offset = null, $groupby = null, $having = null) {
-        $records = static::_find($join, $where, $order, $limit, $offset, $groupby, $having);
+    public static function findJoin(array $join, $where = null, $order = null, $limit = null, $offset = null,
+        $groupby = null, $having = null) {
+        $records    = static::_find($join, $where, $order, $limit, $offset, $groupby, $having);
         $collection = new RecordCollection($records);
 
         return $collection;
@@ -1494,7 +1646,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string $having część zapytania HAVING
      * @return static pierwszy rekord spełniający warunki lub null
      */
-    public static function findOneJoin(array $join, $where = null, $order = null, $offset = null, $groupby = null, $having = null) {
+    public static function findOneJoin(array $join, $where = null, $order = null, $offset = null, $groupby = null,
+        $having = null) {
         $result = static::findArrayJoin($join, $where, $order, 1, $offset, $groupby, $having);
         if (!empty($result)) {
             return $result[0];
@@ -1516,7 +1669,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $static = new static();
 
-        return $static->getDb()->fetchOne($select);
+        return (int) $static->getDb()->fetchOne($select);
     }
 
     /**
@@ -1525,7 +1678,9 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @return \Zend_Db_Select
      */
     protected static function _getCountSelect() {
-        return static::$db->select()->from(['t' => static::getTableName()], ['COUNT(1)']);
+        $static = new static();
+
+        return $static->getDb()->select()->from(['t' => $static->_getSelect()], ['COUNT(1)']);
     }
 
     /**
@@ -1535,18 +1690,21 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      * @param string|array $where warunki WHERE zapytania
      */
     protected static function _addWhereToSelect(\Zend_Db_Select $select, $where) {
-        if ($where) {
-            if (is_array($where)) {
-                foreach ($where as $k => $v) {
-                    if (!is_numeric($k)) {
-                        $select->where($k, $v);
-                    } else {
-                        $select->where($v);
-                    }
+        if (!$where) {
+            // brak warunków, nie robimy nic
+            return;
+        }
+
+        if (is_array($where)) {
+            foreach ($where as $k => $v) {
+                if (!is_numeric($k)) {
+                    $select->where($k, $v);
+                } else {
+                    $select->where($v);
                 }
-            } else {
-                $select->where($where);
             }
+        } else {
+            $select->where($where);
         }
     }
 
@@ -1734,7 +1892,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
 
         $result = [];
         foreach ($this->_autoIdColumns as $col) {
-            $lastId = $this->getLastInsertIdHelper($col);
+            $lastId       = $this->getLastInsertIdHelper($col);
             $result[$col] = $lastId;
         }
         return $result;
@@ -1770,8 +1928,8 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
         }
 
         return
-                $this->_tableName == $record->_tableName &&
-                $this->getFullId() == $record->getFullId();
+            $this->_tableName == $record->_tableName &&
+            $this->getFullId() == $record->getFullId();
     }
 
     /**
@@ -1833,6 +1991,7 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     public function jsonSerialize() {
         return $this->_data;
+        return $this->exportData(true, true, true, true, true, true, true);
     }
 
     /**
@@ -1843,11 +2002,11 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
      */
     public function offsetExists($offset) {
         return
-                key_exists($offset, $this->_data) ||
-                key_exists($offset, $this->_idValue) ||
-                key_exists($offset, $this->_collectionColumns) ||
-                key_exists($offset, $this->_jsonColumns) ||
-                key_exists($offset, $this->_recordColumns)
+            key_exists($offset, $this->_data) ||
+            key_exists($offset, $this->_idValue) ||
+            key_exists($offset, $this->_collectionColumns) ||
+            key_exists($offset, $this->_jsonColumns) ||
+            key_exists($offset, $this->_recordColumns)
         ;
     }
 

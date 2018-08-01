@@ -14,7 +14,7 @@ abstract class ValidatorBase {
      * w momencie wystąpienia pierwszego błędu czy też ma kontynuować i zwrócić całą listę błędów
      */
     const OPT_BREAK_ON_ERROR = 'optBreakOnError';
-    
+
     /**
      * Parametry do komunikatów (zmienne)
      */
@@ -24,13 +24,13 @@ abstract class ValidatorBase {
      * Komunikat w przypadku wystąpienia błędu w polu
      */
     const MSG_INVALID = 'msgInvalid';
-    
+
     /**
      * Klucz parametru do komunikatów o błędach
      * Walidowana wartość
      */
     const PRM_VALUE = '%value%';
-    
+
     /**
      * Klucz parametru do komunikatów o błędach
      * Nazwa walidowanego pola (USTAWIANA AUTOMATYCZNIE POPRZEZ Validate - w przeciwnym wypdku trzeba ją ustawić)
@@ -82,8 +82,8 @@ abstract class ValidatorBase {
      */
     public function __construct($options = null) {
         $this->_mergeOptions($options);
-        
-        if($options !== null && isset($options[self::OPT_MSG_PARAMS])) {
+
+        if ($options !== null && isset($options[self::OPT_MSG_PARAMS])) {
             $this->setMessagesParams($options[self::OPT_MSG_PARAMS]);
         }
     }
@@ -94,7 +94,7 @@ abstract class ValidatorBase {
      * @param string $key Klucz do błędu znajdujący się w zdefiniowanych komunikatach - jeżeli klucz nie istnieje dodawany jest błąd ogólny.
      */
     public function error($key = self::MSG_INVALID) {
-        
+
         if (isset($this->_userMessages) && is_string($this->_userMessages)) {
             $this->_errors[$key] = $this->_userMessages;
         } else if (isset($this->_userMessages[$key])) {
@@ -117,10 +117,10 @@ abstract class ValidatorBase {
                 if (is_string($error) && !empty($this->_messagesParams)) {
                     foreach ($this->_messagesParams as $param => $value) {
                         $param = str_replace('%', '', $param);
-                        while (false !== ($pos = strpos($error, "%$param%"))) {
+                        while (false !== ($pos   = strpos($error, "%$param%"))) {
                             $val = $value;
                             if (isset($error[$pos - 1]) && $error[$pos - 1] == '^' && is_string($value)) {
-                                $val = ucfirst($value);
+                                $val   = ucfirst($value);
                                 $error = substr_replace($error, null, $pos - 1, 1);
                                 $pos--;
                             }
@@ -198,7 +198,7 @@ abstract class ValidatorBase {
         $this->setValueParam($value);
         return true;
     }
-    
+
     /**
      * Ustawia wartość jako parametr do komunikatów.
      * 
@@ -216,7 +216,7 @@ abstract class ValidatorBase {
      * @param array $options
      */
     protected function _mergeOptions($options) {
-        if(is_array($options)) {
+        if (is_array($options)) {
             $this->_options = array_merge($this->_options, $options);
         }
     }

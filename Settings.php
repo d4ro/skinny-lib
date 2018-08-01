@@ -60,7 +60,8 @@ class Settings {
     }
 
     public function save() {
-        $string = '<?php\n\n// This file is automaticaly created by dynamic settings utility in Skinny skeleton application.\n\nreturn ' . var_export($this->_config->toArray(), true) . ';';
+        $string = '<?php\n\n// This file is automaticaly created by dynamic settings utility in Skinny skeleton application.\n\nreturn ' . var_export($this->_config->toArray(),
+                true) . ';';
         file_put_contents($this->_filename, $string);
     }
 

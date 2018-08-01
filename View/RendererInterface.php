@@ -3,7 +3,7 @@
 namespace Skinny\View;
 
 interface RendererInterface {
-    
+
     /**
      * Renderowanie widoku do html'a.
      * 
@@ -12,5 +12,4 @@ interface RendererInterface {
      *                          do widoku.
      */
     public function fetch($template, $params);
-    
 }

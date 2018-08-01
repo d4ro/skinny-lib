@@ -17,7 +17,7 @@ class CacheControl extends HeaderBase {
     public function __construct($cacheControl) {
         parent::__construct();
 
-        $this->_name = 'Cache-Control';
+        $this->_name  = 'Cache-Control';
         $this->_value = $cacheControl;
     }
 
@@ -30,4 +30,5 @@ class CacheControl extends HeaderBase {
     public static function NO_CACHE() {
         return new CacheControl('no-cache');
     }
+
 }

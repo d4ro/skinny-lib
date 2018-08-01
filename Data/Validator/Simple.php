@@ -16,7 +16,7 @@ class Simple extends ValidatorBase {
      * @var \Closure
      */
     protected $customValidator = null;
-    
+
     /**
      * Tablica posiadająca klucz o nazwie pola oraz jego wartość
      * @var array
@@ -28,19 +28,19 @@ class Simple extends ValidatorBase {
      * @var mixed
      */
     public $value = null;
-    
+
     /**
      * Przechowuje wskaźnik na bieżący poziom obiektu validate
      * @var \Skinny\Data\Validate
      */
     public $item = null;
-    
+
     /**
      * Wskaźnik na obiekt rodzica
      * @var \Skinny\Data\Validate
      */
     public $parent = null;
-    
+
     /**
      * Wskaźnik na obiekt główny
      * @var \Skinny\Data\Validate
@@ -75,7 +75,7 @@ class Simple extends ValidatorBase {
         $this->dataValue = [
             $this->item->getName() => $value
         ];
-        $this->value = $value;
+        $this->value     = $value;
 
         $result = (false !== (boolean) call_user_func($this->customValidator, $this->value, $this->item, $this)); // Wywołanie customowego walidatora
         // jeżeli zwrócono wynik funkcji (false) a nie wystąpiły żadne błędy (nie dodano ich przy użyciu funkcji error) to należy dodać błąd domyślny
@@ -85,7 +85,7 @@ class Simple extends ValidatorBase {
 
         return empty($this->_errors);
     }
-    
+
     /**
      * Alias do metody value z obiektu $this->item
      * @param mixed $value

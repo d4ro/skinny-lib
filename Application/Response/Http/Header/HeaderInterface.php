@@ -14,6 +14,6 @@ interface HeaderInterface {
     public function getValue();
 
     public function getCode();
-    
+
     public function toString();
 }

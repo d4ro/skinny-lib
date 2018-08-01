@@ -32,7 +32,7 @@ class MySQL extends AdapterBase {
 
     function open($savePath, $sessionName) {
         $this->_sessionName = $sessionName;
-        $this->_savePath = $savePath;
+        $this->_savePath    = $savePath;
 
         return true;
     }
@@ -59,7 +59,7 @@ class MySQL extends AdapterBase {
 
     protected function getData($id) {
         $select = $this->getSelect($id);
-        $row = $this->_db->fetchRow($select);
+        $row    = $this->_db->fetchRow($select);
         if (empty($row)) {
             return false;
         }
@@ -68,7 +68,8 @@ class MySQL extends AdapterBase {
 
     protected function getSelect($id) {
         $select = $this->_db->select();
-        $select->from($this->_config->table->name('session', true), array(
+        $select->from($this->_config->table->name('session', true),
+            array(
             $this->_config->table->data('data', true),
             new \Zend_Db_Expr('IF (' . $this->_db->quoteIdentifier($this->_config->table->expires('expires', true)) . ' > now(), 1, 0) as "valid"')
         ));
@@ -82,7 +83,11 @@ class MySQL extends AdapterBase {
         $result = $this->getData($id);
         if (false === $result) {
             $sql = 'REPLACE INTO %s (%s, %s, %s) VALUES (%s, %s, %s);';
-            $sql = sprintf($sql, $this->_db->quoteIdentifier($this->_config->table->name), $this->_db->quoteIdentifier($this->_config->table->id), $this->_db->quoteIdentifier($this->_config->table->expires), $this->_db->quoteIdentifier($this->_config->table->data), $this->_db->quote($id), $this->_db->quote($expires), $this->_db->quote($data));
+            $sql = sprintf($sql, $this->_db->quoteIdentifier($this->_config->table->name),
+                $this->_db->quoteIdentifier($this->_config->table->id),
+                $this->_db->quoteIdentifier($this->_config->table->expires),
+                $this->_db->quoteIdentifier($this->_config->table->data), $this->_db->quote($id),
+                $this->_db->quote($expires), $this->_db->quote($data));
             $this->_db->query($sql);
 //            $this->_db->inset($this->_config->table->name, array(
 //                $this->_config->table->id => $id,
@@ -90,10 +95,12 @@ class MySQL extends AdapterBase {
 //                $this->_config->table->data => $data
 //            ));
         } else {
-            $this->_db->update($this->_config->table->name, array(
+            $this->_db->update($this->_config->table->name,
+                array(
                 $this->_config->table->expires => $expires,
-                $this->_config->table->data => $data
-                    ), array(
+                $this->_config->table->data    => $data
+                ),
+                array(
                 $this->_db->quoteIdentifier($this->_config->table->id) . ' = ?' => $id
             ));
         }
@@ -102,7 +109,8 @@ class MySQL extends AdapterBase {
     }
 
     function destroy($id) {
-        $result = $this->_db->delete($this->_config->table->name, array(
+        $result = $this->_db->delete($this->_config->table->name,
+            array(
             $this->_db->quoteIdentifier($this->_config->table->id) . ' = ?' => $id
         ));
 
@@ -110,7 +118,8 @@ class MySQL extends AdapterBase {
     }
 
     function gc($maxlifetime) {
-        return $this->_db->delete($this->_config->table->name, $this->_db->quoteIdentifier($this->_config->table->expires) . ' <= now()');
+        return $this->_db->delete($this->_config->table->name,
+                $this->_db->quoteIdentifier($this->_config->table->expires) . ' <= now()');
     }
 
 }

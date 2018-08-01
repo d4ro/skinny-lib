@@ -10,4 +10,3 @@ interface BindableInterface {
 
     public function bind($params, $value = null);
 }
-

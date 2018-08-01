@@ -14,9 +14,9 @@ abstract class HeaderBase implements HeaderInterface {
     protected $_code;
 
     public function __construct() {
-        $this->_name = '';
+        $this->_name  = '';
         $this->_value = '';
-        $this->_code = null;
+        $this->_code  = null;
     }
 
     public function getCode() {

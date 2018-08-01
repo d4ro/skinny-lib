@@ -12,10 +12,10 @@ namespace Skinny\Data\Validator;
 class MustExist extends ValidatorBase {
 
     const MSG_MUST_EXIST = 'mustExist';
-    
+
     public function __construct($options = null) {
         parent::__construct($options);
-        
+
         $this->_setMessagesTemplates([
             self::MSG_MUST_EXIST => 'Klucz nie istnieje'
         ]);

@@ -31,7 +31,7 @@ class GreaterThan extends ValidatorBase {
 
         $this->_setMessagesTemplates([
             self::MSG_NOT_GREATER_THEN => 'Wprowadzana wartość jest mniejsza niż powinna',
-            self::MSG_IS_NOT_NUMERIC => 'Wprowadzona wartość nie jest numeryczna'
+            self::MSG_IS_NOT_NUMERIC   => 'Wprowadzona wartość nie jest numeryczna'
         ]);
     }
 

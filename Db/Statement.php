@@ -15,7 +15,7 @@ class Statement extends \PDOStatement implements BindableInterface {
     protected $_paramCounter;
 
     public function __construct(Db $db) {
-        $this->_db = $db;
+        $this->_db           = $db;
         $this->_paramCounter = 0;
     }
 

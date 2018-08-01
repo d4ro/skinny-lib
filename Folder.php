@@ -98,7 +98,7 @@ class Folder {
         }
 
         $files = [];
-        while (($file = readdir($this->_descriptor)) !== false) {
+        while (($file  = readdir($this->_descriptor)) !== false) {
             $filename = Path::combine($this->_path, $file);
             if (filetype($filename) == 'dir') {
                 $files[] = new Folder($filename);

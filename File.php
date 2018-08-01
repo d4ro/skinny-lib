@@ -37,7 +37,7 @@ class File {
 
         if (($f = @fopen($this->_path, $mode))) {
             $this->_descriptor = $f;
-            $this->_mode = $mode;
+            $this->_mode       = $mode;
             return true;
         } else {
             return false;
@@ -50,7 +50,7 @@ class File {
         }
 
         $this->_descriptor = null;
-        $this->_mode = null;
+        $this->_mode       = null;
     }
 
     public function isOpened() {
@@ -199,7 +199,7 @@ class File {
     public function getMimeType() {
         if (class_exists('finfo', false)) {
             $const = defined('FILEINFO_MIME_TYPE') ? FILEINFO_MIME_TYPE : FILEINFO_MIME;
-            $mime = @finfo_open($const);
+            $mime  = @finfo_open($const);
 
             if (!empty($mime))
                 $mimeType = finfo_file($mime, $this->_path);
@@ -232,7 +232,7 @@ class File {
         }
 
         header('Content-Description: File Transfer');
-        header('Content-Type: application/octet-stream');
+        header('Content-Type: ' . $this->getMimeType());
         header('Content-Disposition: attachment; filename="' . ($outputFileName ? $outputFileName : basename($this->getPath())) . '"');
         header('Expires: 0');
         header('Cache-Control: must-revalidate');
@@ -240,6 +240,77 @@ class File {
         header('Content-Length: ' . filesize($this->getPath()));
         readfile($this->getPath());
         exit;
+    }
+
+    /**
+     * Przenosi istniejący plik do podanej lokalizacji, gdzie nazwa pliku jest wygenerowanym,
+     * unikalnym ciągiem znaków zakodowanym w sha1. 
+     * 
+     * UWAGA - nazwa pliku jest podzielona co dwa znaki
+     * i w katalogu docelowym zostanie utworzony ciąg katalogów będących kolejnymi cząstkami wygenerowanej
+     * nazwy pliku. Ostatnie dwa znaki będą faktyczną nazwą pliku.
+     * 
+     * Np.: Dla pliku o nazwie "f10e2821bbbea527ea02200352313bc059445190" plik będzie miał nazwę "90"
+     * i będzie się znajdował w katalogu (zakładając że $targetPath to: "../files"):
+     * "../files/f1/0e/28/21/bb/be/a5/27/ea/02/20/03/52/31/3b/c0/59/44/51/90" <-- za ostatnim slashem nazwa pliku.
+     * 
+     * @param string $sourcePath Ścieżka pliku do przeniesienia
+     * @param string $targetPath Ścieżka docelowa
+     * @return string Zwraca wygenerowaną nazwę pliku
+     * @throws Exception
+     */
+    public function moveUniqueSha1(string $targetPath) {
+        // walidacja istnienia ścieżki docelowej
+        if (!file_exists($targetPath)) {
+            throw new Exception('Target path does not exist');
+        }
+
+        // sprawdzenie istnienia pliku
+        if (!$this->exists()) {
+            throw new Exception('File does not exist');
+        }
+
+        // wygenerowanie unikalnej nazwy pliku oraz ścieżki w podanej lokalizacji
+        list($filename, $path) = static::getTargetsUniqueHashPath($targetPath);
+
+        // rekurencyjne utworzenie ściezki do pliku (pomijając nazwę pliku czyli ostatnie dwa znaki oraz separator)
+        if (!\Skinny\Path::create(($dir = substr($path, 0, -3)))) {
+            throw new Exception("Couldn't create direcotry '$dir'");
+        }
+
+        // przeniesienie pliku do lokalizacji docelowej
+        if (!($this->moveTo($path))) {
+            throw new Exception("Couldn't move file to '$path'");
+        }
+
+        return $filename;
+    }
+
+    /**
+     * Generuje dla podanej lokalizacji unikalną nazwę dla pliku w postaci hasha sha1 i zwraca
+     * jego ścieżkę dostępu.
+     * 
+     * Nazwa sha1 podzielona jest co drugi znak 
+     * (np. $targetPath/f1/0e/28/21/bb/be/a5/27/ea/02/20/03/52/31/3b/c0/59/44/51/90).
+     * 
+     * @param string $targetPath Ścieżka w której chcemy wygenerować unikalną nazwę
+     * @return array Zwraca dwuelementową tablicę zawierającą kolejno wygenerowaną nazwę (sha1) oraz pełną ścieżkę
+     * @throws Exception
+     */
+    static public function getTargetsUniqueHashPath(string $targetPath) {
+        // walidacja istnienia ścieżki docelowej
+        if (!file_exists($targetPath)) {
+            throw new Exception('Target path does not exist');
+        }
+
+        // generowanie unikalnej nazwy pliku
+        while (file_exists(
+            ($path = \Skinny\Path::combine(
+                $targetPath, implode(str_split(($hash = sha1(uniqid())), 2), DIRECTORY_SEPARATOR)
+            ))
+        ));
+
+        return [$hash, $path];
     }
 
 }
