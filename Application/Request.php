@@ -275,7 +275,7 @@ class Request {
      * @todo Przemyśleć i ustandaryzować
      */
     public function acceptJson() {
-        return false !== strstr($_SERVER['HTTP_ACCEPT'], 'application/json');
+        return false !== strstr(@$_SERVER['HTTP_ACCEPT'], 'application/json');
     }
 
     public function getContentType() {
@@ -286,9 +286,10 @@ class Request {
      * Stwierdza, czy żądanie do serwera zostało wykonane metodą POST.
      * 
      * @return boolean
+     * @deprecated since version 0.4.1
      */
     public function hasPost() {
-        return ($_SERVER['REQUEST_METHOD'] === 'POST');
+        return (@$_SERVER['REQUEST_METHOD'] === 'POST');
     }
 
     public function toBreadCrumbs() {
@@ -302,7 +303,7 @@ class Request {
     }
 
     public function getMethod() {
-        return $_SERVER['REQUEST_METHOD'];
+        return @$_SERVER['REQUEST_METHOD'];
     }
 
 }
