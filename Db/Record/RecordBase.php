@@ -1753,8 +1753,13 @@ abstract class RecordBase extends \Skinny\DataObject\DataBase implements \JsonSe
             if (isset($value[3]) && (is_string($value[3]) || is_array($value[3]))) {
                 $cols = $value[3];
             }
-
-            $select->$joinType($table, $joinOn, $cols);
+            
+            $schema = null;
+            if (isset($value[4]) && (is_string($value[4]))) {
+                $schema = $value[4];
+            }
+            
+            $select->$joinType($table, $joinOn, $cols, $schema);
         }
     }
 
