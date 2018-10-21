@@ -114,12 +114,12 @@ class Application
 
         // settings: only if enabled
         if ($config->settings->enabled(false)) {
-            require_once 'Skinny/Settings.php';
+            require_once __DIR__ . '/Settings.php';
             $this->_settings = new Settings($configPath);
         }
 
         // loader
-        require_once 'Skinny/Loader.php';
+        require_once __DIR__ . '/Loader.php';
         $this->_loader = new Loader($this->_config->paths);
         $this->_loader->initLoaders($this->_config->loaders->toArray());
         $this->_loader->register();
