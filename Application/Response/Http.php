@@ -7,13 +7,16 @@ namespace Skinny\Application\Response;
  *
  * @author Daro
  */
-class Http extends ResponseBase {
+class Http extends ResponseBase
+{
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->_code = 200;
     }
 
-    public function respond() {
+    public function respond()
+    {
         $this->sendHeaders();
         $this->sendBody();
     }
@@ -22,17 +25,20 @@ class Http extends ResponseBase {
      * Ustawia nagłówek według obiektu Http\Header
      * @param Http\Header\HeaderInterface $headerObj
      */
-    public function header($headerObj) {
+    public function header($headerObj)
+    {
         $this->setHeader($headerObj->getName(), $headerObj->getValue(), $headerObj->getCode());
     }
 
-    protected function sendHeaders() {
-        header('HTTP/1.1 ' . $this->_code);
+    protected function sendHeaders()
+    {
+        header('HTTP/1.1 ' . $this->_code, true, $this->_code);
         foreach ($this->_headers as $name => $value)
             header($name . ': ' . $value);
     }
 
-    protected function sendBody() {
+    protected function sendBody()
+    {
         echo $this->_body;
     }
 

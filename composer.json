@@ -3,6 +3,7 @@
   "license": "",
   "type": "library",
   "description": "",
+  "version": "0.4.6",
   "require": {},
   "autoload": {
     "psr-4": {
