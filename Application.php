@@ -264,7 +264,8 @@ class Application {
 
                     Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(),
                         new Action\ActionException('Error handler action cannot be found.'));
-                    Exception::throwIf(null === $notFoundAction && ($this->_request->getResponse()->setCode(404) || true),
+                    Exception::throwIf(null === $notFoundAction && ($this->_request->getResponse()
+                                ->setCode(404) || true),
                         new Action\ActionException("Cannot find action corresponding to URL '{$this->_request->current()->getRequestUrl()}'."));
                     Exception::throwIf($notFoundAction === $this->_request->current()->getRequestUrl(),
                         new Action\ActionException('Cannot find the action for handling missing actions.'));
@@ -287,7 +288,10 @@ class Application {
                     Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(),
                         new Action\ActionException('Access denied occured in error handler action.'));
                     if ($notFoundAction === $this->_request->current()->getRequestUrl()) {
-                        $this->forwardError(['@error' => 'exception', '@exception' => new Action\ActionException('Access denied occured in not found handler action.')],
+                        $this->forwardError([
+                            '@error'     => 'exception',
+                            '@exception' => new Action\ActionException('Access denied occured in not found handler action.')
+                        ],
                             $errorAction);
                     }
 
@@ -298,7 +302,7 @@ class Application {
                         $this->_request->proceed();
                         continue;
                     } else {
-                        header('HTTP/1.0 403 Forbidden');
+                        header('HTTP/1.1 403 Forbidden', true, 403);
                         echo 'Forbidden';
                         exit();
                     }
@@ -458,13 +462,13 @@ class Application {
 
         Exception::throwIf(null === $this->_request->current(),
             new Action\ActionException("Error occured in Application: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.",
-            0, null, $lastError));
+                0, null, $lastError));
         Exception::throwIf(null === $errorAction,
             new Action\ActionException("Error handler action is not defined to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.",
-            0, null, $lastError));
+                0, null, $lastError));
         Exception::throwIf($errorAction === $this->_request->current()->getRequestUrl(),
             new Action\ActionException("Error occured in error handler action to handle an error: {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}.",
-            0, null, $lastError));
+                0, null, $lastError));
 
         try {
             $this->forwardError(['@error' => 'fatal', '@lastError' => $lastError], $errorAction);
