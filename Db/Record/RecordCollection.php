@@ -8,11 +8,12 @@ namespace Skinny\Db\Record;
  */
 class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
 
-    const IDX_PLAIN  = 0;
-    const IDX_ID     = 1;
-    const IDX_TBL_ID = 2;
-    const IDX_HASH   = 3;
-    const IDX_CUSTOM = 4;
+    const IDX_PLAIN        = 0;
+    const IDX_ID           = 1;
+    const IDX_TBL_ID       = 2;
+    const IDX_HASH         = 3;
+    const IDX_CUSTOM       = 4;
+    const IDX_CUSTOM_MULTI = 5;
 
     /**
      * Połączenie do bazy danych
@@ -77,11 +78,12 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      */
     public function __construct(array $collection = array(), $strictTypeCheck = true) {
         $this->_idx = [
-            self::IDX_PLAIN  => [],
-            self::IDX_ID     => [],
-            self::IDX_TBL_ID => [],
-            self::IDX_HASH   => [],
-            self::IDX_CUSTOM => [],
+            self::IDX_PLAIN        => [],
+            self::IDX_ID           => [],
+            self::IDX_TBL_ID       => [],
+            self::IDX_HASH         => [],
+            self::IDX_CUSTOM       => [],
+            self::IDX_CUSTOM_MULTI => [],
         ];
 
         $this->useIndex(self::IDX_PLAIN);
@@ -127,6 +129,14 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         return $this;
     }
 
+    public function useIndexMulti($column) {
+        $this->_useIndex  = self::IDX_CUSTOM_MULTI;
+        $this->_customIdx = $column;
+        $this->_rebuildIndex(self::IDX_CUSTOM_MULTI);
+
+        return $this;
+    }
+
     protected function _rebuildIndex($index) {
         // todo: dokumentacja, switch, walidacja
         $this->_idx[$index] = [];
@@ -158,6 +168,13 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         if ($this->_customIdx && $index == self::IDX_CUSTOM) {
             foreach ($this->_data as $key => $record) {
                 $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $key;
+            }
+        }
+
+        if ($this->_customIdx && $index == self::IDX_CUSTOM_MULTI) {
+            $this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}] = [];
+            foreach ($this->_data as $key => $record) {
+                $this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}][] = $key;
             }
         }
 
@@ -303,6 +320,10 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $this->_idx[self::IDX_HASH][$record->createRandomString()]        = $key;
             if ($this->_customIdx) {
                 $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $key;
+                if (!isset($this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}])) {
+                    $this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}] = [];
+                }
+                $this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}][] = $key;
             }
         }
     }
@@ -459,6 +480,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         if ($this->_customIdx) {
             $collection->_customIdx = $this->_customIdx;
             $collection->_rebuildIndex(self::IDX_CUSTOM);
+            $collection->_rebuildIndex(self::IDX_CUSTOM_MULTI);
         }
 
         return $collection;
@@ -519,6 +541,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      *
      * @param \Skinny\Db\Record\RecordBase $record
      * @param int $offset
+     * @todo obsługa indeksu multi
      */
     public function insertRecord(RecordBase $record, $offset) {
         if (key_exists($offset, $this->_data)) {
@@ -557,6 +580,10 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         $this->_idx[self::IDX_HASH][$record->createRandomString()]        = $offset;
         if ($this->_customIdx) {
             $this->_idx[self::IDX_CUSTOM][$record->{$this->_customIdx}] = $offset;
+            if (!isset($this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}])) {
+                $this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}] = [];
+            }
+            $this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}][] = $offset;
         }
     }
 
@@ -613,7 +640,15 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      */
     public function &get($name, $default = null) {
         if (key_exists($name, $this->_idx[$this->_useIndex])) {
-            return $this->_data[$this->_idx[$this->_useIndex][$name]];
+            if ($this->_useIndex != self::IDX_CUSTOM_MULTI) {
+                return $this->_data[$this->_idx[$this->_useIndex][$name]];
+            }
+
+            $result = [];
+            foreach ($this->_idx[$this->_useIndex][$name] as $id) {
+                $result[] = $this->_data[$id];
+            }
+            return $result;
         }
 
         return $default;
@@ -643,6 +678,10 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
             $this->_idx[self::IDX_HASH][$value->createRandomString()]        = $key;
             if ($this->_customIdx) {
                 $this->_idx[self::IDX_CUSTOM][$value->{$this->_customIdx}] = $key;
+                if (!isset($this->_idx[self::IDX_CUSTOM_MULTI][$value->{$this->_customIdx}])) {
+                    $this->_idx[self::IDX_CUSTOM_MULTI][$value->{$this->_customIdx}] = [];
+                }
+                $this->_idx[self::IDX_CUSTOM_MULTI][$value->{$this->_customIdx}][] = $key;
             }
         } elseif ($this->_useIndex === self::IDX_PLAIN) {
             $this->insertRecord($value, $name);
@@ -730,7 +769,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     public function toJson() {
         return json_encode($this->_data);
     }
-    
+
     /**
      * Redukuje kolekcję iterując przez wszystkie rekordy wykorzystując podaną funkcję zwrotną.
      * Działa analogicznie jak funkcja array_reduce.
@@ -746,7 +785,7 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
     public function reduce(\Closure $closure, $initialValue) {
         return array_reduce($this->toArray(), $closure, $initialValue);
     }
-    
+
     /**
      * Redukuje kolekcję do tablicy zawierającej rekordy w postaci tablicy.
      * Każdy rekord eksportowany jest przy pomocy metody $record->toArray().
@@ -755,9 +794,9 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
      */
     public function reduceToArray() {
         return $this->reduce(function($initial, $record) {
-            $initial[] = $record->toArray();
-            return $initial;
-        }, []);
+                $initial[] = $record->toArray();
+                return $initial;
+            }, []);
     }
 
 }
