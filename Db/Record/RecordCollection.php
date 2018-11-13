@@ -172,8 +172,10 @@ class RecordCollection extends \Skinny\DataObject\ArrayWrapper {
         }
 
         if ($this->_customIdx && $index == self::IDX_CUSTOM_MULTI) {
-            $this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}] = [];
             foreach ($this->_data as $key => $record) {
+                if (!isset($this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}])) {
+                    $this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}] = [];
+                }
                 $this->_idx[self::IDX_CUSTOM_MULTI][$record->{$this->_customIdx}][] = $key;
             }
         }
