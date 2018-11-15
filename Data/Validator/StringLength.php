@@ -104,7 +104,7 @@ class StringLength extends IsString {
             $value = trim($value);
         }
 
-        $this->_currentLength = strlen($value); // Ustawienie bieżącej długości stringa
+        $this->_currentLength = mb_strlen($value); // Ustawienie bieżącej długości stringa
         $this->setMessagesParams(['currentLength' => $this->_currentLength]); // Ustawienie bieżącej długości stringa
         // Sprawdzenie minimalnej długości stringa
         if (
