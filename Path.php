@@ -124,7 +124,8 @@ class Path {
             self::create($parent, $mode);
         }
 
-        return mkdir($path, $mode);
+        mkdir($path/* , $mode */);
+        return is_dir($path);
     }
 
 }
