@@ -54,7 +54,7 @@ class Router extends Router\RouterBase {
             }
 
             // jedziemy dalej, dlatego potrzebujemy arraya
-            if (!is_array($cursor[$keyPart])) {
+            if (isset($cursor[$keyPart]) && !is_array($cursor[$keyPart])) {
                 $cursor[$keyPart] = [];
             }
 
